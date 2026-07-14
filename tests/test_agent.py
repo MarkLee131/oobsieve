@@ -37,3 +37,53 @@ def test_prompt_omits_commit_when_disabled():
     agent = IntentAgent(MockLLMClient(["{}"]), use_commit_message=False)
     _system, user = agent.build_prompt(_ctx())
     assert "cleanup must pair" not in user
+
+def test_judge_skips_stray_json_object_before_real_blob():
+    # A stray, unrelated `{...}` appears in prose before the real JSON blob.
+    # The parser must not let it corrupt/short-circuit extraction of the real one.
+    real = json.dumps({"judgements": [
+        {"spec_id": 0, "verdict": "keep", "corrected_subject": None,
+         "intent_confidence": 0.9, "rationale": "commit names foo"},
+    ]})
+    resp = "Here is a note {not json} and then the answer:\n" + real
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert [j.verdict for j in js] == [Verdict.KEEP]
+    assert js[0].spec_id == 0
+
+def test_judge_handles_null_judgements():
+    resp = json.dumps({"judgements": None})
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert js == []
+
+def test_judge_handles_non_dict_judgement_entries():
+    resp = json.dumps({"judgements": ["oops"]})
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert js == []
+
+def test_judge_handles_top_level_json_list():
+    resp = json.dumps([1, 2, 3])
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert js == []
+
+def test_judge_skips_non_numeric_confidence():
+    resp = json.dumps({"judgements": [
+        {"spec_id": 0, "verdict": "keep", "corrected_subject": None,
+         "intent_confidence": "high", "rationale": "bad confidence"},
+    ]})
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert js == []
+
+def test_judge_coerces_numeric_string_spec_id():
+    resp = json.dumps({"judgements": [
+        {"spec_id": "0", "verdict": "keep", "corrected_subject": None,
+         "intent_confidence": 0.9, "rationale": "spec_id sent as string"},
+    ]})
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert [j.verdict for j in js] == [Verdict.KEEP]
+    assert js[0].spec_id == 0

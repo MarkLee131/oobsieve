@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, re
+import json
 from dataclasses import dataclass
 from enum import Enum
 from patchintent.context import PatchContext
@@ -61,25 +61,46 @@ class IntentAgent:
         data = _parse_json(raw)
         valid_ids = {s.spec_id for s in ctx.specs}
         out: list[SpecJudgement] = []
-        for j in data.get("judgements", []):
+        if not isinstance(data, dict):
+            return out
+        judgements = data.get("judgements", [])
+        if not isinstance(judgements, list):
+            return out
+        for j in judgements:
+            if not isinstance(j, dict):
+                continue
             sid = j.get("spec_id")
+            if isinstance(sid, str) and sid.lstrip("-").isdigit():
+                sid = int(sid)
             if sid not in valid_ids:
                 continue  # never accept invented spec ids
             try:
                 verdict = Verdict(j["verdict"])
-            except (KeyError, ValueError):
+                confidence = float(j.get("intent_confidence", 0.0))
+            except (KeyError, ValueError, TypeError):
                 continue
             out.append(SpecJudgement(
                 spec_id=sid, verdict=verdict,
                 corrected_subject=j.get("corrected_subject"),
-                intent_confidence=float(j.get("intent_confidence", 0.0)),
+                intent_confidence=confidence,
                 rationale=str(j.get("rationale", "")),
             ))
         return out
 
 def _parse_json(raw: str) -> dict:
+    raw = raw.strip()
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        m = re.search(r"\{.*\}", raw, re.DOTALL)
-        return json.loads(m.group(0)) if m else {"judgements": []}
+        pass
+    dec = json.JSONDecoder()
+    for i, ch in enumerate(raw):
+        if ch != "{":
+            continue
+        try:
+            obj, _end = dec.raw_decode(raw[i:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict):
+            return obj
+    return {"judgements": []}
