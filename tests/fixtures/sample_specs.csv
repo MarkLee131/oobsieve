@@ -1,0 +1,3 @@
+Spec Type,Indirect Call,Spec Input,Spec Output,Spec Cond SMT,Spec Orders
+Src Must Not Reach Sink,after.patch.ismt_access,Indirect call: after.patch.ismt_access Arg Name: arg_6:0,Used in sensitive API: llvm.memcpy.p0i8.p0i8.i64 Arg idx: 2,/spec_smt_0.smt,
+Src Must Reach Sink,after.patch.buffer_prepare,Error code: -12 Caused by Input Node: Return of API: after.patch.dma_alloc_coherent#-1,Return of indirect call: after.patch.buffer_prepare,/spec_smt_1.smt,
