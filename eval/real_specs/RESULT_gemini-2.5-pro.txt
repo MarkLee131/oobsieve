@@ -1,0 +1,17 @@
+# PatchIntent real-LLM validation (model=gemini-2.5-pro)
+
+## patch_2b064d9  (1 candidate spec(s))
+   commit: Subject: media: cx88: Fix a null-ptr-deref bug in buffer_prepare()
+   [spec 0]            KEEP  conf=1.00
+       rationale: The commit message states the fix is to check the return value of `cx88_risc_buffer()`. This function can fail due to an underlying `dma_alloc_coherent` failure, which returns -ENOMEM (-12). The patch adds the check `if (err)` and propagates the error with `return err;` in `buffer_prepare` (e.g., in drivers/media/pci/cx88/cx88-vbi.c at lines 153-154). This directly implements the value flow described in the spec, where an error code from the allocation must be propagated to the return value of `buffer_prepare`.
+
+## patch_39244cc  (1 candidate spec(s))
+   commit: Subject: i2c: ismt: Fix an out-of-bounds bug in ismt_access()
+   [spec 0]            KEEP  conf=1.00
+       rationale: The commit message and KASAN backtrace clearly indicate an out-of-bounds bug in `ismt_access` caused by a large, user-controlled value `data->block[0]`. This value is then used as the size argument in a `memcpy` call, leading to the crash. The patch fixes this by adding a bounds check on `data->block[0]` before it can reach the `memcpy`. The function signature for `ismt_access` is `static s32 ismt_access(struct i2c_adapter *adap, u16 addr, unsigned short flags, char read_write, u8 command, int size, union i2c_smbus_data *data)`, making `data` the 7th argument (index 6). Therefore, the specification correctly identifies that data from `arg_6` (`union i2c_smbus_data *data`) must not flow to the size argument (index 2) of `memcpy` without sanitization.
+
+## summary
+   specs judged : 2
+   keep         : 2
+   drop         : 0
+   subject-correct: 0
