@@ -1,0 +1,2 @@
+Spec Type,Indirect Call,Spec Input,Spec Output,Spec Cond SMT,Spec Orders
+Src Must Reach Sink,after.patch.buffer_prepare,Error code: -12 Caused by Input Node: Return of API: after.patch.dma_alloc_coherent#-1,Return of indirect call: drivers/media/pci/cx88/cx88-vbi.c:after.patch.buffer_prepare,/tmp/spec_smt_0.smt,,

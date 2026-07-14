@@ -1,0 +1,2 @@
+Spec Type,Indirect Call,Spec Input,Spec Output,Spec Cond SMT,Spec Orders
+Src Must Not Reach Sink,after.patch.ismt_access,Indirect call: drivers/i2c/busses/i2c-ismt.c:after.patch.ismt_access Arg Name: arg_6:0,Used in sensitive API: llvm.memcpy.p0i8.p0i8.i64 Arg idx: 2,/tmp/spec_smt_0.smt,,
