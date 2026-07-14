@@ -2,8 +2,8 @@
 """Turnkey real-LLM validation of the PatchIntent neuro layer (Layer 1).
 
 Runs the intent-reading agent with a REAL Gemini model over real SEAL specs
-(under eval/real_specs/), printing each spec's keep/drop/subject-correct verdict,
-confidence, and rationale, plus a summary.
+(under eval/real_specs/), printing each spec's keep/drop/subject-correct verdict
+and rationale, plus a summary.
 
 Requires GEMINI_API_KEY (or GOOGLE_API_KEY) in the environment.
 
@@ -60,8 +60,7 @@ def main(argv=None):
             kept += j.verdict.value == "keep"
             dropped += j.verdict.value == "drop"
             corrected += j.verdict.value == "subject-correct"
-            print(f"   [spec {j.spec_id}] {j.verdict.value.upper():>15}  "
-                  f"conf={j.intent_confidence:.2f}")
+            print(f"   [spec {j.spec_id}] {j.verdict.value.upper():>15}")
             print(f"       rationale: {j.rationale}")
             if j.corrected_subject:
                 print(f"       corrected subject: {j.corrected_subject}")

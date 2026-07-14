@@ -2,13 +2,13 @@
 
 ## patch_2b064d9  (1 candidate spec(s))
    commit: Subject: media: cx88: Fix a null-ptr-deref bug in buffer_prepare()
-   [spec 0]            KEEP  conf=1.00
-       rationale: The commit message states the fix is to check the return value of `cx88_risc_buffer()`. This function can fail due to an underlying `dma_alloc_coherent` failure, which returns -ENOMEM (-12). The patch adds the check `if (err)` and propagates the error with `return err;` in `buffer_prepare` (e.g., in drivers/media/pci/cx88/cx88-vbi.c at lines 153-154). This directly implements the value flow described in the spec, where an error code from the allocation must be propagated to the return value of `buffer_prepare`.
+   [spec 0]            KEEP
+       rationale: The patch modifies `buffer_prepare()` in `drivers/media/pci/cx88/cx88-vbi.c` to propagate the error code returned by `cx88_risc_buffer()`. The commit message states that a failure in `cx88_risc_buffer()` can lead to a null-pointer dereference later. A potential failure path for `cx88_risc_buffer()` is an allocation failure in `dma_alloc_coherent()`, which is called deeper in the call stack and results in an `-ENOMEM` (-12) error code. Before the patch, this error code was ignored. After the patch, the line `return err;` is added to `buffer_prepare` in `cx88-vbi.c`, ensuring the error code from `cx88_risc_buffer()` (originating from `dma_alloc_coherent()`) is propagated to the caller. This matches the spec's source (error from `dma_alloc_coherent`) and sink (return value of `buffer_prepare`).
 
 ## patch_39244cc  (1 candidate spec(s))
    commit: Subject: i2c: ismt: Fix an out-of-bounds bug in ismt_access()
-   [spec 0]            KEEP  conf=1.00
-       rationale: The commit message and KASAN backtrace clearly indicate an out-of-bounds bug in `ismt_access` caused by a large, user-controlled value `data->block[0]`. This value is then used as the size argument in a `memcpy` call, leading to the crash. The patch fixes this by adding a bounds check on `data->block[0]` before it can reach the `memcpy`. The function signature for `ismt_access` is `static s32 ismt_access(struct i2c_adapter *adap, u16 addr, unsigned short flags, char read_write, u8 command, int size, union i2c_smbus_data *data)`, making `data` the 7th argument (index 6). Therefore, the specification correctly identifies that data from `arg_6` (`union i2c_smbus_data *data`) must not flow to the size argument (index 2) of `memcpy` without sanitization.
+   [spec 0]            KEEP
+       rationale: The patch fixes an out-of-bounds bug caused by an unchecked user-provided size value. The commit message states, "the variable 'data->block[0]' may be very large to cause an out-of-bounds bug." The patch adds a check `if (data->block[0] > I2C_SMBUS_BLOCK_MAX)` before this value is used as the size argument in a subsequent `memcpy` call: `memcpy(&priv->smb_block_data[1], &data->block[1], data->block[0]);`. The specification correctly identifies the source as the 6th argument of `ismt_access` (`data->block[0]`) and the sink as the size argument (index 2) of `memcpy`, which is precisely the vulnerable flow that the patch remedies.
 
 ## summary
    specs judged : 2

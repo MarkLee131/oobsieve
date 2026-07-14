@@ -25,6 +25,5 @@ def write_audit(path: str, judgements: list[SpecJudgement]) -> None:
                 "spec_id": j.spec_id,
                 "verdict": j.verdict.value,
                 "corrected_subject": j.corrected_subject,
-                "intent_confidence": j.intent_confidence,
                 "rationale": j.rationale,
             }) + "\n")

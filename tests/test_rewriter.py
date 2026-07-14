@@ -12,9 +12,9 @@ def _specs():
 
 def test_apply_drops_corrects_and_keeps():
     js = [
-        SpecJudgement(0, Verdict.KEEP, None, 0.9, "r"),
-        SpecJudgement(1, Verdict.DROP, None, 0.8, "r"),
-        SpecJudgement(2, Verdict.SUBJECT_CORRECT, "fixed_input", 0.7, "r"),
+        SpecJudgement(0, Verdict.KEEP, None, "r"),
+        SpecJudgement(1, Verdict.DROP, None, "r"),
+        SpecJudgement(2, Verdict.SUBJECT_CORRECT, "fixed_input", "r"),
     ]
     out = apply_judgements(_specs(), js)
     assert [s.spec_id for s in out] == [0, 2]
@@ -26,6 +26,6 @@ def test_missing_judgement_defaults_to_keep():
 
 def test_write_audit_jsonl(tmp_path):
     p = tmp_path / "audit.jsonl"
-    write_audit(str(p), [SpecJudgement(0, Verdict.DROP, None, 0.8, "spurious")])
+    write_audit(str(p), [SpecJudgement(0, Verdict.DROP, None, "spurious")])
     row = json.loads(p.read_text().splitlines()[0])
     assert row["spec_id"] == 0 and row["verdict"] == "drop"

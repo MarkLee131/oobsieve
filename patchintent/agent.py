@@ -15,7 +15,6 @@ class SpecJudgement:
     spec_id: int
     verdict: Verdict
     corrected_subject: str | None
-    intent_confidence: float
     rationale: str
 
 _SYSTEM = (
@@ -26,9 +25,8 @@ _SYSTEM = (
     "'subject-correct' (spec is about the wrong interface/argument; provide the "
     "corrected subject string). You MUST NOT invent new specs or new spec_ids. "
     "Every rationale MUST cite concrete evidence from the provided material. "
-    "intent_confidence is a float from 0.0 (no confidence) to 1.0 (certain). "
     'Respond ONLY with JSON: {"judgements":[{"spec_id":int,"verdict":str,'
-    '"corrected_subject":str|null,"intent_confidence":float,"rationale":str}]}'
+    '"corrected_subject":str|null,"rationale":str}]}'
 )
 
 def _render_specs(ctx: PatchContext) -> str:
@@ -94,14 +92,11 @@ class IntentAgent:
             sid = int(sid)  # normalize (e.g. float like 0.0) to a plain int
             try:
                 verdict = Verdict(j["verdict"])
-                confidence = float(j.get("intent_confidence", 0.0))
-            except (KeyError, ValueError, TypeError):
+            except (KeyError, ValueError):
                 continue
-            confidence = max(0.0, min(1.0, confidence))  # clamp to [0,1]
             out.append(SpecJudgement(
                 spec_id=sid, verdict=verdict,
                 corrected_subject=j.get("corrected_subject"),
-                intent_confidence=confidence,
                 rationale=str(j.get("rationale", "")),
             ))
         return out
