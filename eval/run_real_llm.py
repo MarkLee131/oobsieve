@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Turnkey real-LLM validation of the PatchIntent neuro layer (Layer 1).
 
-Runs the intent-reading agent with a REAL Anthropic model over real SEAL specs
+Runs the intent-reading agent with a REAL Gemini model over real SEAL specs
 (under eval/real_specs/), printing each spec's keep/drop/subject-correct verdict,
 confidence, and rationale, plus a summary.
 
-Requires ANTHROPIC_API_KEY in the environment.
+Requires GEMINI_API_KEY (or GOOGLE_API_KEY) in the environment.
 
 Usage (from the repo root):
-    ANTHROPIC_API_KEY=sk-... python3 eval/run_real_llm.py [--model claude-fable-5]
+    GEMINI_API_KEY=... python3 eval/run_real_llm.py [--model gemini-2.5-pro]
 
 Each subdir of eval/real_specs/ is a SEAL patch dir: specs.csv (real SEAL output)
 + commit_meta.json (real commit message) + diff.txt.
@@ -29,15 +29,15 @@ REAL_SPECS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "real_
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Real-LLM validation of the neuro layer")
-    ap.add_argument("--model", default="claude-fable-5")
+    ap.add_argument("--model", default="gemini-2.5-pro")
     ap.add_argument("--specs-dir", default=REAL_SPECS_DIR)
     args = ap.parse_args(argv)
 
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        sys.exit("ANTHROPIC_API_KEY is not set. Export it and re-run.")
+    if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
+        sys.exit("GEMINI_API_KEY (or GOOGLE_API_KEY) is not set. Export it and re-run.")
 
-    from patchintent.llm.anthropic_client import AnthropicClient
-    client = AnthropicClient(model=args.model)
+    from patchintent.llm.gemini_client import GeminiClient
+    client = GeminiClient(model=args.model)
 
     patch_dirs = sorted(
         os.path.join(args.specs_dir, d)

@@ -2,10 +2,11 @@
 name = "patchintent"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["anthropic>=0.40"]
+dependencies = ["google-genai>=1.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+anthropic = ["anthropic>=0.40"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

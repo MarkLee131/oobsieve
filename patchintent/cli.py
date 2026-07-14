@@ -18,11 +18,11 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="PatchIntent neuro layer")
     ap.add_argument("patch_dirs", nargs="+")
     ap.add_argument("--source-root", default=None)
-    ap.add_argument("--model", default="claude-fable-5")
+    ap.add_argument("--model", default="gemini-2.5-pro")
     ap.add_argument("--no-commit-message", action="store_true")
     args = ap.parse_args(argv)
-    from patchintent.llm.anthropic_client import AnthropicClient
-    client = AnthropicClient(model=args.model)
+    from patchintent.llm.gemini_client import GeminiClient
+    client = GeminiClient(model=args.model)
     for pd in args.patch_dirs:
         refined, judgements = refine_patch(
             pd, client, source_root=args.source_root,
