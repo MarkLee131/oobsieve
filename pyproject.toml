@@ -11,7 +11,4 @@ dev = ["pytest>=8.0"]
 testpaths = ["tests"]
 
 [tool.setuptools]
-packages = ["patchintent"]
-
-[tool.setuptools.package-dir]
-"" = "."
+packages = ["patchintent", "patchintent.llm"]

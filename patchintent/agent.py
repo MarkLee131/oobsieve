@@ -70,10 +70,13 @@ class IntentAgent:
             if not isinstance(j, dict):
                 continue
             sid = j.get("spec_id")
+            if isinstance(sid, bool):
+                continue  # bool is a subclass of int; True/False must not alias 1/0
             if isinstance(sid, str) and sid.lstrip("-").isdigit():
                 sid = int(sid)
             if sid not in valid_ids:
                 continue  # never accept invented spec ids
+            sid = int(sid)  # normalize (e.g. float like 0.0) to a plain int
             try:
                 verdict = Verdict(j["verdict"])
                 confidence = float(j.get("intent_confidence", 0.0))

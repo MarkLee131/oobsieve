@@ -87,3 +87,24 @@ def test_judge_coerces_numeric_string_spec_id():
     js = agent.judge(_ctx())
     assert [j.verdict for j in js] == [Verdict.KEEP]
     assert js[0].spec_id == 0
+
+def test_judge_rejects_boolean_spec_id():
+    # JSON `true`/`false` must not alias valid ids 1/0 via Python's bool==int quirk.
+    resp = json.dumps({"judgements": [
+        {"spec_id": True, "verdict": "keep", "corrected_subject": None,
+         "intent_confidence": 0.9, "rationale": "boolean spec_id"},
+    ]})
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert js == []
+
+def test_judge_normalizes_float_spec_id_to_int():
+    resp = json.dumps({"judgements": [
+        {"spec_id": 0.0, "verdict": "keep", "corrected_subject": None,
+         "intent_confidence": 0.9, "rationale": "spec_id sent as float"},
+    ]})
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert [j.verdict for j in js] == [Verdict.KEEP]
+    assert js[0].spec_id == 0
+    assert type(js[0].spec_id) is int

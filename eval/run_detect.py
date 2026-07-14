@@ -15,8 +15,15 @@ def run_detect(specs_csv: str, target_bc: str, report_json: str) -> None:
 def _bug_keys(report: list[dict]) -> set[tuple]:
     return {(b.get("file"), b.get("line"), b.get("spec_type")) for b in report}
 
+def _sort_key(t: tuple) -> tuple:
+    # Bug keys may mix None (e.g. missing `line`) with ints/strs; str()-ify each
+    # element so sorted() never has to compare None to an int (TypeError).
+    return tuple(str(x) for x in t)
+
 def diff_bugs(baseline_json: str, neuro_json: str) -> dict:
     b = json.load(open(baseline_json)); n = json.load(open(neuro_json))
     bk, nk = _bug_keys(b), _bug_keys(n)
-    return {"only_baseline": sorted(bk - nk), "only_neuro": sorted(nk - bk),
-            "shared": sorted(bk & nk), "n_baseline": len(bk), "n_neuro": len(nk)}
+    return {"only_baseline": sorted(bk - nk, key=_sort_key),
+            "only_neuro": sorted(nk - bk, key=_sort_key),
+            "shared": sorted(bk & nk, key=_sort_key),
+            "n_baseline": len(bk), "n_neuro": len(nk)}
