@@ -1,0 +1,18 @@
+# scanned 1 files, 27 memory-op sites; checking up to 18
+
+[VIOLATION] archive_read_support_format_rar.c:1304  sev=high
+    op: memcpy(unp_size + 4, p, 4); /* High unpack size */
+    The memory operation is `memcpy(unp_size + 4, p, 4);`. The size argument is the constant `4`. The source pointer `p` points into a buffer `h`, which was populated via `__archive_read_ahead(a, (size_t)header_size - 7, NULL)`. The `header_size` value is read from the input RAR header (`rar_header.size`) and is therefore input-derived. The `endp` pointer marks the end of the `h` buffer, so `endp = h + header_size - 7;`. 
+
+At the point of this memcpy, `p` has been advanced by `sizeof(file_header)` (32 bytes) and then by `4` bytes (for the high part of `packed_size`). Thus, `p` is `h + 36`. The `memcpy` attempts to read `4` bytes from `p`, meaning it accesses `h[36]` through `h[39]`. The last byte accessed is `h[39]` (offset 39 from `h`).
+
+For this access to be safe, the available size in the source buffer `h` must be at least `36 + 4 = 40` bytes. The available size in `h` is `header_size - 7`. Therefore, we need `header_size - 7 >= 40`, which means `header_size >= 47`.
+
+The only bounds check related to `header_size` before this operation is `if (header_size < (int64_t)sizeof(file_header) + 7)`, which simplifies to `if (header_size < 39)`. This check is insufficient, as it allows `header_size` to be values between 39 and 46 (inclusive). For such `header_size` values, if the `FHD_LARGE` flag is set, `p + 4` will read beyond the bounds of the `h` buffer.
+
+The SPEC states that an input-derived size (like the effective source buffer size `endp - p`, or `header_size - 7 - (p - h)`) must be bounds-checked before being used as the size argument. Here, the constant `4` (the size argument) is being used. The implicit 'source buffer size' it is being consumed from (`endp - p`) is input-derived. A direct check `if (p + 4 > endp)` (or equivalent) is missing, and the existing `header_size` check is inadequate. This constitutes a violation as an input-derived size (`header_size`) ultimately determines the bounds of the source buffer `p` and the constant size `4` is used without proper bounds checking against those input-derived bounds.
+
+This is a real out-of-bounds read vulnerability, confirmed by patches in libarchive that added checks like `if (p + 4 > endp)` at these locations.
+
+## summary: 1 candidate real bugs out of 18 sites checked
+findings -> /home/likaixuan/static_analysis/linux-spec-sast/patchintent/eval/detect_real_findings.json
