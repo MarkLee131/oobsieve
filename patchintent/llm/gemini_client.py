@@ -10,7 +10,7 @@ class GeminiClient:
     Reads the API key from GEMINI_API_KEY (falling back to GOOGLE_API_KEY).
     """
 
-    def __init__(self, model: str = "gemini-2.5-pro", max_output_tokens: int = 4096):
+    def __init__(self, model: str = "gemini-2.5-pro", max_output_tokens: int = 8192):
         self.model = model
         self.max_output_tokens = max_output_tokens
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ["GOOGLE_API_KEY"]

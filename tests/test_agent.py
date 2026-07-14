@@ -108,3 +108,30 @@ def test_judge_normalizes_float_spec_id_to_int():
     assert [j.verdict for j in js] == [Verdict.KEEP]
     assert js[0].spec_id == 0
     assert type(js[0].spec_id) is int
+
+
+def test_judge_clamps_confidence_to_unit_interval():
+    resp = json.dumps({"judgements": [
+        {"spec_id": 0, "verdict": "keep", "corrected_subject": None,
+         "intent_confidence": 5.0, "rationale": "r"},
+    ]})
+    agent = IntentAgent(MockLLMClient([resp]))
+    js = agent.judge(_ctx())
+    assert js[0].intent_confidence == 1.0
+
+
+def test_judge_retries_on_empty_then_succeeds():
+    empty = json.dumps({"judgements": []})
+    good = json.dumps({"judgements": [
+        {"spec_id": 0, "verdict": "keep", "corrected_subject": None,
+         "intent_confidence": 0.9, "rationale": "r"},
+    ]})
+    agent = IntentAgent(MockLLMClient([empty, good]), retries=1)
+    js = agent.judge(_ctx())
+    assert len(js) == 1 and js[0].verdict.value == "keep"
+
+
+def test_judge_no_retry_by_default_single_shot():
+    # default retries=0 consumes exactly one response, returns empty on empty
+    agent = IntentAgent(MockLLMClient([json.dumps({"judgements": []})]))
+    assert agent.judge(_ctx()) == []

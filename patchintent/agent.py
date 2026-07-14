@@ -26,6 +26,7 @@ _SYSTEM = (
     "'subject-correct' (spec is about the wrong interface/argument; provide the "
     "corrected subject string). You MUST NOT invent new specs or new spec_ids. "
     "Every rationale MUST cite concrete evidence from the provided material. "
+    "intent_confidence is a float from 0.0 (no confidence) to 1.0 (certain). "
     'Respond ONLY with JSON: {"judgements":[{"spec_id":int,"verdict":str,'
     '"corrected_subject":str|null,"intent_confidence":float,"rationale":str}]}'
 )
@@ -40,9 +41,11 @@ def _render_specs(ctx: PatchContext) -> str:
     return "\n".join(lines)
 
 class IntentAgent:
-    def __init__(self, client: LLMClient, use_commit_message: bool = True):
+    def __init__(self, client: LLMClient, use_commit_message: bool = True,
+                 retries: int = 0):
         self.client = client
         self.use_commit_message = use_commit_message
+        self.retries = retries
 
     def build_prompt(self, ctx: PatchContext) -> tuple[str, str]:
         parts = [f"Patch: {ctx.patch_id}", "", "Candidate specs:", _render_specs(ctx)]
@@ -57,9 +60,21 @@ class IntentAgent:
 
     def judge(self, ctx: PatchContext) -> list[SpecJudgement]:
         system, user = self.build_prompt(ctx)
+        valid_ids = {s.spec_id for s in ctx.specs}
+        # Retry only on a transient empty result when candidates exist (real LLMs
+        # occasionally return an unparseable / empty response). retries=0 keeps
+        # single-shot semantics (the default, exercised by the parsing tests).
+        out: list[SpecJudgement] = []
+        for _ in range(1 + max(0, self.retries)):
+            out = self._judge_once(system, user, valid_ids)
+            if out or not valid_ids:
+                break
+        return out
+
+    def _judge_once(self, system: str, user: str,
+                    valid_ids: set[int]) -> list[SpecJudgement]:
         raw = self.client.complete(system, user)
         data = _parse_json(raw)
-        valid_ids = {s.spec_id for s in ctx.specs}
         out: list[SpecJudgement] = []
         if not isinstance(data, dict):
             return out
@@ -82,6 +97,7 @@ class IntentAgent:
                 confidence = float(j.get("intent_confidence", 0.0))
             except (KeyError, ValueError, TypeError):
                 continue
+            confidence = max(0.0, min(1.0, confidence))  # clamp to [0,1]
             out.append(SpecJudgement(
                 spec_id=sid, verdict=verdict,
                 corrected_subject=j.get("corrected_subject"),

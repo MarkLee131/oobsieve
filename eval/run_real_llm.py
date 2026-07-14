@@ -51,7 +51,7 @@ def main(argv=None):
     print(f"# PatchIntent real-LLM validation (model={args.model})\n")
     for pd in patch_dirs:
         ctx = assemble(pd)
-        _refined, judgements = refine_patch(pd, client)
+        _refined, judgements = refine_patch(pd, client, retries=2)
         print(f"## {ctx.patch_id}  ({len(ctx.specs)} candidate spec(s))")
         subject = ctx.commit_message.splitlines()[0] if ctx.commit_message else "(no message)"
         print(f"   commit: {subject}")
