@@ -1,0 +1,2 @@
+Spec Type,Indirect Call,Spec Input,Spec Output,Spec Cond SMT,Spec Orders
+Src Must Not Reach Sink,after.patch.foo_print,Indirect call: after.patch.foo_print Arg Name: arg_1:0,Used in sensitive API: memcpy Arg idx: 2,/s.smt,
