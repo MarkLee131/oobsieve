@@ -339,6 +339,17 @@ def sink_is_guarded(f: Func, sink_ins: dict, rel_vars: set[str],
     return False
 
 
+def _root_ptr(v: str, insmap: dict) -> str:
+    """Follow getelementptr / bitcast to the root pointer value."""
+    for _ in range(12):
+        ins = insmap.get(v)
+        if ins and ins["opcode"] in ("getelementptr", "bitcast") and ins["ops"]:
+            v = ins["ops"][0]
+        else:
+            break
+    return v
+
+
 def find_candidates(f: Func, tainted: set[str], bounded: set[str],
                     dbg: dict) -> list[dict]:
     dom = dominators(f)
@@ -364,6 +375,13 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # safe. A merely CONSTANT size is NOT "clamped": a constant-size READ from a
         # tainted pointer with an unbounded offset is still OOB (e.g. p+4 past end).
         size_clamped = bool(size_v) and all(v in bounded for v in size_v)
+        # intra-array element move: `arr[i] = arr[j]` (memcpy of one element between
+        # two slots of the SAME array, constant size) is an in-array shuffle, not an
+        # overflow. Different bases (rar:2802 dst=unp_buffer, src=lzss.window) are kept.
+        if not size_v and dst_v and src_v and \
+                value_sig(_root_ptr(dst_v[0], insmap), insmap, sig_memo) == \
+                value_sig(_root_ptr(src_v[0], insmap), insmap, sig_memo):
+            continue
         # malloc-to-fit (field-sensitive): the destination was allocated with the same
         # size expression (matched by value signature, through struct-field loads).
         if size_v and any(value_sig(v, insmap, sig_memo) in alloc_sigs for v in size_v):

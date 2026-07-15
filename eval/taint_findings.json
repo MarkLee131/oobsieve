@@ -56,33 +56,9 @@
   "file": "archive_read_support_format_iso9660.c"
  },
  {
-  "func": "register_CE",
-  "sink": "memcpy",
-  "line": 2301,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "next_CE",
-  "sink": "memcpy",
-  "line": 2322,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
   "func": "next_CE",
   "sink": "memcpy",
   "line": 2344,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "next_CE",
-  "sink": "memcpy",
-  "line": 2345,
   "tainted_operand": "src-ptr",
   "size_expr": "i64 16",
   "file": "archive_read_support_format_iso9660.c"

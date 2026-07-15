@@ -186,3 +186,23 @@ pointer tracing -> filtered at the parser.
 via the full Pinpoint-style stack: sparse value-flow taint, sanitizer/clamp modeling,
 field-sensitive (access-path) memory, path-sensitive guarded value-flow, and on-demand
 SMT path conditions + buffer-capacity sufficiency.
+
+---
+
+# Role of this analysis code (scope note)
+
+`taint_llvm.py` + `smt_path.py` are ONE COMPONENT of the overall PatchIntent tool:
+the SYMBOLIC candidate-finder of the DETECT half (the "symbolic" in neuro-symbolic
+detection). Its target is a high-recall, SOUND, good-enough pre-filter so the neural
+(Gemini) confirmation is tractable and accurate. It is NOT meant to be a complete
+standalone bug detector (that would re-implement Clearblue/Pinpoint wholesale).
+
+The overall tool (main line) is:
+  patch -> value-flow spec -> LLM refine -> DETECT (this engine) -> LLM confirm -> bugs
+
+## Component goal: reached
+85 -> 20 candidates (final), 8/8 real bugs retained, sound throughout, candidate
+precision 9% -> 40%. Added an intra-array element-move filter (`arr[i]=arr[j]`, same
+base by value-signature, constant element size) removing heap sift/swap FPs.
+Remaining FPs are deep (need loop invariants like cnt<=allocated) and not worth more
+investment at the component level.
