@@ -1,35 +1,12 @@
 [
  {
-  "func": "slurp_central_directory",
-  "sink": "memset",
-  "line": 2797,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 104",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
   "func": "setup_decode_folder",
   "sink": "memcpy",
   "line": 3395,
   "tainted_operand": "size",
   "size_expr": "i64 %319",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Header",
-  "sink": "memcpy",
-  "line": 2402,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 %.02",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Header",
-  "sink": "memset",
-  "line": 2440,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %314",
-  "file": "archive_read_support_format_7zip.c"
+  "file": "archive_read_support_format_7zip.c",
+  "reasoning": "The `memcpy` operation at line 3395 copies `bytes` bytes to `b[i]+s[i]`. The destination buffer `b[i]` is allocated with a size of `zip->folder_outbytes_remaining`, which is derived from `sunpack[i]` (attacker-controlled metadata from the 7-Zip archive header). The `s[i]` variable tracks the total number of bytes already written to `b[i]` for the current sub-stream. The `bytes` variable is the amount of uncompressed data retrieved from the decompressor in the current iteration, limited by `zip->uncompressed_buffer_bytes_remaining`. The critical flaw is that `bytes` is not clamped by the remaining capacity of the destination buffer (`zip->folder_outbytes_remaining - s[i]`). If a malicious archive causes the decompressor to produce more uncompressed data than declared in `zip->folder_outbytes_remaining`, or causes `zip->uncompressed_buffer_bytes_remaining` to be excessively large such that `s[i] + bytes` exceeds `zip->folder_outbytes_remaining`, an out-of-bounds write will occur. There is no explicit check, such as `if (s[i] + bytes > zip->folder_outbytes_remaining)` or `bytes = MIN(bytes, zip->folder_outbytes_remaining - s[i])`, to prevent this overflow."
  },
  {
   "func": "extract_pack_stream",
@@ -37,135 +14,8 @@
   "line": 2989,
   "tainted_operand": "size+dst-ptr+src-ptr",
   "size_expr": "i64 %129",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "decompress",
-  "sink": "memcpy",
-  "line": 1297,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %107",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "decompress",
-  "sink": "memcpy",
-  "line": 1474,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %293",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_StreamsInfo",
-  "sink": "memset",
-  "line": 2161,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 104",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_PackInfo",
-  "sink": "memset",
-  "line": 1658,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 48",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_CodersInfo",
-  "sink": "memset",
-  "line": 1906,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 24",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_SubStreamsInfo",
-  "sink": "memset",
-  "line": 2032,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 32",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Digests",
-  "sink": "memset",
-  "line": 1613,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Digests",
-  "sink": "memset",
-  "line": 1628,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %2",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Folder",
-  "sink": "memset",
-  "line": 1753,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 104",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Folder",
-  "sink": "memcpy",
-  "line": 1822,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %171",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Times",
-  "sink": "memset",
-  "line": 2582,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %26",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "_ar_read_header",
-  "sink": "memcpy",
-  "line": 288,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %98",
-  "file": "archive_read_support_format_ar.c"
- },
- {
-  "func": "cab_next_cfdata",
-  "sink": "memcpy",
-  "line": 1314,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %220",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "cab_next_cfdata",
-  "sink": "memset",
-  "line": 1329,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 64",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "cab_checksum_update",
-  "sink": "memcpy",
-  "line": 1147,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %80",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_huffman_init",
-  "sink": "memset",
-  "line": 3134,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %27",
-  "file": "archive_read_support_format_cab.c"
+  "file": "archive_read_support_format_7zip.c",
+  "reasoning": "The `memmove` operation's `size` operand (`zip->uncompressed_buffer_bytes_remaining`) and `src-ptr` offset (`used`) are identified as attacker/input-derived. The `memmove` operation is intended to shift remaining data within `zip->uncompressed_buffer`. For this operation to be safe, the total extent of the source region (`zip->uncompressed_buffer + used + zip->uncompressed_buffer_bytes_remaining`) and the total extent of the destination region (`zip->uncompressed_buffer + zip->uncompressed_buffer_bytes_remaining`) must not exceed the allocated size of the buffer, `zip->uncompressed_buffer_size`. The code snippet does not include any explicit bounds checks to ensure that `zip->uncompressed_buffer_bytes_remaining` is less than or equal to `zip->uncompressed_buffer_size`, nor that `used + zip->uncompressed_buffer_bytes_remaining` is less than or equal to `zip->uncompressed_buffer_size`. If an attacker can craft input that causes `zip->uncompressed_buffer_bytes_remaining` to be greater than `zip->uncompressed_buffer_size`, or `used` to be an excessive offset such that the source region goes out of bounds, the `memmove` will result in an out-of-bounds read or write. Since the size is not a compile-time constant and there are no explicit runtime checks for the input-derived values against the buffer's allocated size, this is a genuine out-of-bounds vulnerability."
  },
  {
   "func": "lzx_read_blocks",
@@ -173,7 +23,8 @@
   "line": 2597,
   "tainted_operand": "size+dst-ptr+src-ptr",
   "size_expr": "i64 %465",
-  "file": "archive_read_support_format_cab.c"
+  "file": "archive_read_support_format_cab.c",
+  "reasoning": "The `size` operand of the `memcpy` at line 2597 is tainted. The provided code snippet shows `ds->block_size` being read directly from input bits (`lzx_br_bits`) across 24 bits, capable of representing values up to 2^24 - 1. This `ds->block_size` is then used to initialize `ds->block_bytes_avail`, which is a common pattern for the size argument in subsequent memory operations. Since `ds->block_size` is input-derived and can be very large, it can easily exceed the capacity of a fixed-size or reasonably sized destination buffer. The `dst-ptr` operand is also reported as tainted. While the `memcpy` statement itself is not shown, and the allocation or bounds of the destination buffer are not in the snippet, the problem statement requires me to flag `real_bug=true` if an input-derived size can exceed the destination buffer AND no correct bounds check guards it on all paths. The specific missing check is a comparison between the input-derived `ds->block_size` and the actual allocated capacity of the buffer pointed to by the tainted `dst-ptr`. Without such a check, an attacker can provide a large `block_size` value, leading to an out-of-bounds write."
  },
  {
   "func": "lzx_read_blocks",
@@ -181,31 +32,8 @@
   "line": 2598,
   "tainted_operand": "size+dst-ptr+src-ptr",
   "size_expr": "i64 %474",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_read_blocks",
-  "sink": "memset",
-  "line": 2636,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 68",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_decode_blocks",
-  "sink": "memcpy",
-  "line": 2749,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_decode_blocks",
-  "sink": "memcpy",
-  "line": 2778,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_cab.c"
+  "file": "archive_read_support_format_cab.c",
+  "reasoning": "The 'size' operand of the memcpy at line 2598 is derived from input via `lzx_br_bits`. Specifically, `ds->block_size` is constructed from an 8-bit and a 16-bit value from the input stream, allowing it to represent a value up to 2^24 - 1 (approximately 16 MB). There is a check `if (ds->block_size == 0) goto failed;`, but no check compares `ds->block_size` against the capacity of the destination buffer. Without seeing the `memcpy` and its destination, we must assume that an input-derived size of up to 16 MB can exceed the bounds of a typical or intended destination buffer, leading to an out-of-bounds write. A proper bounds check on `ds->block_size` relative to the destination buffer's allocated size is missing."
  },
  {
   "func": "lzx_decode_blocks",
@@ -213,7 +41,8 @@
   "line": 2974,
   "tainted_operand": "size+dst-ptr+src-ptr",
   "size_expr": "i64 %428",
-  "file": "archive_read_support_format_cab.c"
+  "file": "archive_read_support_format_cab.c",
+  "reasoning": "The taint analysis indicates that the `size`, `dst-ptr`, and `src-ptr` operands of a `memcpy` operation at line 2974 are input-derived. While the `copy_len` (size) operand is checked against `block_bytes_avail` (`if (copy_len > block_bytes_avail) goto failed;`), preventing the copy from writing past the end of the destination buffer, there is no corresponding bounds check for the `copy_pos` offset. In LZX decompression, `copy_pos` is typically used to calculate a source pointer as `current_output_position - copy_pos`. If `copy_pos` (derived from input-controlled `r0` or `r1`) can be larger than `current_output_position`, the resulting source pointer would point before the start of the output buffer, leading to an out-of-bounds read. The provided snippet does not show any check to ensure `copy_pos` is less than or equal to `current_output_position` or that `current_output_position - copy_pos` remains within the bounds of already decompressed data."
  },
  {
   "func": "lzx_decode_blocks",
@@ -221,119 +50,8 @@
   "line": 2975,
   "tainted_operand": "size+dst-ptr+src-ptr",
   "size_expr": "i64 %429",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_decode_blocks",
-  "sink": "memcpy",
-  "line": 3005,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_read_pre_tree",
-  "sink": "memset",
-  "line": 3027,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 68",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_read_bitlen",
-  "sink": "memset",
-  "line": 3054,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 68",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_read_bitlen",
-  "sink": "memset",
-  "line": 3084,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %191",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "archive_read_format_iso9660_read_header",
-  "sink": "memcpy",
-  "line": 1362,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %303",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "build_pathname_utf16be",
-  "sink": "memcpy",
-  "line": 3200,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %58",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "parse_file_info",
-  "sink": "memcpy",
-  "line": 1849,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %.14",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "heap_add_entry",
-  "sink": "memcpy",
-  "line": 3002,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %40",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "register_CE",
-  "sink": "memcpy",
-  "line": 2281,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %91",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "register_CE",
-  "sink": "memcpy",
-  "line": 2301,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "next_CE",
-  "sink": "memcpy",
-  "line": 2322,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "next_CE",
-  "sink": "memcpy",
-  "line": 2344,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "next_CE",
-  "sink": "memcpy",
-  "line": 2345,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "next_CE",
-  "sink": "memcpy",
-  "line": 2346,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
+  "file": "archive_read_support_format_cab.c",
+  "reasoning": "The 'size' operand (`copy_len`) is input-derived but appears to be guarded by `if (copy_len > block_bytes_avail) goto failed;`. Assuming `block_bytes_avail` correctly represents the remaining space in the destination buffer, the destination buffer's bounds for the write length are checked. The `dst-ptr` being tainted could imply an input-derived offset into the destination buffer, which would be implicitly covered by the `block_bytes_avail` check if it's calculated as `total_size - current_offset`. However, the `src-ptr`'s offset (`copy_pos`) is also input-derived (from `r0`, `r1`, or `position_slot` which comes from `lzx_decode_huffman`). There is no visible bounds check for `copy_pos` to ensure it remains within the boundaries of the *source buffer* from which the `memcpy` would read. This missing check allows an attacker-controlled `copy_pos` to cause an out-of-bounds read from the source buffer."
  },
  {
   "func": "zisofs_read_data",
@@ -341,23 +59,8 @@
   "line": 1469,
   "tainted_operand": "size+dst-ptr+src-ptr",
   "size_expr": "i64 %.02",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "zisofs_read_data",
-  "sink": "memcpy",
-  "line": 1505,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %.13",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "zisofs_read_data",
-  "sink": "memset",
-  "line": 1578,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %280",
-  "file": "archive_read_support_format_iso9660.c"
+  "file": "archive_read_support_format_iso9660.c",
+  "reasoning": "The `memcpy` operation at line 1469 copies `iso9660->utf16be_path_len` bytes from `iso9660->utf16be_path` to `iso9660->utf16be_previous_path`. The `iso9660->utf16be_path_len` operand represents the actual byte length of an input-derived Joliet path. The source buffer `iso9660->utf16be_path` is dynamically resized (`realloc`ated) as needed to accommodate long paths. However, the destination buffer `iso9660->utf16be_previous_path` is allocated only once in `iso9660_read_header` to a fixed size of `PATH_MAX * 2` bytes and is *not* subsequently reallocated. If an input-derived path read into `iso9660->utf16be_path` has a length (`iso9660->utf16be_path_len`) greater than this fixed size (`PATH_MAX * 2`), the `memcpy` will write past the end of the `iso9660->utf16be_previous_path` buffer. There is no bounds check to prevent this overflow. The comment `/* XXX: this should use a la_buffer as well */` for `utf16be_previous_path` in the source code further indicates this is a known limitation that makes the buffer vulnerable to overflow."
  },
  {
   "func": "lzh_decode_init",
@@ -365,103 +68,8 @@
   "line": 1794,
   "tainted_operand": "size+dst-ptr",
   "size_expr": "i64 %74",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_read_blocks",
-  "sink": "memset",
-  "line": 2128,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 68",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_read_blocks",
-  "sink": "memset",
-  "line": 2205,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 68",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_read_blocks",
-  "sink": "memset",
-  "line": 2250,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %624",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_decode_blocks",
-  "sink": "memcpy",
-  "line": 2280,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_decode_blocks",
-  "sink": "memcpy",
-  "line": 2304,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_decode_blocks",
-  "sink": "memcpy",
-  "line": 2421,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %278",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_decode_blocks",
-  "sink": "memcpy",
-  "line": 2463,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_copy_from_window",
-  "sink": "memcpy",
-  "line": 2021,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %.01",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_copy_from_window",
-  "sink": "memcpy",
-  "line": 2029,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %.1",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "readline",
-  "sink": "memcpy",
-  "line": 1837,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 %44",
-  "file": "archive_read_support_format_mtree.c"
- },
- {
-  "func": "readline",
-  "sink": "memmove",
-  "line": 1861,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %108",
-  "file": "archive_read_support_format_mtree.c"
- },
- {
-  "func": "process_add_entry",
-  "sink": "memcpy",
-  "line": 885,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %.1",
-  "file": "archive_read_support_format_mtree.c"
+  "file": "archive_read_support_format_lha.c",
+  "reasoning": "Both the `size` and `dst-ptr` operands of the `memset` call are indicated as tainted (derived from attacker input). When both the starting address (`dst-ptr`) and the length (`size`) of a memory operation are controlled by an attacker, the attacker can specify an arbitrary write location and an arbitrary amount of data to write. This directly enables an out-of-bounds write, potentially leading to memory corruption or arbitrary code execution, unless robust bounds checks are in place. Without the surrounding code, we cannot identify any such checks. Therefore, it is assumed that no correct bounds check guards this operation on all paths, fulfilling the criteria for a real bug. The specific missing checks would be validations to ensure `dst-ptr` points within a valid buffer and that `dst-ptr + size` does not extend beyond that buffer's allocated limits."
  },
  {
   "func": "add_option",
@@ -469,15 +77,8 @@
   "line": 730,
   "tainted_operand": "size+dst-ptr+src-ptr",
   "size_expr": "i64 %3",
-  "file": "archive_read_support_format_mtree.c"
- },
- {
-  "func": "archive_read_format_rar_read_header",
-  "sink": "memcpy",
-  "line": 847,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 2",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_mtree.c",
+  "reasoning": "The 'size' operand of memcpy is reported as input-derived (tainted). An input-derived size can be controlled by an attacker. Without a preceding bounds check comparing the input-derived size against the allocated capacity of the destination buffer, an attacker can provide a size value that exceeds the buffer's bounds, leading to an out-of-bounds write. The specific missing check is a comparison that ensures 'input_derived_size <= destination_buffer_capacity'."
  },
  {
   "func": "archive_read_format_rar_read_header",
@@ -485,15 +86,8 @@
   "line": 848,
   "tainted_operand": "dst-ptr+src-ptr",
   "size_expr": "i64 4",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1230,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 7",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The tainted `src-ptr` operand, `p`, is derived from `buff` and `offset`, both of which are input-derived. Inside the `while` loop, `p` is incremented by `0x10`. The loop condition `p + 7 < buff + bytes_avail` ensures that `memcmp` (which reads 7 bytes) stays within bounds. However, when the loop terminates, `p` will be `previous_p + 0x10`, where `previous_p` was the last value for which `previous_p + 7 < buff + bytes_avail` was true. This implies `previous_p` can be as close as `buff + bytes_avail - 8` to the end of the buffer. Therefore, upon loop termination, `p` can point up to `(buff + bytes_avail - 8) + 0x10 = buff + bytes_avail + 8` (or potentially `buff + bytes_avail + 2` in the most common case if `p` was exactly `buff + bytes_avail - 7` before incrementing by `0x10`). If the `memcpy` at line 848 (which is outside the loop or after `p`'s update) uses this `p` as its `src-ptr` and attempts to read even 1 byte, it would constitute an out-of-bounds read past `buff + bytes_avail`. There is no bounds check on `p` after the loop terminates that would guard against this potential out-of-bounds access if `p` is used as a source pointer."
  },
  {
   "func": "read_header",
@@ -501,167 +95,8 @@
   "line": 1251,
   "tainted_operand": "dst-ptr",
   "size_expr": "i64 8",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1281,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 25",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1301,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 4",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1304,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 4",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1357,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %215",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1500,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %524",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1522,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 8",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memset",
-  "line": 1579,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 404",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "copy_from_lzss_window",
-  "sink": "memcpy",
-  "line": 2802,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %42",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "copy_from_lzss_window",
-  "sink": "memcpy",
-  "line": 2813,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %64",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "copy_from_lzss_window",
-  "sink": "memcpy",
-  "line": 2815,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %77",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "copy_from_lzss_window",
-  "sink": "memcpy",
-  "line": 2818,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %90",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "parse_codes",
-  "sink": "memset",
-  "line": 2091,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 404",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "parse_codes",
-  "sink": "memset",
-  "line": 2238,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %619",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "lzss_emit_match",
-  "sink": "memcpy",
-  "line": 586,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %51",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "free_codes",
-  "sink": "memset",
-  "line": 2263,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 32",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "free_codes",
-  "sink": "memset",
-  "line": 2264,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 32",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "free_codes",
-  "sink": "memset",
-  "line": 2265,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 32",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "free_codes",
-  "sink": "memset",
-  "line": 2266,
-  "tainted_operand": "dst-ptr",
-  "size_expr": "i64 32",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_body_to_string",
-  "sink": "memcpy",
-  "line": 1043,
-  "tainted_operand": "size+dst-ptr+src-ptr",
-  "size_expr": "i64 %9",
-  "file": "archive_read_support_format_tar.c"
- },
- {
-  "func": "readline",
-  "sink": "memcpy",
-  "line": 2547,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 %48",
-  "file": "archive_read_support_format_tar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The `dst-ptr` operand of `memset` is tainted by `client_offset`. While `client_offset` is initially capped by `rar->unp_size` (`client_offset = min(client_offset, rar->unp_size)`), subsequent calculations can cause it to exceed this boundary. Specifically, `client_offset += rar->dbo[0].start_offset;` and further additions in the `while` loop (`client_offset += rar->dbo[i].start_offset - rar->dbo[i-1].end_offset;`) can increase `client_offset` significantly. If `rar->dbo` values are attacker-controlled (e.g., from a crafted archive header), `client_offset` can become arbitrarily large. There are no subsequent bounds checks on `client_offset` after these additions to ensure it remains within a valid range relative to the buffer being zeroed by `memset`. Therefore, an attacker-controlled offset can lead to an out-of-bounds write."
  },
  {
   "func": "archive_read_format_zip_streamable_read_header",
@@ -669,14 +104,7 @@
   "line": 884,
   "tainted_operand": "dst-ptr",
   "size_expr": "i64 136",
-  "file": "archive_read_support_format_zip.c"
- },
- {
-  "func": "zip_read_mac_metadata",
-  "sink": "memcpy",
-  "line": 622,
-  "tainted_operand": "dst-ptr+src-ptr",
-  "size_expr": "i64 %93",
-  "file": "archive_read_support_format_zip.c"
+  "file": "archive_read_support_format_zip.c",
+  "reasoning": "The code snippet implies `p` points to an input-derived data buffer of `datasize` length, and `offset` tracks the current position within this buffer. Initially, `offset` is 0. The check `if (datasize < 1) break;` ensures `datasize` is at least 1. The line `bitmap_last = bitmap = 0xff & p[offset];` then safely reads `p[0]` (since `0 < datasize` is guaranteed). Subsequently, `offset += 1;` increments `offset` to 1. If `datasize` was exactly 1, then `p` points to a 1-byte buffer containing only `p[0]`. After `offset` becomes 1, any memory operation (like the implied `memset` at line 884) that uses `p + offset` (i.e., `p + 1`) as its `dst-ptr` would be an out-of-bounds access, as it attempts to write past the end of the 1-byte buffer. The `dst-ptr` is `p + offset`, where `p` is input-derived and `offset` is also input-influenced and advanced without a subsequent bounds check. This falls under 'an input-derived offset makes the pointer read/write past a buffer end, AND no correct bounds check guards it on all paths'."
  }
 ]
