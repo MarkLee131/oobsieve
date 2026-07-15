@@ -1,0 +1,88 @@
+# scanned 15 files, 100 memory-op sites; checking up to 90
+
+[VIOLATION] archive_read_support_format_7zip.c:675  sev=high
+    op: memcpy(symname+symsize, buff, size);
+    The 'size' variable, used as the size argument to memcpy, is derived from the parsed input (returned by `archive_read_format_7zip_read_data`). The destination buffer 'symname' is resized by `realloc` using the calculation `symsize + size + 1`. This calculation is vulnerable to `size_t` integer overflow. If `symsize` and `size` are sufficiently large, their sum can wrap around, leading to `realloc` allocating a much smaller buffer than intended. In such a scenario, the subsequent `memcpy(symname+symsize, buff, size)` would attempt to copy 'size' bytes into an undersized buffer, resulting in a heap out-of-bounds write. There is no explicit bounds check for this integer overflow before the `realloc` or `memcpy` call.
+
+[VIOLATION] archive_read_support_format_7zip.c:3395  sev=high
+    op: memcpy(b[i]+s[i], buff, bytes);
+    The 'bytes' argument to `memcpy` is derived from parsed input, as it represents the size of uncompressed data extracted from the archive via `get_uncompressed_data`. The destination buffer `b[i]` is allocated using `zip->folder_outbytes_remaining`, which is itself derived from `folder->unPackSize[X]`, an attacker-controlled value from the archive header. For the `memcpy` operation `memcpy(b[i]+s[i], buff, bytes);` to be safe, the sum of `s[i]` (current offset) and `bytes` must not exceed the total allocated size of `b[i]` (which is `zip->folder_outbytes_remaining`). There is no explicit bounds check (e.g., `if (s[i] + bytes > zip->folder_outbytes_remaining)`) immediately preceding the `memcpy` call. While the underlying decompression library (configured by `init_decompression`) might implicitly limit the total bytes produced to `zip->folder_outbytes_remaining`, the SPEC requires an explicit bounds check against the actual destination buffer size before the input-derived size is used. Relying solely on the decompressor's internal guarantees without a local, explicit check leaves the code vulnerable if the decompressor has a bug or can be tricked into producing more data than declared in the archive header, leading to a heap-based buffer overflow.
+
+[VIOLATION] archive_read_support_format_iso9660.c:1362  sev=high
+    op: memcpy(iso9660->utf16be_previous_path, iso9660->utf16be_path,
+    The size argument to `memcpy`, `iso9660->utf16be_path_len`, is derived from the parsed input (pathname length from the `file` structure via `build_pathname_utf16be`). Both the source (`iso9660->utf16be_path`) and destination (`iso9660->utf16be_previous_path`) buffers are allocated with `UTF16_NAME_MAX` bytes.
+
+The function `build_pathname_utf16be` is called with `UTF16_NAME_MAX` as the buffer size limit. It sets `iso9660->utf16be_path_len` and returns a non-zero value if the 'Pathname is too long'. In such an error scenario, it's common for similar functions to set the `*_len` output parameter to the *actual required length* (which could be greater than `UTF16_NAME_MAX`), even if the buffer itself was only partially filled or truncated up to `UTF16_NAME_MAX`. The code then continues to the `memcpy` without returning or explicitly clamping `iso9660->utf16be_path_len`.
+
+If `build_pathname_utf16be` sets `iso9660->utf16be_path_len` to a value greater than `UTF16_NAME_MAX` in the 'too long' error case, the `memcpy` would attempt to copy more bytes than either buffer can hold, leading to an out-of-bounds read from `iso9660->utf16be_path` and an out-of-bounds write to `iso9660->utf16be_previous_path`. There is no explicit bounds check (e.g., `min(iso9660->utf16be_path_len, UTF16_NAME_MAX)`) applied to `iso9660->utf16be_path_len` immediately before its use in the `memcpy` operation.
+
+[VIOLATION] archive_read_support_format_mtree.c:730  sev=high
+    op: memcpy(opt->value, value, len);
+    The `len` argument is derived from the input being parsed (as indicated by the function's context within an archive reading routine and the general description of `mtree` parsing). This `len` is used as the size argument in `memcpy(opt->value, value, len);`. While `len` is used to correctly allocate the *destination* buffer `opt->value` (as `len + 1`), there is no bounds check within this function to ensure that the *source* buffer `value` actually contains at least `len` bytes. If `len` (an input-derived value) is greater than the actual allocated size of the `value` buffer, `memcpy` will perform an out-of-bounds read from `value`, leading to a crash or potential information disclosure. The function assumes the caller provides a `value` buffer of sufficient size without validation.
+
+[VIOLATION] archive_read_support_format_mtree.c:885  sev=high
+    op: memcpy(entry->name, name, len);
+    The `len` variable is used as the size argument for `memcpy(entry->name, name, len);`. `len` is directly derived from the input `line` (parsed content). In the path where `is_form_d` is false, `len` is calculated using `len = strcspn(line, " \t\r\n");`. The `line` parameter, along with `line_len`, represents a buffer of length `line_len` from the parsed input. The `strcspn` function does not take a length parameter and expects a null-terminated string. If the `line` buffer is not null-terminated within `line_len` bytes (which is typical for buffers read from an archive and delimited by a separate length parameter), then `strcspn` will read past the end of the `line` buffer (an out-of-bounds read) in its attempt to find a delimiter or a null terminator. This means the calculated `len` value itself is derived from an out-of-bounds read and is not correctly bounds-checked against the actual source buffer's (`line`) extent (`line_len`). Subsequently, if the calculated `len` is greater than `line_len`, the `memcpy` operation will attempt to read `len` bytes from `name` (which is `line`), resulting in an out-of-bounds read from the source buffer. This directly violates the SPEC, as the input-derived size `len` is not bounds-checked against the source buffer size `line_len` before being used by the memory operation.
+
+[VIOLATION] archive_read_support_format_rar.c:1301  sev=medium
+    op: memcpy(packed_size + 4, p, 4); /* High pack size */
+    The `memcpy(packed_size + 4, p, 4)` operation attempts to read 4 bytes from the source buffer `p`. The pointer `p` is an offset into a buffer `h` obtained via `__archive_read_ahead(a, (size_t)header_size - 7, NULL)`. The `header_size` value is derived from `rar_header.size`, which is parsed from the input, making `header_size` an input-derived length/size value. The effective size of the buffer `h` is `header_size - 7` bytes.
+
+Before this `memcpy`, `p` is advanced by `sizeof(file_header)` (which is 24 bytes). Thus, the `memcpy` reads from `h + sizeof(file_header)` to `h + sizeof(file_header) + 4 - 1`.
+
+For this read to be safe, the sum of the initial offset (`sizeof(file_header)`) and the read length (`4`) must be less than or equal to the total available size of the buffer (`header_size - 7`).
+Mathematically: `sizeof(file_header) + 4 <= header_size - 7`.
+Substituting `sizeof(file_header)` with its value (24 bytes): `24 + 4 <= header_size - 7` which simplifies to `28 <= header_size - 7`, or `35 <= header_size`.
+
+There is a bounds check for `header_size` earlier: `if (header_size < (int64_t)sizeof(file_header) + 7) { ... return (ARCHIVE_FATAL); }`. This check ensures `header_size` is at least `sizeof(file_header) + 7`, which means `header_size >= 24 + 7 = 31`.
+
+However, the required minimum `header_size` for a safe read is `35`. If an attacker provides an archive with `header_size` between `31` and `34` (inclusive), the existing check will pass, but the `memcpy` will perform an out-of-bounds read from the source buffer `p`. For example, if `header_size` is `31`, the available buffer length is `31 - 7 = 24` bytes, but the `memcpy` attempts to read starting at offset `24` for 4 bytes, leading to a read beyond the end of the `h` buffer.
+
+Therefore, an input-derived size (`header_size`) indirectly determines the bounds of the source buffer, and the check for this size is insufficient to prevent an out-of-bounds read, constituting a violation of the spec and a real bug.
+
+[VIOLATION] archive_read_support_format_rar.c:1304  sev=high
+    op: memcpy(unp_size + 4, p, 4); /* High unpack size */
+    The `p` pointer, which serves as the source buffer for the `memcpy` operation, is derived from the input stream. Its valid range is determined by `header_size`, which is read from the input (`rar_header.size`). The `__archive_read_ahead(a, (size_t)header_size - 7, NULL)` call ensures `header_size - 7` bytes are available starting at `h`. The pointer `p` is initialized to `h`, and then advanced through parsing.
+
+After reading `file_header`, `p` is advanced by `sizeof(file_header)`. At this point, the remaining bytes available at `p` in the `h` buffer are `(header_size - 7) - sizeof(file_header)`.
+
+Inside the `if (rar->file_flags & FHD_LARGE)` block, the code attempts to read two consecutive 4-byte chunks from `p`:
+1. `memcpy(packed_size + 4, p, 4);`
+2. `p += 4;`
+3. `memcpy(unp_size + 4, p, 4);` (This is the target operation)
+
+The target `memcpy` reads 4 bytes from `p`. By this point, `p` has been advanced by `sizeof(file_header)` (for `file_header`) + `4` (for `packed_size + 4`). So `p` is at `h + sizeof(file_header) + 4`. The bytes accessed by this `memcpy` would be from `h + sizeof(file_header) + 4` to `h + sizeof(file_header) + 7`.
+
+The only bounds check for `header_size` is `if (header_size < (int64_t)sizeof(file_header) + 7)`. This guarantees `header_size >= sizeof(file_header) + 7`.
+
+If `header_size` is exactly `sizeof(file_header) + 7` (the minimum allowed value):
+- The `__archive_read_ahead` call provides a buffer `h` of size `(sizeof(file_header) + 7) - 7 = sizeof(file_header)` bytes.
+- After `p += sizeof(file_header);`, `p` points to `h + sizeof(file_header)`, which is *just past the end* of the `h` buffer (which has `sizeof(file_header)` bytes).
+- The first `memcpy(packed_size + 4, p, 4)` (before the target memcpy) attempts to read 4 bytes from `p`. Since `p` is already past the end of the buffer, this `memcpy` will result in an out-of-bounds read.
+
+Therefore, the `header_size` (input-derived) is not sufficiently bounds-checked to ensure that `p` always points to enough valid data for the subsequent `memcpy` operations within the `FHD_LARGE` block, including the one in question.
+
+[VIOLATION] archive_read_support_format_rar.c:2802  sev=high
+    op: memcpy(&rar->unp_buffer[rar->unp_offset], &rar->lzss.window[windowoffs],
+    The 'length' argument to memcpy is a function parameter and, given the context of an archive parsing routine and the SPEC's definition, is assumed to be derived from the input being parsed. While 'length' is bounds-checked against the *source* buffer (`rar->lzss.window`) by `if(windowoffs + length <= lzss_size(&rar->lzss))`, it is *not* bounds-checked against the *destination* buffer (`rar->unp_buffer`). Specifically, there is no check to ensure that `rar->unp_offset + length` does not exceed `rar->unp_buffer_size` before the memcpy. This absence of a destination bounds check allows a malicious or malformed input 'length' to cause an out-of-bounds write to `rar->unp_buffer`, which is a critical vulnerability.
+
+[VIOLATION] archive_read_support_format_rar.c:2813  sev=high
+    op: memcpy(&rar->unp_buffer[rar->unp_offset],
+    The `length` parameter, which dictates the amount of data copied, is an input-derived value typical in data parsing routines. The `memcpy` call (and others in the `else` branch) writes `length` bytes (or parts summing to `length`) into the destination buffer `rar->unp_buffer` at offset `rar->unp_offset`. While there is a bounds check for the *source* buffer (`rar->lzss.window`) (`if(windowoffs + length <= lzss_size(&rar->lzss))`), there is no corresponding bounds check against the *destination* buffer's allocated size (`rar->unp_buffer_size`) before the `memcpy` operation. Specifically, there is no check to ensure `rar->unp_offset + length <= rar->unp_buffer_size`. This means an attacker could craft an input where `length` is too large, leading to a heap buffer overflow (out-of-bounds write) on `rar->unp_buffer`. The `if (rar->unp_offset >= rar->unp_buffer_size)` check occurs *after* the memory operation, which is too late to prevent the overflow.
+
+[VIOLATION] archive_read_support_format_rar.c:2815  sev=high
+    op: memcpy(&rar->unp_buffer[rar->unp_offset + firstpart],
+    The size argument for the `memcpy` is `length - firstpart`. The `length` parameter, as well as `startpos` (used to compute `windowoffs` and subsequently `firstpart`), are highly likely to be derived from the input being parsed in this data-parsing routine. Therefore, `length - firstpart` is an input-derived size.
+
+1.  **Source Buffer Check:** The `memcpy` reads from `&rar->lzss.window[0]`. The required bounds check is `(length - firstpart) <= lzss_size(&rar->lzss)`. This check is missing. The `memcpy` is within a block where `windowoffs + length > lzss_size(&rar->lzss)`. This implies `length > lzss_size(&rar->lzss) - windowoffs`. If the input-derived `length` is greater than `lzss_size(&rar->lzss)` (e.g., if `length` exceeds the total window capacity), then `length - firstpart` (which is `length - (lzss_size(&rar->lzss) - windowoffs)`) can be greater than `lzss_size(&rar->lzss)`, leading to an out-of-bounds read from `rar->lzss.window`.
+
+2.  **Destination Buffer Check:** The `memcpy` writes to `&rar->unp_buffer[rar->unp_offset + firstpart]`. The total amount of data written by this function call (across potentially two `memcpy` calls in this path) is `length` bytes, starting at `rar->unp_offset`. The required bounds check is `rar->unp_offset + length <= rar->unp_buffer_size`. This check is missing before the memory operation. An attacker could craft input that causes `length` to be large enough such that `rar->unp_offset + length` exceeds `rar->unp_buffer_size`, leading to an out-of-bounds write to `rar->unp_buffer`.
+
+Both source and destination buffers are vulnerable to out-of-bounds memory accesses due to a lack of bounds checks on the input-derived `length` and `length - firstpart` values.
+
+[VIOLATION] archive_read_support_format_rar.c:2818  sev=high
+    op: memcpy(&rar->unp_buffer[rar->unp_offset],
+    The `length` argument, which is presumed to be input-derived (common for data parsing routines), is used as the size argument for the `memcpy` operation. While `length` is correctly bounds-checked against the source buffer (`rar->lzss.window` through the `if(windowoffs + length <= lzss_size(&rar->lzss))` check), it is *not* checked against the destination buffer (`rar->unp_buffer`). There is no check to ensure that `rar->unp_offset + length` does not exceed the allocated size of `rar->unp_buffer` (which is `rar->unp_buffer_size`) before the `memcpy` occurs. This missing bounds check on the destination buffer could lead to a heap buffer overflow (out-of-bounds write) if `rar->unp_offset + length` is greater than `rar->unp_buffer_size`.
+
+## summary: 11 candidate real bugs out of 90 sites checked
+findings -> /home/likaixuan/static_analysis/linux-spec-sast/patchintent/eval/detect_real_findings.json
