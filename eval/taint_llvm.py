@@ -219,8 +219,15 @@ def main(argv=None):
         ctx = "\n".join(lines[max(0, ln - 40):ln + 4])
         sysp = ('Answer ONLY JSON {"real_bug":bool,"reasoning":str}. A def-use taint '
                 "analysis proved an attacker/input-derived value reaches the flagged "
-                f"memory operation's {c['tainted_operand']} operand. Confirm whether "
-                "this is a genuine out-of-bounds (i.e. no correct bounds check guards it).")
+                f"memory operation's {c['tainted_operand']} operand. Decide if this is a "
+                "genuine out-of-bounds. IMPORTANT: a memory op with a COMPILE-TIME "
+                "CONSTANT size (a literal or sizeof(...)) writing into a field of an "
+                "already-allocated struct/array is NOT a bug merely because the "
+                "destination pointer is input-derived — reject those. Flag real_bug=true "
+                "ONLY when an input-derived SIZE can exceed the destination buffer, OR an "
+                "input-derived offset makes the pointer read/write past a buffer end, AND "
+                "no correct bounds check guards it on all paths. Be conservative: default "
+                "real_bug=false unless you can name the specific missing check.")
         usrp = f"{c['sink']} at line {ln}, tainted operand: {c['tainted_operand']}.\n```c\n{ctx}\n```"
         v = _parse(client.complete(sysp, usrp))
         if v.get("real_bug"):

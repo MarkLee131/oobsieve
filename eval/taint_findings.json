@@ -1,5 +1,477 @@
 [
  {
+  "func": "slurp_central_directory",
+  "sink": "memset",
+  "line": 2797,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 104",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "setup_decode_folder",
+  "sink": "memcpy",
+  "line": 3395,
+  "tainted_operand": "size",
+  "size_expr": "i64 %319",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_Header",
+  "sink": "memcpy",
+  "line": 2402,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 %.02",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_Header",
+  "sink": "memset",
+  "line": 2440,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %314",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "extract_pack_stream",
+  "sink": "memmove",
+  "line": 2989,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %129",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "decompress",
+  "sink": "memcpy",
+  "line": 1297,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %107",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "decompress",
+  "sink": "memcpy",
+  "line": 1474,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %293",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_StreamsInfo",
+  "sink": "memset",
+  "line": 2161,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 104",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_PackInfo",
+  "sink": "memset",
+  "line": 1658,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 48",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_CodersInfo",
+  "sink": "memset",
+  "line": 1906,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 24",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_SubStreamsInfo",
+  "sink": "memset",
+  "line": 2032,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 32",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_Digests",
+  "sink": "memset",
+  "line": 1613,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_Digests",
+  "sink": "memset",
+  "line": 1628,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %2",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_Folder",
+  "sink": "memset",
+  "line": 1753,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 104",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_Folder",
+  "sink": "memcpy",
+  "line": 1822,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %171",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "read_Times",
+  "sink": "memset",
+  "line": 2582,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %26",
+  "file": "archive_read_support_format_7zip.c"
+ },
+ {
+  "func": "_ar_read_header",
+  "sink": "memcpy",
+  "line": 288,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %98",
+  "file": "archive_read_support_format_ar.c"
+ },
+ {
+  "func": "cab_next_cfdata",
+  "sink": "memcpy",
+  "line": 1314,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %220",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "cab_next_cfdata",
+  "sink": "memset",
+  "line": 1329,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 64",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "cab_checksum_update",
+  "sink": "memcpy",
+  "line": 1147,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %80",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_huffman_init",
+  "sink": "memset",
+  "line": 3134,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %27",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_read_blocks",
+  "sink": "memcpy",
+  "line": 2597,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %465",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_read_blocks",
+  "sink": "memcpy",
+  "line": 2598,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %474",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_read_blocks",
+  "sink": "memset",
+  "line": 2636,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 68",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_decode_blocks",
+  "sink": "memcpy",
+  "line": 2749,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_decode_blocks",
+  "sink": "memcpy",
+  "line": 2778,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_decode_blocks",
+  "sink": "memcpy",
+  "line": 2974,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %428",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_decode_blocks",
+  "sink": "memcpy",
+  "line": 2975,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %429",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_decode_blocks",
+  "sink": "memcpy",
+  "line": 3005,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_read_pre_tree",
+  "sink": "memset",
+  "line": 3027,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 68",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_read_bitlen",
+  "sink": "memset",
+  "line": 3054,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 68",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "lzx_read_bitlen",
+  "sink": "memset",
+  "line": 3084,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %191",
+  "file": "archive_read_support_format_cab.c"
+ },
+ {
+  "func": "archive_read_format_iso9660_read_header",
+  "sink": "memcpy",
+  "line": 1362,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %303",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "build_pathname_utf16be",
+  "sink": "memcpy",
+  "line": 3200,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %58",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "parse_file_info",
+  "sink": "memcpy",
+  "line": 1849,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %.14",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "heap_add_entry",
+  "sink": "memcpy",
+  "line": 3002,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %40",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "register_CE",
+  "sink": "memcpy",
+  "line": 2281,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %91",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "register_CE",
+  "sink": "memcpy",
+  "line": 2301,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "next_CE",
+  "sink": "memcpy",
+  "line": 2322,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "next_CE",
+  "sink": "memcpy",
+  "line": 2344,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "next_CE",
+  "sink": "memcpy",
+  "line": 2345,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "next_CE",
+  "sink": "memcpy",
+  "line": 2346,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "zisofs_read_data",
+  "sink": "memcpy",
+  "line": 1469,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %.02",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "zisofs_read_data",
+  "sink": "memcpy",
+  "line": 1505,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %.13",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "zisofs_read_data",
+  "sink": "memset",
+  "line": 1578,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %280",
+  "file": "archive_read_support_format_iso9660.c"
+ },
+ {
+  "func": "lzh_decode_init",
+  "sink": "memset",
+  "line": 1794,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %74",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_read_blocks",
+  "sink": "memset",
+  "line": 2128,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 68",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_read_blocks",
+  "sink": "memset",
+  "line": 2205,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 68",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_read_blocks",
+  "sink": "memset",
+  "line": 2250,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %624",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_decode_blocks",
+  "sink": "memcpy",
+  "line": 2280,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_decode_blocks",
+  "sink": "memcpy",
+  "line": 2304,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_decode_blocks",
+  "sink": "memcpy",
+  "line": 2421,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %278",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_decode_blocks",
+  "sink": "memcpy",
+  "line": 2463,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 16",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_copy_from_window",
+  "sink": "memcpy",
+  "line": 2021,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %.01",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "lzh_copy_from_window",
+  "sink": "memcpy",
+  "line": 2029,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %.1",
+  "file": "archive_read_support_format_lha.c"
+ },
+ {
+  "func": "readline",
+  "sink": "memcpy",
+  "line": 1837,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 %44",
+  "file": "archive_read_support_format_mtree.c"
+ },
+ {
+  "func": "readline",
+  "sink": "memmove",
+  "line": 1861,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %108",
+  "file": "archive_read_support_format_mtree.c"
+ },
+ {
+  "func": "process_add_entry",
+  "sink": "memcpy",
+  "line": 885,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %.1",
+  "file": "archive_read_support_format_mtree.c"
+ },
+ {
+  "func": "add_option",
+  "sink": "memcpy",
+  "line": 730,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %3",
+  "file": "archive_read_support_format_mtree.c"
+ },
+ {
   "func": "archive_read_format_rar_read_header",
   "sink": "memcpy",
   "line": 847,
@@ -174,5 +646,37 @@
   "tainted_operand": "dst-ptr",
   "size_expr": "i64 32",
   "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_body_to_string",
+  "sink": "memcpy",
+  "line": 1043,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %9",
+  "file": "archive_read_support_format_tar.c"
+ },
+ {
+  "func": "readline",
+  "sink": "memcpy",
+  "line": 2547,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 %48",
+  "file": "archive_read_support_format_tar.c"
+ },
+ {
+  "func": "archive_read_format_zip_streamable_read_header",
+  "sink": "memset",
+  "line": 884,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 136",
+  "file": "archive_read_support_format_zip.c"
+ },
+ {
+  "func": "zip_read_mac_metadata",
+  "sink": "memcpy",
+  "line": 622,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 %93",
+  "file": "archive_read_support_format_zip.c"
  }
 ]
