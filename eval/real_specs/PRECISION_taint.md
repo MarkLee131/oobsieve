@@ -113,3 +113,42 @@ fix 99f74bd3); rar:2802/2813/2815/2818 (LZSS window, later "protect" eac15e25).
 - On-demand SMT (Z3) feasibility on the sink's path condition — replaces the heuristic
   guard match with a real satisfiability check (handles compound conditions exactly).
 - Array-index range analysis for the struct-move idiom.
+
+---
+
+# On-demand SMT path conditions (Pinpoint's core) — final: 85 -> 24 candidates
+
+Added a Z3 path-condition solver (`eval/smt_path.py`): for a variable-size sink,
+encode the size expression + the RELEVANT dominating guards as bit-vectors and ask
+if the size can still exceed 1 MiB. UNSAT (the guards bound it, e.g. a compound
+`x>0 && x<=4 && ...`) -> safe.
+Key soundness lessons hit and fixed:
+- conjoining ALL dominating guards gives spurious UNSAT (mutually-exclusive
+  loop-iteration guards) -> scope to guards that actually constrain the size.
+- FIELD-SENSITIVE memory: two loads of the same field share one Z3 var, so a guard
+  on x->f binds a size read of x->f.
+- widening guard-relatedness through width-casts is UNSOUND: it matches source-side
+  guards (LZSS `windowoffs+length <= src_size`) that do not protect a dest write and
+  wrongly cleared rar:2802 (a real OOB-write). Reverted; guard SUFFICIENCY (dest vs
+  source coverage) needs full SMT with buffer sizes.
+
+## Deterministic result (symbolic layer, no LLM)
+| stage | candidates | real bugs | candidate precision |
+|---|---|---|---|
+| baseline taint                 | 85 | 8 | 9%  |
+| + sanitizer modeling           | 40 | 8 | 20% |
+| + field-sensitive malloc-to-fit| 35 | 8 | 23% |
+| + path-sensitive guards        | 30 | 8 | 27% |
+| + on-demand SMT + ensure-to-fit| **24** | **8** | **33%** |
+
+72% false-positive-candidate reduction (85->24) with 100% real-bug retention (8/8).
+Pipeline precision with LLM confirm: 8% (baseline) -> up to 67% (flash best run;
+flash is non-deterministic and the current bottleneck -- pro is steadier but slow).
+
+## Remaining FP causes (all well-characterized) & next levers
+- alloc/ensure-grown buffers where copy-size != alloc-size expression (calloc(new)
+  vs copy(cnt)): needs `copy_size <= alloc_size` SMT, not equality. (iso9660:3002/2281)
+- fixed-size struct moves in bounded arrays (heap sift/swap): array-index-range
+  analysis. (iso9660:2301/2322/2344, iso9660:3002)
+- guards missed by field/sext gaps or read_ahead(N)-guaranteed sizes: extend guard
+  relatedness carefully (soundly) or full SMT sufficiency. (cab:3084, rar:1230/847/848)
