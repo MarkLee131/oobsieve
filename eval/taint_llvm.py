@@ -27,6 +27,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import smt_path  # noqa: E402  (on-demand SMT path-condition solver)
+
 VALRE = re.compile(r"%[\w.]+")
 INPUT_FNS = ("__archive_read_ahead", "__archive_read_consume", "fread", "read",
              "archive_le16dec", "archive_le32dec", "archive_le64dec", "getc",
@@ -378,6 +381,13 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # (e.g. `if (p+n > end) return;`) sanitizes the access on the reaching path.
         rel_vars = set(size_v) | set(dst_v) | set(src_v)
         if sink_is_guarded(f, ins, rel_vars, insmap, dom, sig_memo):
+            continue
+        # ON-DEMAND SMT: if the dominating path condition provably bounds a VARIABLE
+        # size to a small value (e.g. a compound `x>0 && x<=4 && ...`), the whole copy
+        # is bounded -> not an attacker overflow. (Constant-size sinks have size_v==[]
+        # so this never touches pointer-offset bugs like rar:1304.)
+        if size_tainted and smt_path.size_provably_bounded(
+                f, insmap, dom, ins, size_v, value_sig, sig_memo, backward_slice):
             continue
         out.append({
             "func": f.name, "sink": sink,

@@ -8,22 +8,6 @@
   "file": "archive_read_support_format_7zip.c"
  },
  {
-  "func": "extract_pack_stream",
-  "sink": "memmove",
-  "line": 2989,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %129",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "decompress",
-  "sink": "memcpy",
-  "line": 1474,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %293",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
   "func": "lzx_huffman_init",
   "sink": "memset",
   "line": 3134,
@@ -112,22 +96,6 @@
   "file": "archive_read_support_format_iso9660.c"
  },
  {
-  "func": "zisofs_read_data",
-  "sink": "memset",
-  "line": 1578,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %280",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "lzh_read_blocks",
-  "sink": "memset",
-  "line": 2250,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %624",
-  "file": "archive_read_support_format_lha.c"
- },
- {
   "func": "lzh_decode_blocks",
   "sink": "memcpy",
   "line": 2280,
@@ -213,14 +181,6 @@
   "line": 2818,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %90",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "parse_codes",
-  "sink": "memset",
-  "line": 2238,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %619",
   "file": "archive_read_support_format_rar.c"
  },
  {
