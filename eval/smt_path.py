@@ -33,23 +33,31 @@ _PRED = {
 
 
 class Encoder:
-    def __init__(self, insmap, sigfn, sigmemo, maxdepth=40):
+    def __init__(self, insmap, sigfn, sigmemo, maxdepth=40, int_mode=False):
         self.insmap = insmap
         self.sigfn = sigfn          # value_sig(tok, insmap, memo) -> str
         self.sigmemo = sigmemo
         self.maxdepth = maxdepth
+        self.int_mode = int_mode    # Z3 Int (no overflow) for bounds arithmetic
         self.solver = z3.Solver()
         self.memo = {}              # keyed by value SIGNATURE (field-sensitive memory)
         self.n = 0
 
+    def _const(self, x):
+        return z3.IntVal(x) if self.int_mode else z3.BitVecVal(x, W)
+
     def _fresh(self):
         self.n += 1
+        if self.int_mode:
+            v = z3.Int(f"_f{self.n}")
+            self.solver.add(v >= 0)  # sizes/counts are non-negative
+            return v
         return z3.BitVec(f"_f{self.n}", W)
 
     def val(self, tok, depth=0):
         tok = tok.strip()
         if re.fullmatch(r"-?\d+", tok):
-            return z3.BitVecVal(int(tok), W)
+            return self._const(int(tok))
         if not tok.startswith("%"):
             return self._fresh()  # global / constant-expr / undef
         # FIELD-SENSITIVE MEMORY: two SSA values with the same signature (e.g. two
@@ -58,7 +66,11 @@ class Encoder:
         key = self.sigfn(tok, self.insmap, self.sigmemo)
         if key in self.memo:
             return self.memo[key]
-        var = z3.BitVec("v" + str(self.n), W)
+        if self.int_mode:
+            var = z3.Int("v" + str(self.n))
+            self.solver.add(var >= 0)
+        else:
+            var = z3.BitVec("v" + str(self.n), W)
         self.n += 1
         self.memo[key] = var  # break cycles + share by signature
         ins = self.insmap.get(tok)
@@ -70,11 +82,23 @@ class Encoder:
             o = self._binop(rhs)
             if len(o) == 2:
                 a, b = self.val(o[0], depth + 1), self.val(o[1], depth + 1)
-                expr = {"add": a + b, "sub": a - b, "mul": a * b, "and": a & b,
-                        "or": a | b, "xor": a ^ b, "shl": a << b,
-                        "lshr": z3.LShR(a, b), "ashr": a >> b,
-                        "udiv": z3.UDiv(a, b), "sdiv": a / b}[op]
-                self.solver.add(var == expr)
+                if self.int_mode:
+                    # Int (no overflow); only model ops with clean Int semantics.
+                    if op == "add":
+                        self.solver.add(var == a + b)
+                    elif op == "sub":
+                        self.solver.add(var == a - b)
+                    elif op == "mul":
+                        self.solver.add(var == a * b)
+                    elif op == "shl" and re.fullmatch(r"-?\d+", o[1].strip()):
+                        self.solver.add(var == a * (1 << int(o[1])))
+                    # and/or/xor/shr/div on Int: leave var free (>=0)
+                else:
+                    expr = {"add": a + b, "sub": a - b, "mul": a * b, "and": a & b,
+                            "or": a | b, "xor": a ^ b, "shl": a << b,
+                            "lshr": z3.LShR(a, b), "ashr": a >> b,
+                            "udiv": z3.UDiv(a, b), "sdiv": a / b}[op]
+                    self.solver.add(var == expr)
         elif op in ("sext", "zext", "trunc", "bitcast", "ptrtoint", "inttoptr"):
             m = re.search(r"(%[\w.]+)", rhs)
             if m:
@@ -105,10 +129,17 @@ class Encoder:
         if not m:
             return None
         pred, o1, o2 = m.group(1), m.group(2), m.group(3)
+        a, b = self.val(o1, depth + 1), self.val(o2, depth + 1)
+        if self.int_mode:
+            # values are non-negative Ints -> unsigned and signed compares coincide
+            ifn = {"eq": lambda a, b: a == b, "ne": lambda a, b: a != b,
+                   "ugt": lambda a, b: a > b, "uge": lambda a, b: a >= b,
+                   "ult": lambda a, b: a < b, "ule": lambda a, b: a <= b,
+                   "sgt": lambda a, b: a > b, "sge": lambda a, b: a >= b,
+                   "slt": lambda a, b: a < b, "sle": lambda a, b: a <= b}.get(pred)
+            return ifn(a, b) if ifn else None
         fn = _PRED.get(pred)
-        if fn is None:
-            return None
-        return fn(self.val(o1, depth + 1), self.val(o2, depth + 1))
+        return fn(a, b) if fn else None
 
     def _binop(self, rhs):
         parts = rhs.split(",")
@@ -117,6 +148,101 @@ class Encoder:
         op1 = parts[0].split()[-1]
         op2 = parts[1].strip().split()[0]
         return [op1, op2]
+
+
+def _peel_bitcast(v, insmap):
+    for _ in range(6):
+        ins = insmap.get(v)
+        if ins and ins["opcode"] in ("bitcast", "getelementptr") and not _is_indexed_gep(ins):
+            v = ins["ops"][0] if ins["ops"] else v
+        else:
+            break
+    return v
+
+
+def _is_indexed_gep(ins):
+    # a GEP that adds a non-zero index (a real offset), vs a pure type-cast GEP
+    if ins["opcode"] != "getelementptr":
+        return False
+    idxs = re.findall(r"i\d+ (%[\w.]+|-?\d+)", ins["raw"])
+    return any(x != "0" for x in idxs[1:]) if idxs else False
+
+
+def _alloc_capacity(base, insmap):
+    """Return ('bytes', [tokens]) capacity of `base` if it is a malloc/calloc/realloc
+    result, else None. calloc(n,sz) -> n*sz; malloc/realloc -> the size arg."""
+    b = _peel_bitcast(base, insmap)
+    ins = insmap.get(b)
+    if not ins or "call" not in ins["opcode"]:
+        return None
+    raw = ins["raw"]
+    ops = ins["ops"]
+    if "@calloc" in raw and len(ops) >= 2:
+        return ("mul", [ops[0], ops[1]])
+    if "@malloc" in raw and ops:
+        return ("val", [ops[0]])
+    if "@realloc" in raw and len(ops) >= 2:
+        return ("val", [ops[1]])  # realloc(ptr, size)
+    return None
+
+
+def _const_or_val(enc, tok):
+    tok = tok.strip()
+    if re.fullmatch(r"-?\d+", tok):
+        return enc._const(int(tok))
+    return enc.val(tok)
+
+
+def dest_provably_in_bounds(f, insmap, dom, sink_ins, dst_val, size_token,
+                            sigfn, sigmemo, slicefn) -> bool:
+    """SMT bounds-sufficiency: prove dst_offset + size <= dst_capacity under the
+    relevant path condition. Sound: if the capacity can't be established or the
+    guards don't cover the DEST (e.g. only the source is checked), returns False."""
+    if not HAVE_Z3 or dst_val is None:
+        return False
+    # dst = base (+ offset 0 for now: alloc result written from its start)
+    base = _peel_bitcast(dst_val, insmap)
+    if _is_indexed_gep(insmap.get(base, {"opcode": ""})):
+        return False  # offset-into-buffer: needs element-stride modelling (later)
+    cap = _alloc_capacity(base, insmap)
+    if cap is None:
+        return False
+    try:
+        enc = Encoder(insmap, sigfn, sigmemo, int_mode=True)  # Int: no mul overflow
+        capacity = (_const_or_val(enc, cap[1][0]) if cap[0] == "val"
+                    else _const_or_val(enc, cap[1][0]) * _const_or_val(enc, cap[1][1]))
+        size = _const_or_val(enc, size_token)
+        # relevant guards: those constraining the size or the capacity tokens
+        rel = slicefn({t for t in ([size_token] + cap[1]) if t.startswith("%")}, insmap)
+        rel_sigs = {sigfn(v, insmap, sigmemo) for v in rel}
+        sb = sink_ins.get("block")
+        domset = dom.get(sb, set()) if sb else set()
+        added = 0
+        for D, b in f.blocks.items():
+            if b["cond"] is None or D == sb or D not in domset:
+                continue
+            t, fl = b["true"], b["false"]
+            pol = True if (t and t in domset) else (False if (fl and fl in domset) else None)
+            if pol is None:
+                continue
+            cond = insmap.get(b["cond"])
+            if not cond or "icmp" not in cond["opcode"]:
+                continue
+            gslice = slicefn(set(cond["ops"]), insmap)
+            if not ((gslice & rel) or ({sigfn(v, insmap, sigmemo) for v in gslice} & rel_sigs)):
+                continue
+            g = enc.guard(b["cond"])
+            if g is not None:
+                enc.solver.add(g if pol else z3.Not(g))
+                added += 1
+        if added == 0:
+            return False
+        # OOB-write condition: size (from offset 0) exceeds capacity
+        enc.solver.add(size > capacity)
+        enc.solver.set("timeout", 3000)
+        return enc.solver.check() == z3.unsat
+    except Exception:
+        return False
 
 
 def size_provably_bounded(f, insmap, dom, sink_ins, size_vals,

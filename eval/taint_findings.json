@@ -48,14 +48,6 @@
   "file": "archive_read_support_format_iso9660.c"
  },
  {
-  "func": "heap_add_entry",
-  "sink": "memcpy",
-  "line": 3002,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %40",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
   "func": "register_CE",
   "sink": "memcpy",
   "line": 2281,

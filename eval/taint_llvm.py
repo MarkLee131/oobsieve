@@ -107,7 +107,11 @@ def parse_ll(text: str):
         if mm:
             result, rhs = mm.group(1), mm.group(2)
         dbgm = re.search(r"!dbg !(\d+)", s)
-        ops = [v for v in VALRE.findall(rhs) if v != result]
+        # exclude LLVM TYPE names (%struct.*, %union.*, %class.*, %"...") which the
+        # value regex would otherwise match as if they were SSA operands.
+        ops = [v for v in VALRE.findall(rhs)
+               if v != result and not v.startswith(
+                   ("%struct.", "%union.", "%class.", "%\""))]
         opcode = rhs.split()[0] if rhs.split() else ""
         cur.insns.append({"result": result, "ops": ops, "opcode": opcode,
                           "dbg": dbgm.group(1) if dbgm else None, "raw": s,
@@ -394,6 +398,15 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # so this never touches pointer-offset bugs like rar:1304.)
         if size_tainted and smt_path.size_provably_bounded(
                 f, insmap, dom, ins, size_v, value_sig, sig_memo, backward_slice):
+            continue
+        # ON-DEMAND SMT BOUNDS-SUFFICIENCY: prove dst_offset+size <= dst_capacity under
+        # the path condition (capacity from malloc/calloc/realloc). Sound: a guard that
+        # only checks the SOURCE cannot prove the DEST in-bounds, so real OOB-writes
+        # (rar:2802) are kept.
+        dst_tok = dst_v[0] if dst_v else None
+        size_tok = size_v[0] if size_v else args[2].strip().split()[-1]
+        if dst_tok and smt_path.dest_provably_in_bounds(
+                f, insmap, dom, ins, dst_tok, size_tok, value_sig, sig_memo, backward_slice):
             continue
         out.append({
             "func": f.name, "sink": sink,

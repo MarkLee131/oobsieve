@@ -152,3 +152,37 @@ flash is non-deterministic and the current bottleneck -- pro is steadier but slo
   analysis. (iso9660:2301/2322/2344, iso9660:3002)
 - guards missed by field/sext gaps or read_ahead(N)-guaranteed sizes: extend guard
   relatedness carefully (soundly) or full SMT sufficiency. (cab:3084, rar:1230/847/848)
+
+---
+
+# Full SMT bounds-sufficiency with buffer sizes (85 -> 23)
+
+Extended `smt_path.py` to prove `dst_offset + size <= dst_capacity` under the path
+condition, where the destination CAPACITY is recovered from its allocation
+(malloc(cap) / calloc(n,sz) / realloc(_,cap)). Encoded in Z3 **Int** (not bit-vector)
+so that `allocated*sz <= new_size*sz` reduces to `allocated <= new_size` without
+multiplication overflow. Field-sensitive memory (same-field loads share a var) +
+sext/zext-identity connect the guard's i32 `new_size` to the capacity's i64 operand.
+
+Soundness preserved: for rar:2802 (real OOB-WRITE) the dominating guard bounds the
+SOURCE window, not the DEST buffer, so the dest capacity is NOT provable -> kept.
+For iso9660:2281 the safety needs the invariant `cnt <= allocated` (not an explicit
+guard) -> soundly NOT removed.
+
+Also fixed: LLVM type-name tokens (%struct.*) were matched as SSA operands, breaking
+pointer tracing -> filtered at the parser.
+
+## Final deterministic result (symbolic layer, no LLM)
+| stage | candidates | real bugs | candidate precision |
+|---|---|---|---|
+| baseline taint                  | 85 | 8 | 9%  |
+| + sanitizer modeling            | 40 | 8 | 20% |
+| + field-sensitive malloc-to-fit | 35 | 8 | 23% |
+| + path-sensitive guards         | 30 | 8 | 27% |
+| + on-demand SMT (size bound)    | 24 | 8 | 33% |
+| + SMT bounds-sufficiency (cap)  | **23** | **8** | **35%** |
+
+73% false-positive-candidate reduction (85 -> 23) with 100% real-bug retention (8/8),
+via the full Pinpoint-style stack: sparse value-flow taint, sanitizer/clamp modeling,
+field-sensitive (access-path) memory, path-sensitive guarded value-flow, and on-demand
+SMT path conditions + buffer-capacity sufficiency.
