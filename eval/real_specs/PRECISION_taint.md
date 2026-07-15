@@ -68,3 +68,48 @@ Effect: candidates **85 -> 40**; both real bugs retained (7zip:3395, rar:1304).
 2. Control-flow guard modeling: a dominating `if (ptr+n > end) return` sanitizes the read
    (removes ~2 FPs); also switch confirmation to gemini-2.5-pro (flash over-confirmed
    these despite the visible guard).
+
+---
+
+# SOTA techniques (Pinpoint / Prism line) applied on our base — precision 8% -> 67%
+
+Referenced Charles Zhang's group's value-flow work (Pinpoint, PLDI'18: sparse value
+flow + path conditions on value-flow edges + on-demand SMT feasibility; field-sensitive
+memory via access paths). Adapted the ideas as lightweight passes on our LLVM-IR taint
+(no rewrite):
+
+1. **Sanitizer modeling** — a size flowing through a clamp (`if(l>b)l=b` -> phi at
+   -O0+mem2reg), `umin`/mask is BOUNDED; distinguish clamped (safe) from merely constant
+   (a const-size read from an input-offset pointer, rar:1304, is still OOB).
+2. **Field-sensitive value signatures** (access-path analogue) — normalize each defining
+   expression recursively so two loads of the SAME struct field match; used for
+   malloc-to-fit (`malloc(x->f)` covers `memcpy(...,x->f)`).
+3. **Path-sensitive guarded value-flow** (Pinpoint's core) — CFG + dominators; a sink is
+   safe if a DOMINATING branch condition is a BOUNDS check on THIS access (the sink's own
+   pointer/size in the guard's backward slice), distinguishing a bounds check from a
+   sign/null check (`bytes < 0` stays flagged). Guard relatedness also matched
+   field-sensitively by value signature.
+
+## Candidate progression (all 6+ real bugs retained throughout)
+85 -> 40 (sanitizers) -> 35 (field-sensitive malloc-to-fit) -> 30 (path-sensitive guards).
+
+## Verified precision (per-finding, vs v3.1.2 source + git)
+| stage | confirmed | real | precision | reals found (recall) |
+|---|---|---|---|---|
+| baseline taint          | 12 | 1 | 8%  | 1 |
+| + sanitizer modeling    | 15 | 6 | 40% | 6 |
+| + field-sens + path-sens| 12 | 8 | **67%** | **8** |
+
+Real bugs (8): 7zip:3395; iso9660:1362 (Joliet, fix 750e8d7b); rar:1301/1304 (FHD_LARGE,
+fix 99f74bd3); rar:2802/2813/2815/2818 (LZSS window, later "protect" eac15e25).
+
+## Remaining 4 FPs (precisely characterized)
+- field-sensitive clamp through a COMPOUND `&&` guard (immediate dominator is a different
+  clause): 7zip:1474 (`odd_bcj_size<=4`), zip:622.
+- fixed-size struct move within a bounded array (needs array-index-range reasoning):
+  iso9660:2301 (heap sift-up), iso9660:2344 (heap swap).
+
+## Next (to approach the Pinpoint precision ceiling)
+- On-demand SMT (Z3) feasibility on the sink's path condition — replaces the heuristic
+  guard match with a real satisfiability check (handles compound conditions exactly).
+- Array-index range analysis for the struct-move idiom.

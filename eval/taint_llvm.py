@@ -295,18 +295,21 @@ def _cmp_against_zero(raw: str) -> bool:
 
 
 def sink_is_guarded(f: Func, sink_ins: dict, rel_vars: set[str],
-                    insmap: dict, dom: dict) -> bool:
+                    insmap: dict, dom: dict, sig_memo: dict) -> bool:
     """PATH-SENSITIVE (Pinpoint-style): is the sink dominated by a branch whose
     condition is a BOUNDS check on a value related to the sink? A dominating
-    `if (p+n > end) return;` (taken to reach the sink) sanitizes the access."""
+    `if (p+n > end) return;` (taken to reach the sink) sanitizes the access.
+    Relatedness is checked both by SSA identity AND field-sensitively by value
+    signature, so a guard on `x->len` protects a sink using another load of x->len."""
     sb = sink_ins.get("block")
     if sb is None or not rel_vars:
         return False
+    rel_sigs = {value_sig(v, insmap, sig_memo) for v in rel_vars}
+    rel_sigs = {s for s in rel_sigs if s.startswith(("L[", "G("))}  # field/mem sigs only
     domset = dom.get(sb, set())
     for D, b in f.blocks.items():
         if b["cond"] is None or D == sb or D not in domset:
             continue
-        # the sink is only reachable if a specific side of D's branch was taken
         t, fl = b["true"], b["false"]
         if not ((t and t in domset) or (fl and fl in domset)):
             continue  # branch does not decide reaching the sink
@@ -315,12 +318,15 @@ def sink_is_guarded(f: Func, sink_ins: dict, rel_vars: set[str],
             continue
         if _cmp_against_zero(cond["raw"]):
             continue  # sign/null check, not a bounds guard
-        # PRECISE relatedness: the guard must directly check THIS access -- a direct
-        # sink operand (the exact pointer/size SSA value) appears in the guard's
-        # backward slice (e.g. guard `gep(p,8) > end` slices back to the sink ptr p).
         guard_slice = backward_slice(set(cond["ops"]), insmap)
+        # SSA-direct: the sink's exact pointer/size flows into the guard.
         if rel_vars & guard_slice:
             return True
+        # field-sensitive: the guard checks the SAME struct field the sink uses.
+        if rel_sigs:
+            gsigs = {value_sig(v, insmap, sig_memo) for v in cond["ops"]}
+            if rel_sigs & gsigs:
+                return True
     return False
 
 
@@ -371,7 +377,7 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # PATH-SENSITIVE guard: a dominating bounds check on the sink's operands
         # (e.g. `if (p+n > end) return;`) sanitizes the access on the reaching path.
         rel_vars = set(size_v) | set(dst_v) | set(src_v)
-        if sink_is_guarded(f, ins, rel_vars, insmap, dom):
+        if sink_is_guarded(f, ins, rel_vars, insmap, dom, sig_memo):
             continue
         out.append({
             "func": f.name, "sink": sink,
