@@ -145,22 +145,53 @@ def bounded_values(f: Func) -> set[str]:
     return bounded
 
 
-def alloc_size_roots(f: Func) -> set[str]:
-    """Values used as (or one step feeding) the size argument of malloc/calloc/
-    realloc in this function. If a sink's size equals such a value, the destination
-    was allocated to fit -> not an overflow (malloc-to-fit)."""
-    roots = set()
+_DBG_RE = re.compile(r",? *!dbg !\d+.*$")
+
+
+def _insmap(f: Func) -> dict:
+    return {ins["result"]: ins for ins in f.insns if ins["result"]}
+
+
+def value_sig(val: str, insmap: dict, memo: dict, depth: int = 0) -> str:
+    """FIELD-SENSITIVE value signature: normalize the defining expression, replacing
+    each operand with its own signature recursively. Two loads of the SAME struct
+    field (same base + same GEP field path) get identical signatures even though they
+    are different SSA values -- so `malloc(x->f)` and `memcpy(..., x->f)` match."""
+    if val in memo:
+        return memo[val]
+    if depth > 8 or val not in insmap:
+        return val  # argument, constant, or too deep
+    memo[val] = val  # break cycles (phis) while recursing
+    ins = insmap[val]
+    raw = ins["raw"]
+    rhs = raw.split("=", 1)[1] if "=" in raw else raw
+    rhs = _DBG_RE.sub("", rhs).strip()
+
+    def repl(m):
+        v = m.group(0)
+        return v if v == val else "(" + value_sig(v, insmap, memo, depth + 1) + ")"
+
+    sig = VALRE.sub(repl, rhs)
+    memo[val] = sig
+    return sig
+
+
+def alloc_size_sigs(f: Func, insmap: dict, memo: dict) -> set[str]:
+    """Signatures of values used as the size of a malloc/calloc/realloc (and the
+    operands feeding them, so `malloc(len+1)` also covers a `memcpy(len)`)."""
+    sigs = set()
     for ins in f.insns:
         if "call" not in ins["opcode"]:
             continue
         if not any(a in ins["raw"] for a in ("@malloc", "@calloc", "@realloc")):
             continue
         for v in ins["ops"]:
-            roots.add(v)
-            for i2 in f.insns:  # expand one level: `len+1 -> len`
-                if i2["result"] == v:
-                    roots.update(i2["ops"])
-    return roots
+            sigs.add(value_sig(v, insmap, memo))
+            sub = insmap.get(v)
+            if sub:  # `len+1` -> also record `len`
+                for o in sub["ops"]:
+                    sigs.add(value_sig(o, insmap, memo))
+    return sigs
 
 
 def _memcpy_args(raw: str):
@@ -181,7 +212,9 @@ def _memcpy_args(raw: str):
 
 def find_candidates(f: Func, tainted: set[str], bounded: set[str],
                     dbg: dict) -> list[dict]:
-    alloc_roots = alloc_size_roots(f)
+    insmap = _insmap(f)
+    sig_memo: dict = {}
+    alloc_sigs = alloc_size_sigs(f, insmap, sig_memo)
     out = []
     for ins in f.insns:
         m = SINK_RE.search(ins["raw"])
@@ -201,8 +234,9 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # safe. A merely CONSTANT size is NOT "clamped": a constant-size READ from a
         # tainted pointer with an unbounded offset is still OOB (e.g. p+4 past end).
         size_clamped = bool(size_v) and all(v in bounded for v in size_v)
-        # malloc-to-fit: the destination buffer was allocated with this same size.
-        if size_v and any(v in alloc_roots for v in size_v):
+        # malloc-to-fit (field-sensitive): the destination was allocated with the same
+        # size expression (matched by value signature, through struct-field loads).
+        if size_v and any(value_sig(v, insmap, sig_memo) in alloc_sigs for v in size_v):
             continue
 
         why = []
