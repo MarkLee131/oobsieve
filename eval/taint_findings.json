@@ -1,0 +1,178 @@
+[
+ {
+  "func": "archive_read_format_rar_read_header",
+  "sink": "memcpy",
+  "line": 847,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 2",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "archive_read_format_rar_read_header",
+  "sink": "memcpy",
+  "line": 848,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 4",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memcpy",
+  "line": 1230,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 7",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memset",
+  "line": 1251,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 8",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memcpy",
+  "line": 1281,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 25",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memcpy",
+  "line": 1301,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 4",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memcpy",
+  "line": 1304,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 4",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memcpy",
+  "line": 1357,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %215",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memcpy",
+  "line": 1500,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %524",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memcpy",
+  "line": 1522,
+  "tainted_operand": "dst-ptr+src-ptr",
+  "size_expr": "i64 8",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "read_header",
+  "sink": "memset",
+  "line": 1579,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 404",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "copy_from_lzss_window",
+  "sink": "memcpy",
+  "line": 2802,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %42",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "copy_from_lzss_window",
+  "sink": "memcpy",
+  "line": 2813,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %64",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "copy_from_lzss_window",
+  "sink": "memcpy",
+  "line": 2815,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %77",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "copy_from_lzss_window",
+  "sink": "memcpy",
+  "line": 2818,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %90",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "parse_codes",
+  "sink": "memset",
+  "line": 2091,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 404",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "parse_codes",
+  "sink": "memset",
+  "line": 2238,
+  "tainted_operand": "size+dst-ptr",
+  "size_expr": "i64 %619",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "lzss_emit_match",
+  "sink": "memcpy",
+  "line": 586,
+  "tainted_operand": "size+dst-ptr+src-ptr",
+  "size_expr": "i64 %51",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "free_codes",
+  "sink": "memset",
+  "line": 2263,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 32",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "free_codes",
+  "sink": "memset",
+  "line": 2264,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 32",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "free_codes",
+  "sink": "memset",
+  "line": 2265,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 32",
+  "file": "archive_read_support_format_rar.c"
+ },
+ {
+  "func": "free_codes",
+  "sink": "memset",
+  "line": 2266,
+  "tainted_operand": "dst-ptr",
+  "size_expr": "i64 32",
+  "file": "archive_read_support_format_rar.c"
+ }
+]

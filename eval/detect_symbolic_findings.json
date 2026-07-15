@@ -1,90 +1,6 @@
 [
  {
   "file": "archive_read_support_format_rar.c",
-  "line": 586,
-  "func": "lzss_emit_match",
-  "sink": "memcpy",
-  "size_arg": "l",
-  "ptr_args": [
-   "d",
-   "s"
-  ],
-  "input_derived_size": true,
-  "pointer_arithmetic": false,
-  "guarded": true
- },
- {
-  "file": "archive_read_support_format_rar.c",
-  "line": 847,
-  "func": "archive_read_format_rar_read_header",
-  "sink": "memcpy",
-  "size_arg": "sizeof ( rar -> reserved1 )",
-  "ptr_args": [
-   "rar -> reserved1",
-   "p + 7"
-  ],
-  "input_derived_size": false,
-  "pointer_arithmetic": true,
-  "guarded": true
- },
- {
-  "file": "archive_read_support_format_rar.c",
-  "line": 848,
-  "func": "archive_read_format_rar_read_header",
-  "sink": "memcpy",
-  "size_arg": "sizeof ( rar -> reserved2 )",
-  "ptr_args": [
-   "rar -> reserved2",
-   "p + 7 + sizeof ( rar -> reserved1 )"
-  ],
-  "input_derived_size": false,
-  "pointer_arithmetic": true,
-  "guarded": true
- },
- {
-  "file": "archive_read_support_format_rar.c",
-  "line": 1301,
-  "func": "read_header",
-  "sink": "memcpy",
-  "size_arg": "4",
-  "ptr_args": [
-   "packed_size + 4",
-   "p"
-  ],
-  "input_derived_size": false,
-  "pointer_arithmetic": true,
-  "guarded": false
- },
- {
-  "file": "archive_read_support_format_rar.c",
-  "line": 1304,
-  "func": "read_header",
-  "sink": "memcpy",
-  "size_arg": "4",
-  "ptr_args": [
-   "unp_size + 4",
-   "p"
-  ],
-  "input_derived_size": false,
-  "pointer_arithmetic": true,
-  "guarded": false
- },
- {
-  "file": "archive_read_support_format_rar.c",
-  "line": 1357,
-  "func": "read_header",
-  "sink": "memcpy",
-  "size_arg": "filename_size",
-  "ptr_args": [
-   "filename",
-   "p"
-  ],
-  "input_derived_size": true,
-  "pointer_arithmetic": false,
-  "guarded": true
- },
- {
-  "file": "archive_read_support_format_rar.c",
   "line": 1500,
   "func": "read_header",
   "sink": "memcpy",
@@ -95,21 +11,8 @@
   ],
   "input_derived_size": true,
   "pointer_arithmetic": false,
-  "guarded": true
- },
- {
-  "file": "archive_read_support_format_rar.c",
-  "line": 2238,
-  "func": "parse_codes",
-  "sink": "memset",
-  "size_arg": "rar -> dictionary_size",
-  "ptr_args": [
-   "rar -> lzss . window",
-   "0"
-  ],
-  "input_derived_size": true,
-  "pointer_arithmetic": false,
-  "guarded": true
+  "guarded": true,
+  "reasoning": "The `realloc` call immediately preceding the `memcpy` at line 1497 ( `rar->filename_save = (char*)realloc(rar->filename_save, filename_size + 1);`) is intended to allocate sufficient memory for `filename_size + 1` bytes. However, the return value of `realloc` is not checked. If `realloc` fails:\n1. If `rar->filename_save` was `NULL` before the call, `realloc` behaves like `malloc`. If it fails, `rar->filename_save` will become `NULL`. The subsequent `memcpy` with a `NULL` destination (`memcpy(NULL, rar->filename, filename_size + 1)`) will result in a segmentation fault (null pointer dereference).\n2. If `rar->filename_save` was *not* `NULL` before the call, and `realloc` fails, `rar->filename_save` retains its original value. The memory block it points to might be smaller than `filename_size + 1` bytes. In this scenario, the `memcpy(rar->filename_save, rar->filename, filename_size + 1)` would attempt to write beyond the bounds of the original, smaller buffer, leading to an out-of-bounds write. Both outcomes constitute a genuine memory error."
  },
  {
   "file": "archive_read_support_format_rar.c",
@@ -123,7 +26,8 @@
   ],
   "input_derived_size": true,
   "pointer_arithmetic": true,
-  "guarded": true
+  "guarded": true,
+  "reasoning": "The `memcpy` operation at line 2802 copies `length` bytes to `&rar->unp_buffer[rar->unp_offset]`. The `if` condition `if(windowoffs + length <= lzss_size(&rar->lzss))` only checks the bounds of the *source* buffer (`rar->lzss.window`). There is no check to ensure that `rar->unp_offset + length` does not exceed the allocated size of the *destination* buffer (`rar->unp_buffer_size`). If `rar->unp_offset + length` is greater than `rar->unp_buffer_size`, an out-of-bounds write to `rar->unp_buffer` will occur. `length` is an input parameter to the function, making it an input-derived size that directly affects the write length without a corresponding destination buffer bounds check."
  },
  {
   "file": "archive_read_support_format_rar.c",
@@ -137,7 +41,8 @@
   ],
   "input_derived_size": true,
   "pointer_arithmetic": true,
-  "guarded": true
+  "guarded": true,
+  "reasoning": "The `memcpy` at line 2813 copies `firstpart` bytes into `rar->unp_buffer` starting at `rar->unp_offset`. The value of `firstpart` is derived from `lzss_size(&rar->lzss)` and `windowoffs`, both of which are dependent on the input RAR file data, making `firstpart` an input-derived size. The destination buffer `rar->unp_buffer` is allocated with `rar->unp_buffer_size`. The provided code snippet does not include a bounds check to ensure that `rar->unp_offset + firstpart` does not exceed `rar->unp_buffer_size`. If `rar->unp_offset + firstpart` can be greater than `rar->unp_buffer_size` due to malicious or malformed input, this `memcpy` will result in an out-of-bounds write. While the source buffer (`rar->lzss.window`) access for `firstpart` is correctly bounded by its definition, the destination buffer lacks such a check within this context. Therefore, the symbolic analysis correctly flags a genuine out-of-bounds vulnerability."
  },
  {
   "file": "archive_read_support_format_rar.c",
@@ -151,7 +56,8 @@
   ],
   "input_derived_size": true,
   "pointer_arithmetic": true,
-  "guarded": true
+  "guarded": true,
+  "reasoning": "The memcpy at line 2815 copies `length - firstpart` bytes from `&rar->lzss.window[0]`. The `lzss.window` is a circular buffer of size `lzss_size(&rar->lzss)`. The `firstpart` variable is calculated as `lzss_size(&rar->lzss) - windowoffs`. Therefore, the size copied by the second memcpy is `length - (lzss_size(&rar->lzss) - windowoffs)`, which simplifies to `length + windowoffs - lzss_size(&rar->lzss)`. For this operation to be safe, this size must not exceed `lzss_size(&rar->lzss)`. This implies the condition `length + windowoffs - lzss_size(&rar->lzss) <= lzss_size(&rar->lzss)`, or `length + windowoffs <= 2 * lzss_size(&rar->lzss)`. The code only checks if `windowoffs + length > lzss_size(&rar->lzss)` (which triggers this `else` branch) and `firstpart < length`. These checks do not prevent `length + windowoffs` from exceeding `2 * lzss_size(&rar->lzss)`. If `length` (which is input-derived) is sufficiently large such that `length + windowoffs` is greater than `2 * lzss_size(&rar->lzss)`, an out-of-bounds read will occur from `rar->lzss.window`."
  },
  {
   "file": "archive_read_support_format_rar.c",
@@ -165,6 +71,7 @@
   ],
   "input_derived_size": true,
   "pointer_arithmetic": true,
-  "guarded": true
+  "guarded": true,
+  "reasoning": "The `memcpy` operations write `length` bytes (or `firstpart` then `length - firstpart` bytes) into `rar->unp_buffer` starting at `rar->unp_buffer[rar->unp_offset]`. The total size of `rar->unp_buffer` is `rar->unp_buffer_size`. There is no check before any of the `memcpy` calls to ensure that `rar->unp_offset + length` does not exceed `rar->unp_buffer_size`. The check `if (rar->unp_offset >= rar->unp_buffer_size)` occurs *after* `rar->unp_offset += length;`, meaning that if `rar->unp_offset + length` exceeds `rar->unp_buffer_size`, an out-of-bounds write will have already occurred into `rar->unp_buffer` before the condition is evaluated. `length` is an input-derived size, making this a genuine out-of-bounds write vulnerability."
  }
 ]
