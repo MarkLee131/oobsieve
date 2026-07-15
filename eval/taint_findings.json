@@ -5,15 +5,8 @@
   "line": 3395,
   "tainted_operand": "size",
   "size_expr": "i64 %319",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Header",
-  "sink": "memset",
-  "line": 2440,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %314",
-  "file": "archive_read_support_format_7zip.c"
+  "file": "archive_read_support_format_7zip.c",
+  "reasoning": "The `memcpy` operation at line 3395 copies `bytes` bytes to `b[i]+s[i]`. The destination buffer `b[i]` is allocated with a size determined by `zip->folder_outbytes_remaining`, which is an input-derived value (from `sunpack[i]`). The `bytes` variable, which determines the size of the current `memcpy` operation, is also input-derived (returned by `get_uncompressed_data`) and tainted. The `s[i]` variable accumulates the total bytes written in previous iterations (`s[i] += bytes;`).\n\nThe vulnerability arises because there is no explicit bounds check to ensure that the cumulative bytes written (`s[i] + bytes`) does not exceed the allocated size of the buffer (`zip->folder_outbytes_remaining`). An attacker could provide a `zip->folder_outbytes_remaining` value that is too small during `malloc`, and then provide compressed data that, when decompressed by `get_uncompressed_data`, yields a `bytes` value that, when added to the current `s[i]`, exceeds the allocated buffer size. This would lead to an out-of-bounds write.\n\nWhile `get_uncompressed_data` takes `zip->uncompressed_buffer_bytes_remaining` as an argument, the snippet does not show how this value is initialized or updated in relation to `zip->folder_outbytes_remaining` and `s[i]`. Without a clear mechanism (e.g., `zip->uncompressed_buffer_bytes_remaining` being `zip->folder_outbytes_remaining - s[i]` and `get_uncompressed_data` strictly enforcing this limit) or an explicit check `if (s[i] + bytes > zip->folder_outbytes_remaining)`, the condition for a real bug is met: an input-derived size (`bytes`) combined with an input-derived offset (`s[i]`) can cause the write to exceed the destination buffer `b[i]`, and no correct bounds check is visible to guard against this on all paths."
  },
  {
   "func": "extract_pack_stream",
@@ -21,15 +14,8 @@
   "line": 2989,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %129",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "decompress",
-  "sink": "memcpy",
-  "line": 1474,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %293",
-  "file": "archive_read_support_format_7zip.c"
+  "file": "archive_read_support_format_7zip.c",
+  "reasoning": "The `memmove` operation copies `zip->uncompressed_buffer_bytes_remaining` bytes. The taint analysis indicates that `zip->uncompressed_buffer_bytes_remaining` (the 'size' operand) is input-derived. The destination buffer is `zip->uncompressed_buffer`, which has an allocated size of `zip->uncompressed_buffer_size`. For the `memmove` to be safe, the size of the data being moved (`zip->uncompressed_buffer_bytes_remaining`) must not exceed the capacity of the destination buffer (`zip->uncompressed_buffer_size`). Additionally, the source region `zip->uncompressed_buffer + used` for `zip->uncompressed_buffer_bytes_remaining` bytes must also be within the bounds of the allocated buffer. Since `used = zip->uncompressed_buffer_pointer - zip->uncompressed_buffer`, the source region is effectively `zip->uncompressed_buffer_pointer` for `zip->uncompressed_buffer_bytes_remaining` bytes. Both the source and destination ranges require that `zip->uncompressed_buffer_bytes_remaining <= zip->uncompressed_buffer_size` and that `zip->uncompressed_buffer_pointer + zip->uncompressed_buffer_bytes_remaining <= zip->uncompressed_buffer + zip->uncompressed_buffer_size`. The provided code snippet does not contain any explicit bounds check to ensure that `zip->uncompressed_buffer_bytes_remaining` does not exceed `zip->uncompressed_buffer_size` (or the remaining capacity from the `zip->uncompressed_buffer_pointer`). The condition `zip->uncompressed_buffer_bytes_remaining < minimum` only triggers a reallocation if the remaining bytes are *too few*, offering no protection against an excessively large, attacker-controlled `zip->uncompressed_buffer_bytes_remaining` value that could lead to an out-of-bounds write."
  },
  {
   "func": "read_Folder",
@@ -37,39 +23,8 @@
   "line": 1822,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %171",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "read_Times",
-  "sink": "memset",
-  "line": 2582,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %26",
-  "file": "archive_read_support_format_7zip.c"
- },
- {
-  "func": "lzx_huffman_init",
-  "sink": "memset",
-  "line": 3134,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %27",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_decode_blocks",
-  "sink": "memcpy",
-  "line": 2749,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_cab.c"
- },
- {
-  "func": "lzx_read_bitlen",
-  "sink": "memset",
-  "line": 3084,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %191",
-  "file": "archive_read_support_format_cab.c"
+  "file": "archive_read_support_format_7zip.c",
+  "reasoning": "The `memcpy` copies `f->coders[i].propertiesSize` bytes from `p` to `f->coders[i].properties`. The destination buffer `f->coders[i].properties` is allocated with `malloc((size_t)f->coders[i].propertiesSize)`, so there is no overflow risk for the destination. However, `f->coders[i].propertiesSize` is an input-derived value, read directly using `parse_7zip_uint64`, without any upper bound check. The source pointer `p` is obtained from `header_bytes(a, (size_t)f->coders[i].propertiesSize)`. If `f->coders[i].propertiesSize` is maliciously large and exceeds the actual number of bytes remaining in the input stream `a` (from which `header_bytes` extracts data), then `header_bytes` might return a pointer `p` that does not actually have `f->coders[i].propertiesSize` bytes of valid data following it, or it might itself perform an out-of-bounds read from `a` internally. Assuming `header_bytes` returns a non-NULL pointer, but the data is truncated or ends prematurely due to the large `propertiesSize`, the subsequent `memcpy` would attempt to read past the end of the valid data pointed to by `p`. There is no check to limit `f->coders[i].propertiesSize` (e.g., against a maximum allowed size or the remaining input stream length), allowing an attacker to induce an out-of-bounds read from the source buffer `p`."
  },
  {
   "func": "archive_read_format_iso9660_read_header",
@@ -77,23 +32,8 @@
   "line": 1362,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %303",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "build_pathname_utf16be",
-  "sink": "memcpy",
-  "line": 3200,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %58",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "heap_add_entry",
-  "sink": "memcpy",
-  "line": 3002,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %40",
-  "file": "archive_read_support_format_iso9660.c"
+  "file": "archive_read_support_format_iso9660.c",
+  "reasoning": "The `memcpy` operation copies `iso9660->utf16be_path_len` bytes from `iso9660->utf16be_path.s` to `iso9660->utf16be_previous_path.s`. Both `iso9660->utf16be_path` and `iso9660->utf16be_previous_path` are `struct archive_string` objects, meaning their `s` fields point to dynamically allocated buffers. The `iso9660->utf16be_path_len` value is derived from input data (Joliet filename length) and is therefore tainted. There is no explicit call to resize or ensure capacity for `iso9660->utf16be_previous_path.s` before the `memcpy`. If `iso9660->utf16be_path_len` exceeds the currently allocated `buffer_length` of `iso9660->utf16be_previous_path.s`, a heap buffer overflow will occur. The alternative `else` branch correctly uses `archive_strcpy`, which handles dynamic resizing, highlighting the oversight in the `memcpy` path. Therefore, an input-derived size can exceed the destination buffer without a corresponding bounds check or resize operation."
  },
  {
   "func": "register_CE",
@@ -101,23 +41,8 @@
   "line": 2281,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %91",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "register_CE",
-  "sink": "memcpy",
-  "line": 2301,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "next_CE",
-  "sink": "memcpy",
-  "line": 2322,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
+  "file": "archive_read_support_format_iso9660.c",
+  "reasoning": "The `memcpy` operation copies `heap->cnt * sizeof(*p)` bytes into the newly allocated buffer `p`. The buffer `p` is allocated with `new_size` elements, meaning its capacity is `new_size * sizeof(p[0])` bytes. The problem statement indicates that `heap->cnt` is an input-derived value, making the `size` argument of `memcpy` (i.e., `heap->cnt * sizeof(*p)`) also input-derived. While `new_size` is calculated to be greater than the `heap->allocated` value (either `16` or `heap->allocated * 2`), there is no explicit check to ensure that the input-derived `heap->cnt` does not exceed `new_size`. If an attacker can manipulate `heap->cnt` to be greater than `new_size` (e.g., `heap->allocated = 10`, `new_size = 16`, but `heap->cnt = 100`), the `memcpy` would write beyond the bounds of the newly allocated buffer `p`. The missing check is `if (heap->cnt > new_size)` before the `memcpy` to prevent an out-of-bounds write if `heap->cnt` is maliciously controlled."
  },
  {
   "func": "next_CE",
@@ -125,55 +50,8 @@
   "line": 2344,
   "tainted_operand": "src-ptr",
   "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "next_CE",
-  "sink": "memcpy",
-  "line": 2345,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "zisofs_read_data",
-  "sink": "memset",
-  "line": 1578,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %280",
-  "file": "archive_read_support_format_iso9660.c"
- },
- {
-  "func": "lzh_decode_init",
-  "sink": "memset",
-  "line": 1794,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %74",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_read_blocks",
-  "sink": "memset",
-  "line": 2250,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %624",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "lzh_decode_blocks",
-  "sink": "memcpy",
-  "line": 2280,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 16",
-  "file": "archive_read_support_format_lha.c"
- },
- {
-  "func": "readline",
-  "sink": "memcpy",
-  "line": 1837,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 %44",
-  "file": "archive_read_support_format_mtree.c"
+  "file": "archive_read_support_format_iso9660.c",
+  "reasoning": "The memory operation refers to a structure assignment, likely compiled to a `memcpy` of a compile-time constant size (sizeof(struct read_ce_req)). The `src-ptr` is tainted. Specifically, in the line `heap->reqs[0] = heap->reqs[--(heap->cnt)];`, the source pointer is `&heap->reqs[--(heap->cnt)]`. The index `--(heap->cnt)` is derived from `heap->cnt`. If `heap->cnt` is an attacker-controlled, input-derived value that can exceed the actual allocated capacity of the `heap->reqs` array, then accessing `heap->reqs[--(heap->cnt)]` would result in an out-of-bounds read. The existing checks (`if (heap->cnt < 1)`, `if (b >= heap->cnt)`, `if (c < heap->cnt)`) only ensure indices are within the *logical* `heap->cnt` range, but do not validate `heap->cnt` itself against the *physical* allocated buffer size for `heap->reqs`. Therefore, an input-derived offset (via `heap->cnt`) can cause a read past the buffer's end."
  },
  {
   "func": "readline",
@@ -181,31 +59,8 @@
   "line": 1861,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %108",
-  "file": "archive_read_support_format_mtree.c"
- },
- {
-  "func": "archive_read_format_rar_read_header",
-  "sink": "memcpy",
-  "line": 847,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 2",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "archive_read_format_rar_read_header",
-  "sink": "memcpy",
-  "line": 848,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 4",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1230,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 7",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_mtree.c",
+  "reasoning": "The `memmove` operation at line 1861 aims to shift characters left by one position to remove a backslash followed by a newline. The string `mtree->line.s` is null-terminated at `mtree->line.s[total_size]`. Therefore, the valid data in the buffer occupies indices `0` through `total_size`, inclusive. The total number of bytes available for the string (including the null terminator) is `total_size + 1`.\n\nThe `memmove` call is `memmove(u, u + 1, total_size - (u - mtree->line.s) + 1);`\n\nLet `offset_u = u - mtree->line.s`. This is the index of the character pointed to by `u`.\n\nThe size argument becomes `total_size - offset_u + 1`.\n\nThe source pointer is `u + 1`, which means it starts reading from `mtree->line.s + offset_u + 1`.\n\nThe highest index accessed by the source pointer will be `(source_start_ptr) + (size) - 1`:\n` (mtree->line.s + offset_u + 1) + (total_size - offset_u + 1) - 1`\n`= mtree->line.s + offset_u + 1 + total_size - offset_u + 1 - 1`\n`= mtree->line.s + total_size + 1`\n\nThis means the `memmove` attempts to read from `mtree->line.s[total_size + 1]`. However, the buffer `mtree->line.s` only has valid data up to `mtree->line.s[total_size]` (the null terminator). Accessing `mtree->line.s[total_size + 1]` is an out-of-bounds read past the end of the allocated buffer.\n\nThe `total_size` and `u` (and thus `offset_u`) are input-derived, making the `size` argument input-derived, and capable of triggering this out-of-bounds read. The correct size should be `total_size - (u - mtree->line.s)` to only move the necessary characters up to and including the null terminator."
  },
  {
   "func": "read_header",
@@ -213,15 +68,8 @@
   "line": 1281,
   "tainted_operand": "src-ptr",
   "size_expr": "i64 25",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1301,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 4",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The `memcpy` operation copies `sizeof(file_header)` bytes from the buffer pointed to by `p` into `&file_header`. The `src-ptr` operand `p` is derived from `h`, which is the result of `__archive_read_ahead(a, (size_t)header_size - 7, NULL)`. The `header_size` value is read from the input archive (`rar_header.head_size`). This means the size of the buffer pointed to by `h` (and thus `p`) is `(size_t)header_size - 7`, which is an input-derived value.\n\nThe `sizeof(file_header)` is a compile-time constant, typically 25 bytes for `struct rar_file_header` in RARv4. If an attacker provides a crafted `header_size` such that `(size_t)header_size - 7 < sizeof(file_header)` (i.e., `header_size < 7 + sizeof(file_header)`, which means `header_size < 32`), then the `memcpy` will attempt to read more bytes than are available in the buffer pointed to by `p`. For example, if `header_size` is 20, the buffer would be 13 bytes long, but `memcpy` would try to read 25 bytes, resulting in an out-of-bounds read.\n\nThere is no explicit check in the provided code snippet to ensure that `(size_t)header_size - 7` is at least `sizeof(file_header)`. The `__archive_read_ahead` function itself only guarantees that the requested amount of data is available, but not that this amount is sufficient for subsequent parsing operations like `memcpy`."
  },
  {
   "func": "read_header",
@@ -229,15 +77,8 @@
   "line": 1304,
   "tainted_operand": "src-ptr",
   "size_expr": "i64 4",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1357,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %215",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The `memcpy` at line 1304 uses an input-derived source pointer `p` and copies a compile-time constant size of `4` bytes. The source buffer `h` (pointed to by `p`) is allocated with a size of `header_size - 7`, where `header_size` is derived from input (`rar_header.head_size`). Before this `memcpy`, `p` is advanced by `sizeof(file_header)` (32 bytes) and potentially by 4 more bytes (depending on `rar->file_flags`). Specifically, if `rar->file_flags & FHD_LARGE` is true, the `memcpy` at line 1304 reads 4 bytes from `p = h + sizeof(file_header)`. This means it attempts to read from `h + 32` to `h + 35`. The maximum valid address for `h` is `h + (header_size - 7) - 1`. For the `memcpy` to be safe, `h + 35` must be within bounds, i.e., `35 <= (header_size - 7) - 1`, which simplifies to `header_size >= 43`. The code only checks `header_size < sizeof(rar_header)` (i.e., `header_size < 7`), which is insufficient. An attacker can supply a `header_size` between 7 and 42 (e.g., 40), along with setting the `FHD_LARGE` flag, causing an out-of-bounds read past the end of the `h` buffer. For example, if `header_size` is 40, `h` points to 33 bytes (indices 0-32). After copying `file_header`, `p` points to `h+32`. The `memcpy` at line 1304 attempts to read `h+32`, `h+33`, `h+34`, `h+35`, where `h+33` through `h+35` are out-of-bounds."
  },
  {
   "func": "read_header",
@@ -245,7 +86,8 @@
   "line": 1500,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %524",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The `memcpy` operation copies `filename_size + 1` bytes. While the destination buffer `rar->filename_save` is reallocated just before the `memcpy` to precisely this size (`filename_size + 1`), ensuring the destination is safe, the source buffer `rar->filename` is not guaranteed to be large enough. `filename_size` is an input-derived value. If `rar->filename` points into a larger input buffer (e.g., an archive header buffer), and `filename_size + 1` exceeds the actual size of the data available from `rar->filename` to the end of its containing buffer, it will result in an out-of-bounds read from the source (`rar->filename`). A bounds check is missing to ensure that `filename_size + 1` does not exceed the actual length of the data available at the source pointer `rar->filename`."
  },
  {
   "func": "read_header",
@@ -253,7 +95,8 @@
   "line": 1522,
   "tainted_operand": "src-ptr",
   "size_expr": "i64 8",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The `memcpy` operation at line 1522 copies `filename_size + 1` bytes from `rar->filename` to `rar->filename_save`. The destination buffer `rar->filename_save` is reallocated immediately before the `memcpy` with the size `filename_size + 1`, so there is no out-of-bounds write to the destination based on the size. However, the analysis states that the `src-ptr` operand, `rar->filename`, is tainted (attacker/input-derived). Additionally, the size operand `filename_size + 1` is also input-derived. If `rar->filename` can be made to point to an arbitrary or unintended memory location by an attacker, or if `filename_size` can be crafted such that `filename_size + 1` exceeds the bounds of the actual buffer that `rar->filename` is intended to point to, then this constitutes an out-of-bounds read from the source. This fits the condition 'an input-derived offset makes the pointer read/write past a buffer end', as an attacker-controlled `src-ptr` effectively acts as an input-derived offset from the intended buffer, or even from the start of memory. There is no visible bounds check ensuring that `rar->filename` points to a valid, accessible buffer of at least `filename_size + 1` bytes."
  },
  {
   "func": "copy_from_lzss_window",
@@ -261,7 +104,8 @@
   "line": 2802,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %42",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The `memcpy` operation copies `length` bytes from `rar->lzss.window` to `&rar->unp_buffer[rar->unp_offset]`. The `length` parameter is input-derived, and `rar->unp_offset` is also likely derived from input processing. While there is a bounds check for the source buffer (`if(windowoffs + length <= lzss_size(&rar->lzss))`), there is no corresponding check to ensure that `rar->unp_offset + length` does not exceed `rar->unp_buffer_size`, the allocated size of the destination buffer `rar->unp_buffer`. If an attacker can control `length` and `rar->unp_offset` such that their sum exceeds `rar->unp_buffer_size`, an out-of-bounds write to `rar->unp_buffer` will occur. The size (`length`) is not a compile-time constant, making this a potential vulnerability."
  },
  {
   "func": "copy_from_lzss_window",
@@ -269,15 +113,8 @@
   "line": 2813,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %64",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "copy_from_lzss_window",
-  "sink": "memcpy",
-  "line": 2815,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %77",
-  "file": "archive_read_support_format_rar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The memcpy operation at line 2816 writes `length - firstpart` bytes into `rar->unp_buffer` starting at `rar->unp_offset + firstpart`. The total number of bytes written to `rar->unp_buffer` across the two memcpy calls (lines 2814 and 2816) is `length`, starting at `rar->unp_offset`. The destination buffer `rar->unp_buffer` is allocated with size `rar->unp_buffer_size`. Both `rar->unp_offset` and `length` are input-derived values. There is no bounds check to ensure `rar->unp_offset + length <= rar->unp_buffer_size`, which can lead to a heap overflow if a malicious input provides an `offset` or `length` that exceeds the allocated size. Additionally, the source buffer `rar->lzss.window` is read from `&rar->lzss.window[0]` for `length - firstpart` bytes. If `length` is sufficiently large (i.e., `length > lzss_size(&rar->lzss) + 1`) and `windowoffs` is near `lzss_size(&rar->lzss)`, then `length - firstpart` can exceed `lzss_size(&rar->lzss)`, leading to a heap out-of-bounds read from `rar->lzss.window`. Both scenarios indicate a real bug due to missing bounds checks on input-derived sizes and offsets."
  },
  {
   "func": "copy_from_lzss_window",
@@ -285,31 +122,8 @@
   "line": 2818,
   "tainted_operand": "size+src-ptr+dst-ptr",
   "size_expr": "i64 %90",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "parse_codes",
-  "sink": "memset",
-  "line": 2238,
-  "tainted_operand": "size+dst-ptr",
-  "size_expr": "i64 %619",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_body_to_string",
-  "sink": "memcpy",
-  "line": 1043,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %9",
-  "file": "archive_read_support_format_tar.c"
- },
- {
-  "func": "readline",
-  "sink": "memcpy",
-  "line": 2547,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 %48",
-  "file": "archive_read_support_format_tar.c"
+  "file": "archive_read_support_format_rar.c",
+  "reasoning": "The `memcpy` at line 2818 writes to `&rar->unp_buffer[rar->unp_offset + firstpart]` with a size of `length - firstpart`. The effective end of this write operation into `rar->unp_buffer` is `rar->unp_offset + firstpart + (length - firstpart)`, which simplifies to `rar->unp_offset + length`. The `rar->unp_buffer` is allocated with a constant size `rar->unp_buffer_size`. Both `rar->unp_offset` (an accumulator of input-derived lengths) and `length` (an input-derived value) are attacker-controlled. There is no bounds check to ensure that `rar->unp_offset + length` does not exceed `rar->unp_buffer_size` *before* the `memcpy` operations within this function. The check `if (rar->unp_offset >= rar->unp_buffer_size)` occurs *after* `rar->unp_offset += length;`, which is too late to prevent an out-of-bounds write if `rar->unp_offset + length` exceeds the buffer capacity. An attacker can craft input data to cause `rar->unp_offset` to reach a value close to `rar->unp_buffer_size`, and then provide a `length` that causes `rar->unp_offset + length` to write past the end of `rar->unp_buffer`."
  },
  {
   "func": "zip_read_mac_metadata",
@@ -317,6 +131,7 @@
   "line": 622,
   "tainted_operand": "src-ptr",
   "size_expr": "i64 %93",
-  "file": "archive_read_support_format_zip.c"
+  "file": "archive_read_support_format_zip.c",
+  "reasoning": "The `memcpy` at line 622 copies `bytes_avail` bytes from `p` to `mp`. The destination buffer `metadata` is allocated with `rsrc->uncompressed_size`. The variable `metadata_bytes` tracks the remaining capacity in the `metadata` buffer, initialized to `rsrc->uncompressed_size` and decremented by `bytes_used` (which is equal to `bytes_avail`). The `bytes_avail` value is derived from `__archive_read_ahead` (input-derived) and capped by `remaining_bytes` (which is `rsrc->compressed_size`, also input-derived). For the `case 0: /* No compression. */`, if an attacker provides `rsrc->compressed_size` greater than `rsrc->uncompressed_size`, then `remaining_bytes` (total input data to read) will be greater than `metadata_bytes` (total destination buffer capacity). In the loop, `bytes_avail` is capped by `remaining_bytes`, but there is no check to ensure `bytes_avail` does not exceed `metadata_bytes`. Thus, `memcpy(mp, p, bytes_avail)` can write past the end of the `metadata` buffer if `bytes_avail` exceeds the current `metadata_bytes` remaining in the destination buffer. The `if (metadata_bytes == 0)` check occurs *after* the `memcpy` and only controls loop termination, not buffer bounds during the copy operation."
  }
 ]

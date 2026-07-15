@@ -36,3 +36,35 @@ v3.1.2 source and git history (not the loose "any fix in file" signal).
   (untaint / mark bounded). This alone removes ~8 of the 11 FPs here.
 - Confirm with a stronger model (gemini-2.5-pro) and require the LLM to name the exact
   missing bounds check or reject.
+
+---
+
+# After sanitizer modeling (precision 8% -> 40%)
+
+Added to the taint analysis:
+- **clamp/min detection**: a size that flows through a phi/select/`umin`/mask is
+  bounded (the `if (l > b) l = b` idiom becomes a phi at -O0+mem2reg). Distinguish
+  CLAMPED (safe) from merely CONSTANT (a const-size READ from an input-offset pointer,
+  e.g. rar:1304, is still OOB and kept).
+- **malloc-to-fit**: skip a sink whose size equals (or one step feeds) a malloc/
+  calloc/realloc size arg in the same function.
+
+Effect: candidates **85 -> 40**; both real bugs retained (7zip:3395, rar:1304).
+
+## Rigorous precision (per-finding, verified vs v3.1.2 source + git)
+- 40 candidates -> 15 confirmed (flash) -> **6 REAL / 15 -> precision 40%** (was 1/12 = 8%).
+- Real bugs FOUND went 1 -> 6 (recall up): 7zip:3395; iso9660:1362 (Joliet, fix 750e8d7b);
+  rar:1304 (FHD_LARGE, fix 99f74bd3); rar:2802/2813/2818 (LZSS, later "protect" eac15e25).
+- 9 residual FPs, by cause:
+  * field-sensitivity miss (malloc/clamp through struct-field loads): 7zip:1822, zip:622,
+    iso9660:2281, rar:1500.
+  * control-flow guard not modeled (`if (p+8>endp) return`): rar:1281, rar:1522.
+  * unmodeled bounded idiom (struct swap / in-place compaction): iso9660:2344, mtree:1861,
+    7zip:2989.
+
+## Next precision levers
+1. Field-sensitive alloc/clamp: recognize two loads of the same struct field as the same
+   bounded/alloc size (removes ~4 FPs).
+2. Control-flow guard modeling: a dominating `if (ptr+n > end) return` sanitizes the read
+   (removes ~2 FPs); also switch confirmation to gemini-2.5-pro (flash over-confirmed
+   these despite the visible guard).
