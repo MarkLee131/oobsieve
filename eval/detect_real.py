@@ -86,13 +86,24 @@ _SYS = (
 )
 
 
-def build_prompt(func_src: str, sink_line: str, file: str) -> tuple[str, str]:
-    user = (
-        f"{SPEC}\n\nFILE: {file}\nMEMORY OP OF INTEREST: {sink_line.strip()}\n\n"
-        f"FUNCTION:\n```c\n{func_src}\n```\n\n"
+GENERIC = (
+    "TASK: You are looking for out-of-bounds memory bugs. For the memory operation "
+    "indicated below, decide whether it is an out-of-bounds read/write."
+)
+
+
+def build_prompt(func_src: str, sink_line: str, file: str, use_spec: bool = True) -> tuple[str, str]:
+    head = SPEC if use_spec else GENERIC
+    tail = (
         "Does this function violate the spec at that memory op? Consider whether the "
         "size operand is derived from parsed input and whether a correct bounds check "
         "guards it on all paths."
+        if use_spec else
+        "Is this memory operation an out-of-bounds bug?"
+    )
+    user = (
+        f"{head}\n\nFILE: {file}\nMEMORY OP OF INTEREST: {sink_line.strip()}\n\n"
+        f"FUNCTION:\n```c\n{func_src}\n```\n\n{tail}"
     )
     return _SYS, user
 
@@ -110,6 +121,8 @@ def main(argv=None):
     ap.add_argument("--glob", default="archive_read_support_format_*.c")
     ap.add_argument("--model", default="gemini-2.5-pro")
     ap.add_argument("--max", type=int, default=40, help="max sink sites to check")
+    ap.add_argument("--no-spec", action="store_true",
+                    help="ablation: generic OOB prompt without the value-flow spec")
     args = ap.parse_args(argv)
     if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
         sys.exit("GEMINI_API_KEY (or GOOGLE_API_KEY) is not set.")
@@ -138,7 +151,8 @@ def main(argv=None):
         func_src, fstart = enclosing_function(lines, i)
         if len(func_src) > 12000:
             func_src = func_src[:12000]
-        system, user = build_prompt(func_src, ln, os.path.basename(f))
+        system, user = build_prompt(func_src, ln, os.path.basename(f),
+                                    use_spec=not args.no_spec)
         try:
             verdict = _parse(client.complete(system, user))
         except Exception as e:  # one bad response must not abort the batch
@@ -154,7 +168,9 @@ def main(argv=None):
             print(f"    {rec['reasoning']}\n")
 
     print(f"## summary: {len(violations)} candidate real bugs out of {checked} sites checked")
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "detect_real_findings.json")
+    suffix = "_nospec" if args.no_spec else ""
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       f"detect_real_findings{suffix}.json")
     json.dump(violations, open(out, "w"), indent=1)
     print(f"findings -> {out}")
 

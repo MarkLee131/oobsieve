@@ -76,3 +76,35 @@ fixed vulnerability families (not hallucinations):
 
 Artifacts: `DETECT_all_v3.1.2.txt` (full run), `detect_real_findings.json`,
 `eval/detect_real.py` (detector), `eval/verify_findings.py` (git-history check).
+
+---
+
+# Ablation: does the symbolic spec help? (spec-guided vs generic-OOB prompt)
+
+Same 90 sites, libarchive v3.1.2, gemini-2.5-flash. Only difference: the prompt
+either carries the SEAL-inferred value-flow spec, or a generic "is this an OOB?" ask.
+
+| | flagged | unique |
+|---|---|---|
+| spec-guided  | 11 | iso9660:1362, mtree:730, **rar:1301, rar:1304** |
+| generic (no-spec) | 11 | 7zip:1613, cab:1147, **cab:2636, lha:2250** |
+| overlap | 7 | rar lzss cluster (2802/13/15/18), 7zip 675/3395, mtree 885 |
+
+**Precision — the spec removes false positives.** 3 of the 4 generic-unique flags are
+false positives the spec-guided run correctly rejected:
+- `cab.c:2636` `memset(ds->at.freq, 0, sizeof(ds->at.freq))` — size is a compile-time
+  `sizeof`, cannot overflow.
+- `7zip.c:1613` `memset(d, 0, sizeof(*d))` — struct zero-init, safe.
+- `lha.c:2250` `memset(&ds->lt.bitlen[i], 0, c)` — guarded by `if (i+c > len_avail) goto failed`.
+The spec requires an *input-derived* size, so `sizeof`-constants and guarded ops don't match.
+
+**Recall on value-flow bugs — the spec catches subtle confirmed bugs the generic misses.**
+The spec-guided run uniquely flagged `rar:1301/1304` (FHD_LARGE header OOB, confirmed real
+via `99f74bd3`) and `iso9660:1362` (Joliet overflow, confirmed real via `750e8d7b`). The
+generic prompt missed these because the `memcpy` size there is a *constant* (4) while the
+danger is the input-bounded *source pointer* — exactly the value-flow shape the spec names.
+
+**Conclusion:** the symbolic value-flow spec is not decorative — it both cuts false
+positives (non-input-derived / guarded ops) and sharpens recall toward genuine
+input-derived-size violations, catching confirmed real bugs a pure-LLM OOB scan misses.
+This is the neuro-symbolic payoff, measured.

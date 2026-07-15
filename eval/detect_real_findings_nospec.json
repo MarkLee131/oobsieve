@@ -1,0 +1,79 @@
+[
+ {
+  "file": "archive_read_support_format_7zip.c",
+  "line": 675,
+  "op": "memcpy(symname+symsize, buff, size);",
+  "severity": "high",
+  "reasoning": "The `realloc` call uses `symsize + size + 1` as the requested allocation size. `symsize` is an accumulating size_t variable that tracks the total data copied, and `size` is the size of the current data chunk read from the archive. If the sum `symsize + size + 1` overflows the maximum value of `size_t` (`SIZE_MAX`), it will wrap around, resulting in a much smaller (or zero) value being passed to `realloc`. If `realloc` then succeeds in allocating this undersized buffer (which is possible if the wrapped-around size is small), the subsequent `memcpy(symname + symsize, buff, size)` will attempt to write `size` bytes starting at `symname + symsize`. Since `symsize` would still hold its large, pre-overflow value, this write would access memory far beyond the bounds of the actually allocated `symname` buffer, leading to a heap buffer overflow. There is no explicit check for this integer overflow before `realloc` is called. The `size` and `symsize` values are derived from potentially untrusted archive content, making this a classic integer overflow leading to a heap overflow vulnerability."
+ },
+ {
+  "file": "archive_read_support_format_7zip.c",
+  "line": 1613,
+  "op": "memset(d, 0, sizeof(*d));",
+  "severity": "medium",
+  "reasoning": "The `memset` call operates on the pointer `d`, which is an input parameter to the function. The function does not validate `d` to ensure it is not `NULL` or that it points to a memory region at least `sizeof(*d)` bytes large. If a caller passes `NULL` for `d`, or a pointer to an undersized buffer, the `memset` operation will result in an out-of-bounds write or a crash. While `sizeof(*d)` correctly determines the size of the `_7z_digests` structure, the lack of validation for the destination buffer `d` makes this operation vulnerable to out-of-bounds access within this function's context."
+ },
+ {
+  "file": "archive_read_support_format_7zip.c",
+  "line": 3395,
+  "op": "memcpy(b[i]+s[i], buff, bytes);",
+  "severity": "high",
+  "reasoning": "The `memcpy` operation copies `bytes` bytes into a buffer `b[i]` at an offset `s[i]`. The buffer `b[i]` is allocated with a size determined by `(size_t)zip->folder_outbytes_remaining`. This allocation size, `zip->folder_outbytes_remaining`, is derived from untrusted input from the 7-Zip archive metadata (either `folder->unPackSize[X]` or `zip->pack_stream_inbytes_remaining`, both originating from the archive structure).\n\nThe variable `s[i]` accumulates the total number of bytes written to `b[i]` (`s[i] += bytes;`). The `bytes` variable, representing the amount of data to copy in each `memcpy` call, is the result of `get_uncompressed_data`, which in turn processes data from the untrusted archive stream.\n\nThere is no explicit bounds check before the `memcpy` to ensure that `s[i] + bytes` does not exceed the `(size_t)zip->folder_outbytes_remaining` (the allocated size of `b[i]`). If a specially crafted 7-Zip archive provides an `unPackSize` (or `pack_stream_inbytes_remaining` for a `COPY` stream) that is smaller than the actual amount of data the decompressor (`extract_pack_stream` and `get_uncompressed_data`) will produce for that stream, then `s[i] + bytes` could eventually exceed the allocated size, leading to a heap out-of-bounds write. This is a common vulnerability pattern in archive decompression, potentially exploitable for denial of service or arbitrary code execution."
+ },
+ {
+  "file": "archive_read_support_format_cab.c",
+  "line": 1147,
+  "op": "memcpy(cfdata->sum_extra, p + sumbytes - odd, odd);",
+  "severity": "high",
+  "reasoning": "The `memcpy` operation reads `odd` bytes from the source address `p + sumbytes - odd`. Let's analyze the source: \n1. `p` is initialized as `cfdata->sum_ptr`. This pointer is set in `cab_read_cfdata_body` to `hptr + cfdata->h_sum_offset`.\n2. `sumbytes` is initially set to `bytes`, which is `cfdata->sum_bytes` (from `cab_read_cfdata_body`).\n3. The `while` loop decrements `sumbytes` and increments `p`, effectively consuming bytes from the original `cfdata->sum_ptr`. The `memcpy` then reads the remaining `odd` bytes.\n4. The total number of bytes read from the *initial* `cfdata->sum_ptr` throughout `cab_checksum_update` is exactly `cfdata->sum_bytes`. \n5. Therefore, the maximum memory location accessed relative to `hptr` is `hptr + cfdata->h_sum_offset + cfdata->sum_bytes - 1`.\n\n`hptr` points to a data block of total length `cfdata->length`. For the read to be in bounds, the condition `cfdata->h_sum_offset + cfdata->sum_bytes <= cfdata->length` must hold.\n\nIn `cab_read_cfdata_body`, there is a check: `if (cfdata->sum_bytes > cfdata->length)`. This check is insufficient because it does not account for `cfdata->h_sum_offset`. A malicious or malformed archive could set `cfdata->h_sum_offset` to a large value (e.g., `cfdata->length - 1`) and `cfdata->sum_bytes` to a small value (e.g., 2), such that `cfdata->sum_bytes <= cfdata->length` is true, but `cfdata->h_sum_offset + cfdata->sum_bytes` would exceed `cfdata->length`, leading to an out-of-bounds read.\n\nFor example, if `cfdata->length = 10`, `cfdata->h_sum_offset = 9`, and `cfdata->sum_bytes = 2`. The existing check passes (2 <= 10). However, the read would attempt to access bytes at `hptr + 9` and `hptr + 10`, while `hptr` only has bytes up to `hptr + 9` (index `cfdata->length - 1`). This is an out-of-bounds read.\n\nThe destination `cfdata->sum_extra` is a `char[4]`. `odd` is `sumbytes & 3`, so `odd` can be 0, 1, 2, or 3. Copying `odd` bytes into a 4-byte buffer is safe."
+ },
+ {
+  "file": "archive_read_support_format_cab.c",
+  "line": 2636,
+  "op": "memset(ds->at.freq, 0, sizeof(ds->at.freq));",
+  "severity": "high",
+  "reasoning": "The target of the `memset` call, `ds->at.freq`, is a pointer to an `int` (`int *`). The `struct lzx_dec` (pointed to by `ds`) is initialized using `calloc`, which sets all its members, including `ds->at.freq`, to `NULL`. At the line where `memset(ds->at.freq, 0, sizeof(ds->at.freq));` is called, `ds->at.freq` is still `NULL`. The `sizeof(ds->at.freq)` evaluates to the size of a pointer (e.g., 4 or 8 bytes), not the size of any allocated memory it might eventually point to. Therefore, this `memset` call attempts to write `sizeof(int *)` bytes starting at memory address `0x0` (NULL), which is an invalid memory location. This constitutes a null pointer dereference and an out-of-bounds write, leading to undefined behavior and likely a program crash."
+ },
+ {
+  "file": "archive_read_support_format_lha.c",
+  "line": 2250,
+  "op": "memset(&(ds->lt.bitlen[i]), 0, c);",
+  "severity": "high",
+  "reasoning": "The `memset` call is `memset(&(ds->lt.bitlen[i]), 0, c);`. The `ds->lt.bitlen` array is defined as `unsigned short bitlen[LZH_HUFFMAN_MAX_BITS_MAX + 1];`. `LZH_HUFFMAN_MAX_BITS_MAX` is 16, meaning the array has a fixed size of 17 elements (indices 0-16).\n\nThe loop condition `while (i < ds->lt.len_avail)` allows `i` to iterate up to `ds->lt.len_avail - 1`. The value of `ds->lt.len_avail` is read from the input bit stream (`lzh_br_bits`) and can be as large as `ds->lt.len_size`, which for literals can be 256 or 512, depending on the LHA format. This means `ds->lt.len_avail` can be much larger than 17.\n\nTherefore, `i` can become 17 or greater. When `i` is 17 or more, the address `&(ds->lt.bitlen[i])` points past the end of the `ds->lt.bitlen` array. Any write starting at this address constitutes an out-of-bounds write.\n\nThe value `c` (the third argument to `memset`) is also derived from input (`lzh_br_bits`). This `c` represents a number of *elements* to be zeroed, but `memset` expects a *byte count*. This is an additional logic bug (it will only zero `c` bytes instead of `c * sizeof(unsigned short)` bytes, causing partial writes or incomplete zeroing), but the primary out-of-bounds issue is caused by the starting index `i` exceeding the array's physical bounds. The check `if (i + c > ds->lt.len_avail)` prevents `i` from exceeding `ds->lt.len_avail` in total elements, but it does not check against the actual capacity of the `ds->lt.bitlen` array (17 elements). This allows input data to control the write location beyond the allocated buffer, leading to a heap buffer overflow."
+ },
+ {
+  "file": "archive_read_support_format_mtree.c",
+  "line": 885,
+  "op": "memcpy(entry->name, name, len);",
+  "severity": "high",
+  "reasoning": "The `memcpy(entry->name, name, len)` operation attempts to copy `len` bytes from the `name` pointer. There are two distinct scenarios where this can lead to an out-of-bounds read from the source buffer `name` (which is derived from the input `line`):\n\n1.  **When `is_form_d` is false:**\n    -   `name` is set to `line`.\n    -   `len` is calculated using `strcspn(line, \" \\t\\r\\n\")`. The `line` buffer, obtained from `__archive_read_ahead`, is *not guaranteed to be null-terminated* within its valid `line_len` boundary. If `strcspn` does not find any of the delimiter characters or a null terminator within the `line_len` bytes, it will read past `line + line_len - 1`, leading to an out-of-bounds read. If this read succeeds without crashing, `len` could be computed to be greater than `line_len`. In such a case, the subsequent `memcpy(entry->name, line, len)` would read `len` bytes from `line`, resulting in an out-of-bounds read from the `line` buffer.\n\n2.  **When `is_form_d` is true:**\n    -   The logic for parsing the name involves decrementing `name` and `line_len` in a loop to find the start of the name. Consider the edge case where the input `line` consists of a single non-whitespace character, e.g., `line = \"A\"` and `line_len = 1`.\n        -   Initially, `name = line + line_len - 1` points to `line[0]` ('A'). `line_len` is 1.\n        -   The first `while` loop (skipping trailing whitespace) does not modify `name` or `line_len` as 'A' is not whitespace.\n        -   `len` is initialized to 0.\n        -   The second `while` loop (`while (line_len > 0) { ... }`):\n            -   `line_len` is 1, `*name` is 'A' (not whitespace).\n            -   `name--` (moves `name` to `line - 1`).\n            -   `line_len--` (becomes 0).\n            -   `len++` (becomes 1).\n            -   The loop condition `line_len > 0` is now false, so the loop terminates.\n        -   At this point, `name` points to `line - 1`, and `len` is 1.\n        -   The `memcpy(entry->name, name, len)` call becomes `memcpy(entry->name, line - 1, 1)`, which attempts to read 1 byte from one byte *before* the start of the valid `line` buffer, resulting in an out-of-bounds read.\n\nIn both cases, the source buffer for `memcpy` can be read out of bounds. The destination buffer `entry->name` is correctly allocated with `len + 1` bytes, so the issue is solely with the source read."
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2802,
+  "op": "memcpy(&rar->unp_buffer[rar->unp_offset], &rar->lzss.window[windowoffs],",
+  "severity": "high",
+  "reasoning": "The memory operation copies `length` bytes to `rar->unp_buffer` starting at `rar->unp_offset`. While the source buffer (`rar->lzss.window`) is correctly bounds-checked by the surrounding `if(windowoffs + length <= lzss_size(&rar->lzss))` condition, there is no corresponding bounds check for the destination buffer (`rar->unp_buffer`). The `rar->unp_offset` value accumulates `length` bytes from previous operations, and it is compared against `rar->unp_buffer_size` only *after* the `memcpy` completes and `rar->unp_offset` is updated. This means `rar->unp_offset + length` can exceed `rar->unp_buffer_size`, leading to an out-of-bounds write. Both `rar->unp_offset` and `length` can be influenced by the input data, making this a potential vulnerability exploitable by a malicious archive."
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2813,
+  "op": "memcpy(&rar->unp_buffer[rar->unp_offset],",
+  "severity": "high",
+  "reasoning": "The `memcpy` operation writes `length` bytes to `rar->unp_buffer` starting at `rar->unp_offset`. There is no explicit check to ensure that `rar->unp_offset + length` does not exceed `rar->unp_buffer_size`, which is the allocated size for `rar->unp_buffer`. The `length` parameter is derived from potentially untrusted input (RAR file data). The `rar->unp_offset` value accumulates across calls to this function without being reset within this function. If a crafted RAR file provides a `length` that causes `rar->unp_offset + length` to be greater than `rar->unp_buffer_size`, it will result in an out-of-bounds write to the heap-allocated `rar->unp_buffer`. The `if (rar->unp_offset >= rar->unp_buffer_size)` check occurs *after* the `memcpy` and is used to signal buffer fullness to the caller, not to prevent the current write from overflowing."
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2815,
+  "op": "memcpy(&rar->unp_buffer[rar->unp_offset + firstpart],",
+  "severity": "high",
+  "reasoning": "The memory operation `memcpy(&rar->unp_buffer[rar->unp_offset + firstpart], &rar->lzss.window[0], length - firstpart);` writes `length - firstpart` bytes into `rar->unp_buffer`. Combined with the preceding memcpy in this branch, a total of `length` bytes are written starting at `rar->unp_buffer[rar->unp_offset]`. The maximum index accessed in `rar->unp_buffer` by the combined operation is `rar->unp_offset + length - 1`. The `rar->unp_buffer` is allocated to `rar->unp_buffer_size`. There is no check prior to the `memcpy` calls that ensures `rar->unp_offset + length <= rar->unp_buffer_size`. Both `length` (which determines how much is written in this call) and `rar->unp_buffer_size` (the total buffer size) are derived from the input RAR file metadata. The `rar->unp_offset` value accumulates across multiple calls to this function. A malicious RAR file can specify `length` values such that `rar->unp_offset + length` exceeds `rar->unp_buffer_size`, leading to a heap buffer overflow. The check `if (rar->unp_offset >= rar->unp_buffer_size)` after the `memcpy` calls is too late to prevent the overflow."
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2818,
+  "op": "memcpy(&rar->unp_buffer[rar->unp_offset],",
+  "severity": "high",
+  "reasoning": "The `memcpy` operation writes `length` bytes to `rar->unp_buffer` starting at `rar->unp_offset`. The size of `rar->unp_buffer` is `rar->unp_buffer_size`. For a safe write, the condition `rar->unp_offset + length <= rar->unp_buffer_size` must be met. This function does not perform any check to ensure that the sum of the current offset (`rar->unp_offset`) and the amount of data to be copied (`length`) does not exceed the allocated size of the destination buffer (`rar->unp_buffer_size`). The `rar->unp_offset` is updated *after* the `memcpy` operations, and the subsequent check `if (rar->unp_offset >= rar->unp_buffer_size)` is for setting `*buffer`, not for preventing an out-of-bounds write. Both `rar->unp_offset` and `length` are derived from parsing the RAR archive, which is external input, making it susceptible to malicious input that could lead to a heap-based buffer overflow."
+ }
+]
