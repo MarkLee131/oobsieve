@@ -115,6 +115,54 @@ def taint_function(f: Func) -> set[str]:
     return tainted
 
 
+def bounded_values(f: Func) -> set[str]:
+    """Values that have been SANITIZED so their magnitude is bounded: results of a
+    clamp (a phi/select merging a value with a cap: `if (l > b) l = b`), a min
+    intrinsic, or a bit-mask (`and`), plus width-casts of those. A sink whose size
+    operand is bounded is not an input-controlled overflow."""
+    bounded = set()
+    for ins in f.insns:
+        r = ins["result"]
+        if not r:
+            continue
+        raw, op = ins["raw"], ins["opcode"]
+        # a phi/select on a size value is (at -O0+mem2reg) the clamp idiom's merge;
+        # a min intrinsic or an AND-mask likewise caps the value.
+        if op in ("phi", "select") or "llvm.umin" in raw or "llvm.smin" in raw \
+                or op == "and":
+            bounded.add(r)
+    changed = True
+    while changed:
+        changed = False
+        for ins in f.insns:
+            r = ins["result"]
+            if not r or r in bounded:
+                continue
+            if ins["opcode"] in ("sext", "zext", "trunc") and any(
+                    o in bounded for o in ins["ops"]):
+                bounded.add(r)
+                changed = True
+    return bounded
+
+
+def alloc_size_roots(f: Func) -> set[str]:
+    """Values used as (or one step feeding) the size argument of malloc/calloc/
+    realloc in this function. If a sink's size equals such a value, the destination
+    was allocated to fit -> not an overflow (malloc-to-fit)."""
+    roots = set()
+    for ins in f.insns:
+        if "call" not in ins["opcode"]:
+            continue
+        if not any(a in ins["raw"] for a in ("@malloc", "@calloc", "@realloc")):
+            continue
+        for v in ins["ops"]:
+            roots.add(v)
+            for i2 in f.insns:  # expand one level: `len+1 -> len`
+                if i2["result"] == v:
+                    roots.update(i2["ops"])
+    return roots
+
+
 def _memcpy_args(raw: str):
     # inside the outer (...) of the intrinsic call, split top-level commas
     inner = raw[raw.find("(") + 1: raw.rfind(")")]
@@ -131,12 +179,15 @@ def _memcpy_args(raw: str):
     return args  # [dst, src, size, ...]
 
 
-def find_candidates(f: Func, tainted: set[str], dbg: dict) -> list[dict]:
+def find_candidates(f: Func, tainted: set[str], bounded: set[str],
+                    dbg: dict) -> list[dict]:
+    alloc_roots = alloc_size_roots(f)
     out = []
     for ins in f.insns:
-        if not SINK_RE.search(ins["raw"]):
+        m = SINK_RE.search(ins["raw"])
+        if not m:
             continue
-        sink = SINK_RE.search(ins["raw"]).group(2)
+        sink = m.group(2)
         args = _memcpy_args(ins["raw"])
         if len(args) < 3:
             continue
@@ -146,12 +197,28 @@ def find_candidates(f: Func, tainted: set[str], dbg: dict) -> list[dict]:
         size_tainted = any(v in tainted for v in size_v)
         dst_tainted = any(v in tainted for v in dst_v)
         src_tainted = any(v in tainted for v in src_v)
-        if not (size_tainted or dst_tainted or src_tainted):
+        # SANITIZER MODEL: a size CLAMPED (through a min/phi/mask against a bound) is
+        # safe. A merely CONSTANT size is NOT "clamped": a constant-size READ from a
+        # tainted pointer with an unbounded offset is still OOB (e.g. p+4 past end).
+        size_clamped = bool(size_v) and all(v in bounded for v in size_v)
+        # malloc-to-fit: the destination buffer was allocated with this same size.
+        if size_v and any(v in alloc_roots for v in size_v):
             continue
+
         why = []
-        if size_tainted: why.append("size")
-        if dst_tainted: why.append("dst-ptr")
-        if src_tainted: why.append("src-ptr")
+        # unbounded input-derived size -> overflow
+        if size_tainted and not size_clamped:
+            why.append("size")
+        # OOB read from an input-derived source pointer, unless the copied amount is
+        # clamped to the source's available bytes.
+        if src_tainted and not size_clamped:
+            why.append("src-ptr")
+        # fixed/clamped-size write to an input-derived destination is normally an
+        # in-bounds field write; only flag dst when the size is also unbounded.
+        if dst_tainted and size_tainted and not size_clamped:
+            why.append("dst-ptr")
+        if not why:
+            continue
         out.append({
             "func": f.name, "sink": sink,
             "line": dbg.get(ins["dbg"]),
@@ -169,7 +236,8 @@ def analyze(c_file: str, cflags: list[str], clang: str, ll_out: str) -> list[dic
     findings = []
     for f in funcs:
         t = taint_function(f)
-        for c in find_candidates(f, t, dbg):
+        b = bounded_values(f)
+        for c in find_candidates(f, t, b, dbg):
             c["file"] = os.path.basename(c_file)
             findings.append(c)
     # dedup by (file,line,operand)
