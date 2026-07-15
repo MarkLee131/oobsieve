@@ -35,12 +35,15 @@ SINK_RE = re.compile(r"@(llvm\.(memcpy|memmove|memset)[\w.]*)")
 
 
 class Func:
-    __slots__ = ("name", "args", "insns")
+    __slots__ = ("name", "args", "insns", "blocks", "entry")
     def __init__(self, name):
         self.name = name
         self.args: list[str] = []
-        # each insn: dict(result, ops, opcode, dbg, raw)
+        # each insn: dict(result, ops, opcode, dbg, raw, block)
         self.insns: list[dict] = []
+        # label -> {cond, succs, true, false}
+        self.blocks: dict = {}
+        self.entry: str = "entry"
 
 
 def compile_to_ll(c_file: str, cflags: list[str], clang: str, out: str,
@@ -59,6 +62,9 @@ def compile_to_ll(c_file: str, cflags: list[str], clang: str, out: str,
     return r2.returncode == 0 and os.path.exists(out)
 
 
+_LABEL_RE = re.compile(r"^([\w.]+):")
+
+
 def parse_ll(text: str):
     # dbg id -> line
     dbg = {}
@@ -66,19 +72,30 @@ def parse_ll(text: str):
         dbg[m.group(1)] = int(m.group(2))
     funcs = []
     cur = None
+    block = None  # current basic-block label
     for line in text.splitlines():
         if line.startswith("define "):
             m = re.match(r"define .*?@([\w.]+)\(", line)
             cur = Func(m.group(1) if m else "?")
-            # args = %-values inside the outer parameter list
             paren = line[line.find("(") + 1: line.rfind(")")] if "(" in line else ""
             cur.args = VALRE.findall(paren)
             funcs.append(cur)
+            block = "entry"
+            cur.blocks[block] = {"cond": None, "succs": [], "true": None, "false": None}
+            cur.entry = block
             continue
         if cur is not None and line == "}":
             cur = None
+            block = None
             continue
         if cur is None or not line.strip():
+            continue
+        # basic-block label (e.g. "12:   ; preds = %8")
+        lm = _LABEL_RE.match(line)
+        if lm and not line.strip().startswith(("%", ";")):
+            block = lm.group(1)
+            cur.blocks.setdefault(block, {"cond": None, "succs": [],
+                                          "true": None, "false": None})
             continue
         s = line.strip()
         result = None
@@ -90,7 +107,22 @@ def parse_ll(text: str):
         ops = [v for v in VALRE.findall(rhs) if v != result]
         opcode = rhs.split()[0] if rhs.split() else ""
         cur.insns.append({"result": result, "ops": ops, "opcode": opcode,
-                          "dbg": dbgm.group(1) if dbgm else None, "raw": s})
+                          "dbg": dbgm.group(1) if dbgm else None, "raw": s,
+                          "block": block})
+        # terminator -> record successors / branch condition for the block
+        if opcode == "br":
+            labels = re.findall(r"label %([\w.]+)", s)
+            b = cur.blocks[block]
+            if s.startswith("br i1"):  # conditional
+                b["cond"] = ops[0] if ops else None
+                if len(labels) >= 2:
+                    b["true"], b["false"] = labels[0], labels[1]
+                    b["succs"] = [labels[0], labels[1]]
+            else:
+                b["succs"] = labels
+        elif opcode == "switch":
+            b = cur.blocks[block]
+            b["succs"] = re.findall(r"label %([\w.]+)", s)
     return funcs, dbg
 
 
@@ -210,8 +242,91 @@ def _memcpy_args(raw: str):
     return args  # [dst, src, size, ...]
 
 
+def dominators(f: Func) -> dict:
+    labels = list(f.blocks.keys())
+    if not labels:
+        return {}
+    succ = {l: f.blocks[l]["succs"] for l in labels}
+    preds = {l: [] for l in labels}
+    for l in labels:
+        for s in succ[l]:
+            if s in preds:
+                preds[s].append(l)
+    allset = set(labels)
+    dom = {l: set(allset) for l in labels}
+    dom[f.entry] = {f.entry}
+    changed = True
+    while changed:
+        changed = False
+        for l in labels:
+            if l == f.entry:
+                continue
+            new = set(allset)
+            for p in preds[l]:
+                new &= dom[p]
+            new = {l} | new
+            if new != dom[l]:
+                dom[l] = new
+                changed = True
+    return dom
+
+
+def backward_slice(seed: set[str], insmap: dict, maxdepth: int = 14) -> set[str]:
+    out, work = set(), [(s, 0) for s in seed]
+    while work:
+        v, d = work.pop()
+        if v in out or d > maxdepth:
+            continue
+        out.add(v)
+        ins = insmap.get(v)
+        if ins:
+            for o in ins["ops"]:
+                work.append((o, d + 1))
+    return out
+
+
+def _cmp_against_zero(raw: str) -> bool:
+    """icmp comparing against literal 0/null -> a sign/null check, NOT a bounds check."""
+    m = re.search(r"icmp \w+ [^,]+, (.+?)(?:,? !dbg|$)", raw)
+    if not m:
+        return False
+    rhs = m.group(1).strip()
+    return rhs in ("0", "null") or re.match(r"0$", rhs) is not None
+
+
+def sink_is_guarded(f: Func, sink_ins: dict, rel_vars: set[str],
+                    insmap: dict, dom: dict) -> bool:
+    """PATH-SENSITIVE (Pinpoint-style): is the sink dominated by a branch whose
+    condition is a BOUNDS check on a value related to the sink? A dominating
+    `if (p+n > end) return;` (taken to reach the sink) sanitizes the access."""
+    sb = sink_ins.get("block")
+    if sb is None or not rel_vars:
+        return False
+    domset = dom.get(sb, set())
+    for D, b in f.blocks.items():
+        if b["cond"] is None or D == sb or D not in domset:
+            continue
+        # the sink is only reachable if a specific side of D's branch was taken
+        t, fl = b["true"], b["false"]
+        if not ((t and t in domset) or (fl and fl in domset)):
+            continue  # branch does not decide reaching the sink
+        cond = insmap.get(b["cond"])
+        if not cond or "icmp" not in cond["opcode"]:
+            continue
+        if _cmp_against_zero(cond["raw"]):
+            continue  # sign/null check, not a bounds guard
+        # PRECISE relatedness: the guard must directly check THIS access -- a direct
+        # sink operand (the exact pointer/size SSA value) appears in the guard's
+        # backward slice (e.g. guard `gep(p,8) > end` slices back to the sink ptr p).
+        guard_slice = backward_slice(set(cond["ops"]), insmap)
+        if rel_vars & guard_slice:
+            return True
+    return False
+
+
 def find_candidates(f: Func, tainted: set[str], bounded: set[str],
                     dbg: dict) -> list[dict]:
+    dom = dominators(f)
     insmap = _insmap(f)
     sig_memo: dict = {}
     alloc_sigs = alloc_size_sigs(f, insmap, sig_memo)
@@ -252,6 +367,11 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         if dst_tainted and size_tainted and not size_clamped:
             why.append("dst-ptr")
         if not why:
+            continue
+        # PATH-SENSITIVE guard: a dominating bounds check on the sink's operands
+        # (e.g. `if (p+n > end) return;`) sanitizes the access on the reaching path.
+        rel_vars = set(size_v) | set(dst_v) | set(src_v)
+        if sink_is_guarded(f, ins, rel_vars, insmap, dom):
             continue
         out.append({
             "func": f.name, "sink": sink,

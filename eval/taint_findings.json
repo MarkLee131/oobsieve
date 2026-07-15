@@ -144,14 +144,6 @@
   "file": "archive_read_support_format_mtree.c"
  },
  {
-  "func": "readline",
-  "sink": "memmove",
-  "line": 1861,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %108",
-  "file": "archive_read_support_format_mtree.c"
- },
- {
   "func": "archive_read_format_rar_read_header",
   "sink": "memcpy",
   "line": 847,
@@ -178,14 +170,6 @@
  {
   "func": "read_header",
   "sink": "memcpy",
-  "line": 1281,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 25",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
   "line": 1301,
   "tainted_operand": "src-ptr",
   "size_expr": "i64 4",
@@ -197,22 +181,6 @@
   "line": 1304,
   "tainted_operand": "src-ptr",
   "size_expr": "i64 4",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1357,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %215",
-  "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_header",
-  "sink": "memcpy",
-  "line": 1522,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 8",
   "file": "archive_read_support_format_rar.c"
  },
  {
@@ -254,14 +222,6 @@
   "tainted_operand": "size+dst-ptr",
   "size_expr": "i64 %619",
   "file": "archive_read_support_format_rar.c"
- },
- {
-  "func": "read_body_to_string",
-  "sink": "memcpy",
-  "line": 1043,
-  "tainted_operand": "size+src-ptr+dst-ptr",
-  "size_expr": "i64 %9",
-  "file": "archive_read_support_format_tar.c"
  },
  {
   "func": "readline",
