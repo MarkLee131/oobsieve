@@ -1,0 +1,170 @@
+[
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 586,
+  "func": "lzss_emit_match",
+  "sink": "memcpy",
+  "size_arg": "l",
+  "ptr_args": [
+   "d",
+   "s"
+  ],
+  "input_derived_size": true,
+  "pointer_arithmetic": false,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 847,
+  "func": "archive_read_format_rar_read_header",
+  "sink": "memcpy",
+  "size_arg": "sizeof ( rar -> reserved1 )",
+  "ptr_args": [
+   "rar -> reserved1",
+   "p + 7"
+  ],
+  "input_derived_size": false,
+  "pointer_arithmetic": true,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 848,
+  "func": "archive_read_format_rar_read_header",
+  "sink": "memcpy",
+  "size_arg": "sizeof ( rar -> reserved2 )",
+  "ptr_args": [
+   "rar -> reserved2",
+   "p + 7 + sizeof ( rar -> reserved1 )"
+  ],
+  "input_derived_size": false,
+  "pointer_arithmetic": true,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 1301,
+  "func": "read_header",
+  "sink": "memcpy",
+  "size_arg": "4",
+  "ptr_args": [
+   "packed_size + 4",
+   "p"
+  ],
+  "input_derived_size": false,
+  "pointer_arithmetic": true,
+  "guarded": false
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 1304,
+  "func": "read_header",
+  "sink": "memcpy",
+  "size_arg": "4",
+  "ptr_args": [
+   "unp_size + 4",
+   "p"
+  ],
+  "input_derived_size": false,
+  "pointer_arithmetic": true,
+  "guarded": false
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 1357,
+  "func": "read_header",
+  "sink": "memcpy",
+  "size_arg": "filename_size",
+  "ptr_args": [
+   "filename",
+   "p"
+  ],
+  "input_derived_size": true,
+  "pointer_arithmetic": false,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 1500,
+  "func": "read_header",
+  "sink": "memcpy",
+  "size_arg": "filename_size + 1",
+  "ptr_args": [
+   "rar -> filename_save",
+   "rar -> filename"
+  ],
+  "input_derived_size": true,
+  "pointer_arithmetic": false,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2238,
+  "func": "parse_codes",
+  "sink": "memset",
+  "size_arg": "rar -> dictionary_size",
+  "ptr_args": [
+   "rar -> lzss . window",
+   "0"
+  ],
+  "input_derived_size": true,
+  "pointer_arithmetic": false,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2802,
+  "func": "copy_from_lzss_window",
+  "sink": "memcpy",
+  "size_arg": "length",
+  "ptr_args": [
+   "& rar -> unp_buffer [ rar -> unp_offset ]",
+   "& rar -> lzss . window [ windowoffs ]"
+  ],
+  "input_derived_size": true,
+  "pointer_arithmetic": true,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2813,
+  "func": "copy_from_lzss_window",
+  "sink": "memcpy",
+  "size_arg": "firstpart",
+  "ptr_args": [
+   "& rar -> unp_buffer [ rar -> unp_offset ]",
+   "& rar -> lzss . window [ windowoffs ]"
+  ],
+  "input_derived_size": true,
+  "pointer_arithmetic": true,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2815,
+  "func": "copy_from_lzss_window",
+  "sink": "memcpy",
+  "size_arg": "length - firstpart",
+  "ptr_args": [
+   "& rar -> unp_buffer [ rar -> unp_offset + firstpart ]",
+   "& rar -> lzss . window [ 0 ]"
+  ],
+  "input_derived_size": true,
+  "pointer_arithmetic": true,
+  "guarded": true
+ },
+ {
+  "file": "archive_read_support_format_rar.c",
+  "line": 2818,
+  "func": "copy_from_lzss_window",
+  "sink": "memcpy",
+  "size_arg": "length",
+  "ptr_args": [
+   "& rar -> unp_buffer [ rar -> unp_offset ]",
+   "& rar -> lzss . window [ windowoffs ]"
+  ],
+  "input_derived_size": true,
+  "pointer_arithmetic": true,
+  "guarded": true
+ }
+]
