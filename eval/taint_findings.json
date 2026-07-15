@@ -184,14 +184,6 @@
   "file": "archive_read_support_format_rar.c"
  },
  {
-  "func": "readline",
-  "sink": "memcpy",
-  "line": 2547,
-  "tainted_operand": "src-ptr",
-  "size_expr": "i64 %48",
-  "file": "archive_read_support_format_tar.c"
- },
- {
   "func": "zip_read_mac_metadata",
   "sink": "memcpy",
   "line": 622,

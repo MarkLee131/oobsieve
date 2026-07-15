@@ -218,7 +218,9 @@ def alloc_size_sigs(f: Func, insmap: dict, memo: dict) -> set[str]:
     for ins in f.insns:
         if "call" not in ins["opcode"]:
             continue
-        if not any(a in ins["raw"] for a in ("@malloc", "@calloc", "@realloc")):
+        if not any(a in ins["raw"] for a in (
+                "@malloc", "@calloc", "@realloc",
+                "@archive_string_ensure", "@__archive_string_ensure")):
             continue
         for v in ins["ops"]:
             sigs.add(value_sig(v, insmap, memo))
@@ -380,6 +382,10 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # PATH-SENSITIVE guard: a dominating bounds check on the sink's operands
         # (e.g. `if (p+n > end) return;`) sanitizes the access on the reaching path.
         rel_vars = set(size_v) | set(dst_v) | set(src_v)
+        # NOTE: deliberately do NOT peel width-casts into rel_vars here -- widening
+        # relatedness catches source-side guards (e.g. LZSS `windowoffs+length <=
+        # src_size`) that do NOT protect a dest write, wrongly clearing real OOB-write
+        # bugs (rar:2802). Sufficiency of a guard needs SMT, handled separately.
         if sink_is_guarded(f, ins, rel_vars, insmap, dom, sig_memo):
             continue
         # ON-DEMAND SMT: if the dominating path condition provably bounds a VARIABLE
