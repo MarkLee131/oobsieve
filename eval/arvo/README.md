@@ -1,7 +1,6 @@
 # ARVO recall harness
 
-Measures **symbolic recall** of the detector on a labeled, at-scale benchmark — the "scale +
-recall" evidence Paper 1 needs. Ground truth is ARVO
+Measures **symbolic recall** of the detector on a labeled, at-scale benchmark. Ground truth is ARVO
 ([n132/ARVO-Meta](https://github.com/n132/ARVO-Meta)): reproducible OSS-Fuzz memory bugs,
 each with a `crash_type`, a `fix_commit`, and the canonical fix diff.
 
