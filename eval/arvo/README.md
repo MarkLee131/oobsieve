@@ -7,7 +7,7 @@ each with a `crash_type`, a `fix_commit`, and the canonical fix diff.
 
 ## Pipeline
 
-1. **`build_manifest.py`** — filter ARVO to Paper 1's bug class and extract ground truth.
+1. **`build_manifest.py`** — filter ARVO to the targeted bug class and extract ground truth.
    In-scope = `{Heap,Stack,Global}-buffer-overflow` **and** the fix diff edits a C/C++ file
    **and** a `mem{cpy,move,set}` sink appears on a context/removed line (so the sink exists
    in the *vulnerable* version). Emits `manifest.json` (per bug: project, repo, fix_commit,
