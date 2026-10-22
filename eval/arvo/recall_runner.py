@@ -254,6 +254,9 @@ _AGGRESSIVE_SYS = (
     "confident it is a real vulnerability; if the code looks guarded or careful, answer false.")
 
 
+_DETAILS: list = []  # per-candidate LLM verdicts and rationales of the current bug
+
+
 def _confirm_cand(cand: dict, cabs: str, client, sys_tmpl=None) -> bool:
     """Ask the LLM whether a symbolic candidate is a genuine OOB (the neuro layer)."""
     from oobsieve.agent import _parse_json
@@ -269,7 +272,12 @@ def _confirm_cand(cand: dict, cabs: str, client, sys_tmpl=None) -> bool:
             f"{cand.get('tainted_operand')}, size expr `{cand.get('size_expr')}`.\n"
             f"```c\n{ctx}\n```")
     v = _parse_json(client.complete(sysp, usrp))
-    return bool(v and v.get("real_bug"))
+    verdict = bool(v and v.get("real_bug"))
+    _DETAILS.append({"func": cand.get("func"), "line": ln, "sink": cand.get("sink"),
+                     "operand": cand.get("tainted_operand"), "size_expr": cand.get("size_expr"),
+                     "orientation": "aggressive" if sys_tmpl is _AGGRESSIVE_SYS else "recall-first",
+                     "real_bug": verdict, "reasoning": (v or {}).get("reasoning")})
+    return verdict
 
 
 def run_bug(bug: dict, repo: str, tmp_ll: str, include_tests: bool) -> dict:
@@ -368,6 +376,7 @@ def run_bug(bug: dict, repo: str, tmp_ll: str, include_tests: bool) -> dict:
     # neural layer: run the LLM over the symbolic candidates and record whether it keeps
     # the true bug while dropping the rest. Only for scorable bugs, to bound cost.
     if CONFIRM_CLIENT is not None and res["recall"] in ("hit", "miss"):
+        _DETAILS.clear()
         gt_cands = [(c, p) for c, p in all_cands if c.get("func") == gt]
         others = [(c, p) for c, p in all_cands if c.get("func") != gt][:15]
         # recall-first orientation
@@ -387,6 +396,7 @@ def run_bug(bug: dict, repo: str, tmp_ll: str, include_tests: bool) -> dict:
                      ("dropped" if res["recall"] == "hit" else "miss")
         res["e2e_aggr"] = "hit" if (res["recall"] == "hit" and gt_conf_a > 0) else \
                           ("dropped" if res["recall"] == "hit" else "miss")
+        res["llm_details"] = list(_DETAILS)
     return res
 
 
