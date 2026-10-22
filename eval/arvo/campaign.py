@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Expanded ARVO recall campaign: run the symbolic recall runner project-by-project,
-persist per-project results (recall_results.json is overwritten each run, so we copy it
-out), and aggregate a denominator across many projects.
+"""ARVO recall campaign: run the symbolic recall runner project by project, keep a copy
+of each project's results (recall_runner overwrites recall_results.json on every run),
+and aggregate across projects.
 
 Usage:
     python3 campaign.py <cache_dir> [--limit N] [--per-timeout S] project1 project2 ...
@@ -36,9 +36,8 @@ def run_project(project, cache, limit, per_timeout):
              "--project", project, "--limit", str(limit), "--container", "seal"],
             timeout=per_timeout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.TimeoutExpired:
-        print(f"[time] {project} exceeded {per_timeout}s — keeping partial live results", flush=True)
-    # copy whatever the runner produced (per-bug rows already written incrementally? no —
-    # runner writes at the end; on timeout there may be nothing. Guard for that.)
+        print(f"[time] {project} exceeded {per_timeout}s, keeping partial live results", flush=True)
+    # the runner writes its results file at the end, so after a timeout there may be none
     if os.path.exists(LIVE):
         try:
             rows = json.load(open(LIVE))

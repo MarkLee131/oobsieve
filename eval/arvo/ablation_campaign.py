@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Symbolic-layer ablation on the FULL ARVO scorable set (same 88-project benchmark as RQ1),
-measured by the two quantities ARVO can ground WITHOUT per-candidate annotation:
+"""Symbolic-layer ablation over the ARVO scorable set.
+
+ARVO labels only the crashing function, so this measures the two quantities it can
+ground without per-candidate annotation:
   - total candidate count at each cumulative modeling stage, and
-  - real-bug recall RETENTION (does the crash-function bug survive each stage).
-Candidate PRECISION needs per-candidate labels ARVO lacks, so it stays on the human-verified
-libarchive reference; here we show the reduction + soundness GENERALIZE across all projects.
+  - recall retention (does the crash-function bug survive each stage).
+Candidate precision needs per-candidate labels and is measured on the manually
+verified libarchive reference set instead.
 """
 import collections, glob, json, os, shutil, subprocess, sys, time
 

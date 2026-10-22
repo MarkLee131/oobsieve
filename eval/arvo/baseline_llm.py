@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Pure-LLM baseline: does an LLM ALONE (no symbolic value-flow evidence) detect the
-OOB at the crash function? Function-level recall, directly comparable to the symbolic
-engine's function-precise recall. Also runs a sibling-function control to expose the
-LLM's indiscriminate flag rate (specificity).
+"""Pure-LLM baseline: does an LLM alone, without symbolic value-flow evidence, detect
+the OOB at the crash function? Reports function-level recall, comparable to the symbolic
+engine's, plus a sibling-function control that measures the LLM's indiscriminate flag
+rate.
 
 For each scorable ARVO bug (recall in {hit,miss}): check out the vulnerable version,
 extract the crash function's C source, ask the LLM (generic prompt, no taint/SMT hints)
@@ -50,8 +50,7 @@ def checkout_vuln(repo, fix_commit):
 
 
 def find_func_files(repo, patched, gt):
-    """Bounded search for files defining `gt`: manifest patched files first, then a
-    single `git grep` (index-scoped, fast) — never a repo-wide python glob."""
+    """Find files defining `gt`: manifest patched files first, then one `git grep`."""
     files = [os.path.join(repo, p) for p in patched]
     gr = sh(["git", "grep", "-lE", re.escape(gt) + r"\s*\(", "HEAD"], cwd=repo, timeout=30)
     if gr.returncode == 0:

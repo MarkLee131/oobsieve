@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Run the neuro confirm layer (BOTH orientations: recall-first vs aggressive) over the
-symbolic candidates of every ARVO scorable bug — so the neural-layer evaluation shares the
-SAME dataset (ARVO scorable set) as RQ1, replacing the earlier ad-hoc 19-bug subset.
+"""Run the neural confirm layer in both orientations (recall-first and aggressive) over
+the symbolic candidates of every ARVO scorable bug, so that the neural-layer evaluation
+uses the same dataset as the recall evaluation.
 
 Per project: recall_runner --confirm --ids <scorable ids>; copy results out; then aggregate
 end-to-end recall + FP-cut for both orientations across all scorable bugs.

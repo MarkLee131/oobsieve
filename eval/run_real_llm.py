@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""Turnkey real-LLM validation of the OOBSieve neuro layer (Layer 1).
-
-Runs the intent-reading agent with a REAL Gemini model over real SEAL specs
+"""Run the spec-refinement agent with a real Gemini model over the SEAL specs
 (under eval/real_specs/), printing each spec's keep/drop/subject-correct verdict
 and rationale, plus a summary.
 

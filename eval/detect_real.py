@@ -8,8 +8,6 @@ VIOLATE it in a real codebase. The symbolic half locates candidate sink sites
 (memcpy/memmove/... calls); the neural half (Gemini) decides, for each site,
 whether the size operand is attacker-controlled and unchecked -> a real OOB.
 
-This does NOT need SEAL's ground truth and does not compare against SEAL.
-
 Usage:
     GEMINI_API_KEY=... python3 eval/detect_real.py <src_dir> [--model gemini-2.5-pro]
         [--glob 'archive_read_support_format_*.c'] [--max N]
@@ -24,8 +22,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# The value-flow spec under test (generalized from a SEAL-inferred spec:
-# codec-dispatch interface, "Src Must Not Reach Sink: len field -> memcpy size").
+# the value-flow spec under test, generalized from a SEAL-inferred spec
+# ("Src Must Not Reach Sink: len field -> memcpy size")
 SPEC = (
     "SPEC (value-flow property inferred from a security patch): For a data-parsing "
     "routine, a length/size/count value that originates from the input being parsed "
@@ -109,8 +107,7 @@ def build_prompt(func_src: str, sink_line: str, file: str, use_spec: bool = True
 
 
 def _parse(raw: str) -> dict:
-    # reuse the hardened parser from the neuro layer (scans for the first
-    # decodable JSON object; never raises).
+    # reuse the neural layer's parser: finds the first decodable JSON object, never raises
     from oobsieve.agent import _parse_json
     return _parse_json(raw)
 

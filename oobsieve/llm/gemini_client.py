@@ -14,9 +14,8 @@ class GeminiClient:
                  thinking_budget: int | None = None):
         self.model = model
         self.max_output_tokens = max_output_tokens
-        # thinking_budget=0 disables Gemini 2.5's default thinking pass -> ~10x faster
-        # per call, which matters for bulk yes/no confirmation where thinking adds no
-        # value. None keeps the model default (thinking on) for judgement tasks.
+        # thinking_budget=0 disables Gemini 2.5's thinking pass (about 10x faster per
+        # call, used for bulk yes/no confirmation); None keeps the model default
         self.thinking_budget = thinking_budget
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ["GOOGLE_API_KEY"]
         self._client = genai.Client(api_key=api_key)

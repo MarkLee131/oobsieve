@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Symbolic-recall runner for the ARVO in-scope benchmark.
 
-For each manifest bug: check out the VULNERABLE version (fix_commit^), best-effort compile
-the patched C file to LLVM IR, run the symbolic candidate finder (eval/taint_llvm.py), and
-score whether a candidate lands at the ground-truth sink.
+For each manifest bug: check out the vulnerable version (fix_commit^), compile the
+patched C file to LLVM IR on a best-effort basis, run the symbolic candidate finder
+(eval/taint_llvm.py), and score whether a candidate lands at the ground-truth sink.
 
 Ground truth comes from ARVO's canonical fix diff: the patched file, the memory-op family,
 and the enclosing function of the sink (recovered from the vulnerable source by anchoring on
 the diff's context lines). Recall is scored at two tiers:
-  - strong: a candidate in the same file, same op family, SAME enclosing function;
+  - strong: a candidate in the same file, same op family, same enclosing function;
   - weak:   a candidate in the same file, same op family (function not matched).
 
 Compilation is best-effort (single TU + guessed -I flags + optional ./configure). Many
 OSS-Fuzz projects need their full build system; those are reported as build_failed and
-excluded from the recall denominator (coverage is reported honestly, not hidden).
+excluded from the recall denominator, and build coverage is reported alongside recall.
 
 Usage:
     python3 eval/arvo/recall_runner.py eval/arvo/manifest.json \
@@ -103,7 +103,7 @@ CONTAINER = None
 
 def _bootstrap(root: str, project: str = ""):
     """Generate config.h / build headers. Host-only for cmake; autotools falls back to the
-    container (which has libtool). Projects we still can't prep stay build_ok=False (honest)."""
+    container (which has libtool). Projects that still cannot be prepared stay build_ok=False."""
     if os.path.exists(os.path.join(root, "config.h")):
         return
     # host cmake works without extra tooling
@@ -137,7 +137,7 @@ CONFIGURE_FLAGS = {
 
 
 def _bootstrap_via_container(root: str, project: str):
-    """Configure inside the container (has libtool/autotools), then copy every GENERATED
+    """Configure inside the container (has libtool/autotools), then copy every generated
     header (a .h that appears only after configure) back to the host tree at its rel path.
     config.h etc. are git-ignored, so they survive later `git checkout` of other bug commits."""
     dst = f"/tmp/arvo_prep/{project or os.path.basename(root)}"
@@ -186,8 +186,8 @@ def _header_dirs(root: str, cap: int = 400) -> set:
 
 
 def find_func_file(repo: str, funcname: str) -> str | None:
-    """Repo-relative path of the .c file that DEFINES `funcname` (col-0 signature, not a
-    call), so the recall runner can compile the crash function's own translation unit."""
+    """Repo-relative path of the .c file that defines `funcname` (column-0 signature, not
+    a call), so the crash function's own translation unit can be compiled."""
     r = sh(["grep", "-rlE", rf"^[A-Za-z_][A-Za-z0-9_ \t\*]*\b{re.escape(funcname)}[ \t]*\(",
             repo, "--include=*.c", "--include=*.cc", "--include=*.cpp"], timeout=60)
     if r.returncode != 0 or not r.stdout.strip():
@@ -211,14 +211,14 @@ def _ir_var_size(raw: str) -> bool:
     return True
 
 
-# neuro layer: set in main() when --confirm is passed. The prompt is RECALL-FIRST and
-# soundness-preserving: the symbolic analysis has already established that the flagged operand
-# is input-derived and not constant/clamped/alloc-to-fit, so the LLM's ONLY job is to reject
-# candidates it can affirmatively show are bounds-checked -- and to default to KEEP otherwise.
-# (A naive "is this a bug?" prompt over-rejected, dropping ~2/3 of true bugs.)
+# neural layer, set in main() when --confirm is passed. The prompt is recall-first: the
+# symbolic analysis has already established that the flagged operand is input-derived and
+# not constant/clamped/alloc-to-fit, so the LLM's only job is to reject candidates it can
+# show are bounds-checked, and to keep everything else. A plain "is this a bug?" prompt
+# over-rejects and drops most true bugs.
 CONFIRM_CLIENT = None
-# ablation: cumulative modeling stages (matches Table 3's order). Each stage is the set of
-# layers turned ON; keys absent -> the layer's default (ON), so we list every key explicitly.
+# ablation: cumulative modeling stages. Each stage lists every layer explicitly, since an
+# absent key means the layer's default (on).
 ABLATION = False
 def _abl(sanitizer, field, guard, smt_size, smt_cap, intra):
     return {"sanitizer": sanitizer, "field": field, "guard": guard,
@@ -244,9 +244,9 @@ _CONFIRM_SYS = (
     "you are unsure -- real_bug=true. DEFAULT TO TRUE. Do not answer false merely because the "
     "code looks careful or has unrelated checks.")
 
-# AGGRESSIVE / naive orientation (the ablation baseline): a plain "is this a genuine OOB?"
-# ask with a conservative default. Over-rejects -> drops true bugs. Used to quantify the
-# recall-first vs aggressive contrast on the SAME candidates.
+# aggressive orientation (the baseline for the prompt comparison): a plain "is this a
+# genuine OOB?" question with a conservative default. It over-rejects and drops true bugs;
+# it runs on the same candidates as the recall-first prompt.
 _AGGRESSIVE_SYS = (
     'Answer ONLY JSON {"real_bug":bool,"reasoning":str}. A def-use taint analysis flagged the '
     "{op} operand of this memory operation as input-derived. Decide whether this is a GENUINE, "
@@ -293,8 +293,8 @@ def run_bug(bug: dict, repo: str, tmp_ll: str, include_tests: bool) -> dict:
     if not gt:
         res["recall"] = "no-crash-func"
         return res
-    # the crash function may live in a file the fix diff didn't touch; compile it too so we
-    # can score it (else it is lost as gt-not-in-file). find its defining .c by grep.
+    # the crash function may live in a file the fix diff did not touch; compile that file
+    # too, otherwise the bug is reported as gt-not-in-file
     fixfiles = {f["file"] for f in files}
     gtfile = find_func_file(repo, gt)
     if gtfile and gtfile not in fixfiles:
@@ -310,8 +310,8 @@ def run_bug(bug: dict, repo: str, tmp_ll: str, include_tests: bool) -> dict:
         if not os.path.exists(cabs):
             continue
         cflags = guess_cflags(repo, cabs, bug["project"])
-        # compile explicitly so build success != "analyze returned []" (a silent compile
-        # failure also returns []). build_ok must mean real IR with function bodies.
+        # compile explicitly: analyze() also returns [] on a silent compile failure, and
+        # build_ok must mean real IR with function bodies
         if not T.compile_to_ll(cabs, cflags, "clang", tmp_ll):
             continue
         try:
@@ -327,8 +327,8 @@ def run_bug(bug: dict, repo: str, tmp_ll: str, include_tests: bool) -> dict:
         res["n_candidates"] += len(cands)
         cand_funcs |= {c.get("func") for c in cands}
         all_cands += [(c, cabs) for c in cands]
-        # ABLATION: re-run the engine on the SAME IR at each cumulative stage, recording
-        # candidate count + whether the crash-func bug survives (recall retention).
+        # ablation: re-run the engine on the same IR at each cumulative stage, recording
+        # the candidate count and whether the crash-function bug survives
         if ABLATION:
             try:
                 ir_text = open(tmp_ll, errors="ignore").read()
@@ -339,9 +339,9 @@ def run_bug(bug: dict, repo: str, tmp_ll: str, include_tests: bool) -> dict:
                         res["abl"][i]["gt_hit"] = True
             except Exception:
                 pass
-        # use the IR (reliable) to decide if the crash func is present and is our sink class:
-        # a function is in-scope iff it contains an @llvm.mem{cpy,move,set} intrinsic whose
-        # length operand is NOT a compile-time constant (a variable-size copy).
+        # decide from the IR whether the crash function is present and in scope: in scope
+        # means it contains an @llvm.mem{cpy,move,set} intrinsic whose length operand is
+        # not a compile-time constant
         try:
             funcs, _ = T.parse_ll(open(tmp_ll, errors="ignore").read())
         except OSError:
@@ -356,25 +356,24 @@ def run_bug(bug: dict, repo: str, tmp_ll: str, include_tests: bool) -> dict:
     if not any_built:
         res["recall"] = "build-fail"
         return res
-    # ground truth = the ASAN crashing function. Score only when it is our sink class.
+    # ground truth is the ASAN crashing function; score only when it is in scope
     if not gt_present:
         res["recall"] = "gt-not-in-file"        # crash func lives in a file we didn't compile
     elif not gt_in_scope:
-        res["recall"] = "oos"                    # crash func has no variable-size memX (e.g. a
-        #                                          byte-level decoder overflow) -> not our class
+        res["recall"] = "oos"                    # no variable-size memX in the crash function
+        #                                          (e.g. a byte-level decoder overflow)
     else:
         res["recall"] = "hit" if gt in cand_funcs else "miss"
 
-    # NEURO LAYER: run the LLM over the (broadened) symbolic candidates to measure the
-    # division of labour -- does it keep the true bug (recall retention) while dropping the
-    # rest (FP-cut)? Only for scorable bugs, to bound cost.
+    # neural layer: run the LLM over the symbolic candidates and record whether it keeps
+    # the true bug while dropping the rest. Only for scorable bugs, to bound cost.
     if CONFIRM_CLIENT is not None and res["recall"] in ("hit", "miss"):
         gt_cands = [(c, p) for c, p in all_cands if c.get("func") == gt]
         others = [(c, p) for c, p in all_cands if c.get("func") != gt][:15]
-        # recall-first (soundness-preserving) orientation
+        # recall-first orientation
         gt_conf = sum(_confirm_cand(c, p, CONFIRM_CLIENT, _CONFIRM_SYS) for c, p in gt_cands)
         oth_conf = sum(_confirm_cand(c, p, CONFIRM_CLIENT, _CONFIRM_SYS) for c, p in others)
-        # aggressive orientation on the SAME candidates
+        # aggressive orientation on the same candidates
         gt_conf_a = sum(_confirm_cand(c, p, CONFIRM_CLIENT, _AGGRESSIVE_SYS) for c, p in gt_cands)
         oth_conf_a = sum(_confirm_cand(c, p, CONFIRM_CLIENT, _AGGRESSIVE_SYS) for c, p in others)
         res["n_gt_cands"] = len(gt_cands)
@@ -420,7 +419,7 @@ def main(argv=None):
         CONFIRM_CLIENT = GeminiClient(model=args.model, thinking_budget=0)
 
     bugs = json.load(open(args.manifest))
-    # tight recall set: only bugs with a genuine variable-size sink (drop sizeof-memset noise)
+    # tight recall set: only bugs with a genuine variable-size sink
     bugs = [b for b in bugs if b.get("has_var_sink")]
     if args.project:
         bugs = [b for b in bugs if b["project"] == args.project]

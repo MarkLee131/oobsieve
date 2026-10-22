@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""LLVM def-use taint analysis for candidate discovery (self-built, Clearblue-free).
+"""LLVM def-use taint analysis for candidate discovery.
 
-Compiles C to LLVM IR (modern clang, SSA form), then does a real intraprocedural
-forward def-use taint:
-  - SOURCES: function arguments, and return values of input-reading calls
-    (__archive_read_ahead, fread, read, archive_le*dec, ...).
-  - PROPAGATION: a value is tainted if any operand is tainted (SSA def-use);
-    iterated to a fixpoint (covers add/mul/load/getelementptr/zext/trunc/phi/...).
-  - SINKS: llvm.memcpy/memmove/memset where the size operand OR a pointer operand
-    is tainted -> candidate out-of-bounds (input-derived size, or input-offset
-    pointer). Debug metadata maps each sink back to a source line.
+Compiles C to LLVM IR (-O0 + mem2reg, SSA form), then runs an intraprocedural
+forward def-use taint analysis:
+  - sources: function arguments, and return values and output arguments of
+    input-reading calls (__archive_read_ahead, fread, read, archive_le*dec, ...);
+  - propagation: a value is tainted if any operand is tainted, iterated to a
+    fixpoint (covers add/mul/load/getelementptr/zext/trunc/phi/...);
+  - sinks: llvm.memcpy/memmove/memset where the size operand or a pointer operand
+    is tainted, i.e. an input-derived size or an input-offset pointer. Debug
+    metadata maps each sink back to a source line.
 
-This replaces the AST token heuristic with genuine value-flow. Candidates then go
-to the neural layer (Gemini) for confirmation.
+Candidates then go to the neural layer (Gemini) for confirmation.
 
 Usage:
     python3 eval/taint_llvm.py <src_dir> [--glob '*.c'] [--cflags '...']
@@ -34,11 +33,10 @@ VALRE = re.compile(r"%[\w.]+")
 INPUT_FNS = ("__archive_read_ahead", "__archive_read_consume", "fread", "read",
              "archive_le16dec", "archive_le32dec", "archive_le64dec", "getc",
              "archive_be16dec", "archive_be32dec", "archive_be64dec")
-# General input model: any call whose callee name reads/decodes/unpacks untrusted bytes is a
-# taint source. Beyond its return value we taint its ARGUMENT pointers too, because such
-# functions commonly fill an OUTPUT buffer passed by address (e.g. read_file(a, &buf, &len)),
-# and the attacker data then flows out of `buf`, not the return value. Keyword-scoped so it
-# stays a dataflow source (functions that call a reader), not a "taint everything" switch.
+# general input model: any call whose callee name reads/decodes/unpacks untrusted bytes is
+# a taint source. Its argument pointers are tainted as well as its return value, because
+# such functions commonly fill an output buffer passed by address (read_file(a, &buf, &len))
+# and the attacker data then flows out of `buf`.
 INPUT_RE = re.compile(
     r"@[\w.]*?(?:read|recv|fread|decode|inflate|uncompress|unpack|deserial|unmarshal|"
     r"get_?byte|get_?bit|get_?data|next_?byte|next_?bit|readbuf|slurp|deflate|scan_?bytes)"
@@ -116,8 +114,8 @@ def parse_ll(text: str):
         if mm:
             result, rhs = mm.group(1), mm.group(2)
         dbgm = re.search(r"!dbg !(\d+)", s)
-        # exclude LLVM TYPE names (%struct.*, %union.*, %class.*, %"...") which the
-        # value regex would otherwise match as if they were SSA operands.
+        # exclude LLVM type names (%struct.*, %union.*, %class.*, %"...") which the
+        # value regex would otherwise match as SSA operands
         ops = [v for v in VALRE.findall(rhs)
                if v != result and not v.startswith(
                    ("%struct.", "%union.", "%class.", "%\""))]
@@ -144,8 +142,8 @@ def parse_ll(text: str):
 
 def taint_function(f: Func) -> set[str]:
     tainted = set(f.args)
-    # seed: input-reading calls -- both the return value and the argument pointers (an
-    # output buffer the callee fills; later loads from it must be tainted).
+    # seed: input-reading calls, both the return value and the argument pointers (an
+    # output buffer the callee fills; later loads from it must be tainted)
     for ins in f.insns:
         if "call" not in ins["opcode"]:
             continue
@@ -168,7 +166,7 @@ def taint_function(f: Func) -> set[str]:
 
 
 def bounded_values(f: Func) -> set[str]:
-    """Values that have been SANITIZED so their magnitude is bounded: results of a
+    """Values that have been sanitized so their magnitude is bounded: results of a
     clamp (a phi/select merging a value with a cap: `if (l > b) l = b`), a min
     intrinsic, or a bit-mask (`and`), plus width-casts of those. A sink whose size
     operand is bounded is not an input-controlled overflow."""
@@ -205,7 +203,7 @@ def _insmap(f: Func) -> dict:
 
 
 def value_sig(val: str, insmap: dict, memo: dict, depth: int = 0) -> str:
-    """FIELD-SENSITIVE value signature: normalize the defining expression, replacing
+    """Field-sensitive value signature: normalize the defining expression, replacing
     each operand with its own signature recursively. Two loads of the SAME struct
     field (same base + same GEP field path) get identical signatures even though they
     are different SSA values -- so `malloc(x->f)` and `memcpy(..., x->f)` match."""
@@ -308,7 +306,7 @@ def backward_slice(seed: set[str], insmap: dict, maxdepth: int = 14) -> set[str]
 
 
 def _cmp_against_zero(raw: str) -> bool:
-    """icmp comparing against literal 0/null -> a sign/null check, NOT a bounds check."""
+    """icmp against literal 0/null is a sign/null check, not a bounds check."""
     m = re.search(r"icmp \w+ [^,]+, (.+?)(?:,? !dbg|$)", raw)
     if not m:
         return False
@@ -318,7 +316,7 @@ def _cmp_against_zero(raw: str) -> bool:
 
 def sink_is_guarded(f: Func, sink_ins: dict, rel_vars: set[str],
                     insmap: dict, dom: dict, sig_memo: dict) -> bool:
-    """PATH-SENSITIVE (Pinpoint-style): is the sink dominated by a branch whose
+    """Path-sensitive guard check: is the sink dominated by a branch whose
     condition is a BOUNDS check on a value related to the sink? A dominating
     `if (p+n > end) return;` (taken to reach the sink) sanitizes the access.
     Relatedness is checked both by SSA identity AND field-sensitively by value
@@ -341,10 +339,10 @@ def sink_is_guarded(f: Func, sink_ins: dict, rel_vars: set[str],
         if _cmp_against_zero(cond["raw"]):
             continue  # sign/null check, not a bounds guard
         guard_slice = backward_slice(set(cond["ops"]), insmap)
-        # SSA-direct: the sink's exact pointer/size flows into the guard.
+        # SSA-direct: the sink's exact pointer/size flows into the guard
         if rel_vars & guard_slice:
             return True
-        # field-sensitive: the guard checks the SAME struct field the sink uses.
+        # field-sensitive: the guard checks the same struct field the sink uses
         if rel_sigs:
             gsigs = {value_sig(v, insmap, sig_memo) for v in cond["ops"]}
             if rel_sigs & gsigs:
@@ -363,18 +361,17 @@ def _root_ptr(v: str, insmap: dict) -> str:
     return v
 
 
-# The path-sensitive guard relatedness (sink_is_guarded) is a HEURISTIC, not an SMT proof;
-# the full-ARVO ablation showed it over-suppresses ~7 real bugs. Setting GUARD_DEFAULT=False
-# drops it from the default pipeline so the symbolic layer stays high-recall (SMT-only guard
-# sufficiency) and lets the LLM handle the guard-idiom precision. Ablation configs pass an
-# explicit "guard" key and are unaffected.
+# The path-sensitive guard relatedness check (sink_is_guarded) is a heuristic, not an SMT
+# proof, and on the ARVO benchmark it suppresses several real bugs. GUARD_DEFAULT=False
+# removes it from the default pipeline, leaving guard sufficiency to SMT and guard idioms
+# to the LLM. Ablation configs pass an explicit "guard" key and are unaffected.
 GUARD_DEFAULT = True
 
 
 def find_candidates(f: Func, tainted: set[str], bounded: set[str],
                     dbg: dict, abl: dict | None = None) -> list[dict]:
-    # abl gates individual modeling layers for the ablation study; default = all ON except
-    # the guard, whose default follows GUARD_DEFAULT.
+    # abl gates individual modeling layers for the ablation study; default is all on
+    # except the guard, which follows GUARD_DEFAULT
     abl = abl or {}
     dom = dominators(f)
     insmap = _insmap(f)
@@ -395,13 +392,13 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         size_tainted = any(v in tainted for v in size_v)
         dst_tainted = any(v in tainted for v in dst_v)
         src_tainted = any(v in tainted for v in src_v)
-        # SANITIZER MODEL: a size CLAMPED (through a min/phi/mask against a bound) is
-        # safe. A merely CONSTANT size is NOT "clamped": a constant-size READ from a
+        # sanitizer model: a size clamped through a min/phi/mask against a bound is
+        # safe. A merely constant size is not clamped: a constant-size read from a
         # tainted pointer with an unbounded offset is still OOB (e.g. p+4 past end).
         size_clamped = bool(size_v) and all(v in bounded for v in size_v)
-        # intra-array element move: `arr[i] = arr[j]` (memcpy of one element between
-        # two slots of the SAME array, constant size) is an in-array shuffle, not an
-        # overflow. Different bases (rar:2802 dst=unp_buffer, src=lzss.window) are kept.
+        # intra-array element move: `arr[i] = arr[j]` (constant-size memcpy between two
+        # slots of the same array) is an in-array shuffle, not an overflow. Copies between
+        # different bases are kept.
         if abl.get("intra", True) and not size_v and dst_v and src_v and \
                 value_sig(_root_ptr(dst_v[0], insmap), insmap, sig_memo) == \
                 value_sig(_root_ptr(src_v[0], insmap), insmap, sig_memo):
@@ -426,26 +423,24 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
             why.append("dst-ptr")
         if not why:
             continue
-        # PATH-SENSITIVE guard: a dominating bounds check on the sink's operands
+        # path-sensitive guard: a dominating bounds check on the sink's operands
         # (e.g. `if (p+n > end) return;`) sanitizes the access on the reaching path.
         rel_vars = set(size_v) | set(dst_v) | set(src_v)
-        # NOTE: deliberately do NOT peel width-casts into rel_vars here -- widening
-        # relatedness catches source-side guards (e.g. LZSS `windowoffs+length <=
-        # src_size`) that do NOT protect a dest write, wrongly clearing real OOB-write
-        # bugs (rar:2802). Sufficiency of a guard needs SMT, handled separately.
+        # width-casts are deliberately not peeled into rel_vars: that would match
+        # source-side guards (e.g. LZSS `windowoffs+length <= src_size`) which do not
+        # protect a destination write, and clear real OOB writes. Guard sufficiency is
+        # left to the SMT stage below.
         if abl.get("guard", GUARD_DEFAULT) and sink_is_guarded(f, ins, rel_vars, insmap, dom, sig_memo):
             continue
-        # ON-DEMAND SMT: if the dominating path condition provably bounds a VARIABLE
-        # size to a small value (e.g. a compound `x>0 && x<=4 && ...`), the whole copy
-        # is bounded -> not an attacker overflow. (Constant-size sinks have size_v==[]
-        # so this never touches pointer-offset bugs like rar:1304.)
+        # on-demand SMT: if the dominating path condition provably bounds a variable
+        # size to a small value (e.g. a compound `x>0 && x<=4 && ...`), the copy is
+        # bounded. Constant-size sinks have size_v==[] and are never touched here.
         if abl.get("smt_size", True) and size_tainted and smt_path.size_provably_bounded(
                 f, insmap, dom, ins, size_v, value_sig, sig_memo, backward_slice):
             continue
-        # ON-DEMAND SMT BOUNDS-SUFFICIENCY: prove dst_offset+size <= dst_capacity under
-        # the path condition (capacity from malloc/calloc/realloc). Sound: a guard that
-        # only checks the SOURCE cannot prove the DEST in-bounds, so real OOB-writes
-        # (rar:2802) are kept.
+        # on-demand SMT bounds sufficiency: prove dst_offset+size <= dst_capacity under
+        # the path condition, with the capacity taken from malloc/calloc/realloc. A guard
+        # that only checks the source cannot prove the destination in bounds.
         dst_tok = dst_v[0] if dst_v else None
         size_tok = size_v[0] if size_v else args[2].strip().split()[-1]
         if abl.get("smt_cap", True) and dst_tok and smt_path.dest_provably_in_bounds(
@@ -546,7 +541,7 @@ def main(argv=None):
                 "genuine out-of-bounds. IMPORTANT: a memory op with a COMPILE-TIME "
                 "CONSTANT size (a literal or sizeof(...)) writing into a field of an "
                 "already-allocated struct/array is NOT a bug merely because the "
-                "destination pointer is input-derived — reject those. Flag real_bug=true "
+                "destination pointer is input-derived; reject those. Flag real_bug=true "
                 "ONLY when an input-derived SIZE can exceed the destination buffer, OR an "
                 "input-derived offset makes the pointer read/write past a buffer end, AND "
                 "no correct bounds check guards it on all paths. Be conservative: default "

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Re-run RQ1 (symbolic recall) + RQ3 (neuro confirm, both orientations) on the ARVO
-scorable set with the path-guard relatedness heuristic DROPPED (--no-guard): the symbolic
-layer becomes purely high-recall (SMT-only guard sufficiency) and the LLM handles precision.
-One compile pass per bug yields the new recall AND the new confirm numbers.
+"""Re-run symbolic recall and neural confirm (both orientations) on the ARVO scorable set
+with the path-guard relatedness heuristic disabled (--no-guard). The symbolic layer then
+keeps only SMT-proved guard sufficiency and the LLM handles guard-idiom precision. One
+compile pass per bug yields both the recall and the confirm numbers.
 """
 import collections, glob, json, os, shutil, subprocess, sys, time
 

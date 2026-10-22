@@ -3,17 +3,17 @@
 
 ARVO (n132/ARVO-Meta) ships, per OSS-Fuzz bug, a meta JSON
 (archive_data/meta/<id>.json: project, crash_type, sanitizer, fix_commit, repo_addr)
-and the canonical fix diff (archive_data/patches/<id>.diff). We filter to the bug class
-Paper 1 targets and extract, from the fix diff, the ground-truth localisation the recall
-runner scores against.
+and the canonical fix diff (archive_data/patches/<id>.diff). This script filters to the
+targeted bug class and extracts, from the fix diff, the ground-truth localisation the
+recall runner scores against.
 
-In-scope = ALL of:
+In-scope = all of:
   1. crash_type is a {Heap,Stack,Global}-buffer-overflow (READ or WRITE);
   2. the fix diff edits a C/C++ file;
-  3. an intrinsic memory op (mem{cpy,move,set}, wmem*) appears on a CONTEXT or REMOVED
-     line of the diff -> the sink already exists in the VULNERABLE version (fix_commit^),
-     which is what our detector analyses. (A sink only on '+' lines was added by the fix
-     and is not the bug site.)
+  3. an intrinsic memory op (mem{cpy,move,set}, wmem*) appears on a context or removed
+     line of the diff, i.e. the sink already exists in the vulnerable version
+     (fix_commit^), which is what the detector analyses. A sink only on '+' lines was
+     added by the fix and is not the bug site.
 
 Each manifest record also flags fuzz/test-harness paths so the recall runner can exclude
 them from the library-bug denominator if desired.
@@ -86,9 +86,9 @@ def _size_arg(line: str, mstart: int) -> str | None:
 
 
 def _is_const_size(size: str | None) -> bool:
-    """A trivially-safe size: sizeof(...) copies bounded by the type. Numeric/macro constants
-    are NOT treated as const here -- a constant-size read off a tainted source pointer can
-    still be OOB (e.g. libarchive rar FHD_LARGE), which is in our class."""
+    """A trivially safe size: sizeof(...) copies bounded by the type. Numeric/macro
+    constants are not treated as const here, because a constant-size read off a tainted
+    source pointer can still be OOB (e.g. libarchive rar FHD_LARGE)."""
     if not size:
         return False
     return bool(re.match(r"^\s*sizeof\b", size))
@@ -169,8 +169,8 @@ def build(meta_dir: str, project: str | None = None) -> list[dict]:
             "sanitizer": d.get("sanitizer"),
             "files": files,
             "in_test_path": all(fi["in_test_path"] for fi in files),
-            # genuine variable-size copy present (not just sizeof-bounded memset noise) ->
-            # the tighter set recall is measured on.
+            # a genuine variable-size copy is present (not only sizeof-bounded memsets);
+            # recall is measured on this tighter set.
             "has_var_sink": any(not s["const_size"] for fi in files for s in fi["sinks"]),
             # ground truth for recall: the crashing function from the ASAN stack.
             "crash_frames": frames[:4],

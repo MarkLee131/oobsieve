@@ -7,7 +7,7 @@ dependencies = ["google-genai>=1.0"]
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 anthropic = ["anthropic>=0.40"]
-detect = ["clang", "libclang"]  # self-built libclang symbolic detector
+detect = ["z3-solver", "libclang"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

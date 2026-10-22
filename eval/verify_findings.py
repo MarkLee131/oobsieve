@@ -3,10 +3,9 @@
 
 For each finding (file, line, enclosing memcpy op) reported by detect_real.py,
 look for a LATER libarchive commit that added a bounds/sanity check touching the
-same function — evidence the flagged site was a genuine bug that got fixed.
+same function, as evidence that the flagged site was a genuine bug.
 
-This is a signal, not proof: a human still confirms the strongest cases. It just
-ranks findings by how likely they are real so verification is fast.
+This is a ranking signal, not proof; the strongest cases still need manual review.
 
 Usage:
     python3 eval/verify_findings.py <libarchive_git_dir> <findings.json>

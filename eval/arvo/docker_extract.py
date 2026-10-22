@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """ARVO Docker route for symbolic recall at scale.
 
-Per-bug host compilation caps build coverage at ~60% (missing headers/generated files) and
-chokes on huge translation units. This route instead uses ARVO's reproduction image
-`n132/arvo:<id>-vul`, which ships the project fully configured at the vulnerable version. We:
+Per-bug host compilation caps build coverage at roughly 60% (missing headers and
+generated files) and struggles with huge translation units. This route uses ARVO's
+reproduction image `n132/arvo:<id>-vul`, which ships the project fully configured at the
+vulnerable version:
 
   1. pull the image;
-  2. run OSS-Fuzz `compile` once (generates config.h / all headers), then RECOMPILE just the
-     crash function's .c at `-O0 -g` + mem2reg inside the image (clang-12) -- clean IR our
-     detector needs, with every include resolved by the real build (no host guessing);
-  3. copy the .ll out, score crash-function recall on the host;
-  4. remove the image to bound disk.
+  2. run the OSS-Fuzz `compile` step once (generates config.h and all headers), then
+     recompile the crash function's .c at `-O0 -g` + mem2reg inside the image, so every
+     include is resolved by the real build;
+  3. copy the .ll out and score crash-function recall on the host;
+  4. remove the image to bound disk usage.
 
-This trades wall-clock (a full `compile` per bug) for near-total build coverage, and handles
-projects the host route can't build. Ground truth is still the ASAN crash function.
+This trades wall-clock time (a full `compile` per bug) for near-total build coverage.
+Ground truth is still the ASAN crash function.
 
 Usage:
     python3 eval/arvo/docker_extract.py eval/arvo/manifest.json --limit 40 \
@@ -31,10 +32,10 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import taint_llvm as T  # noqa: E402
 
-# in-container: build the project with a compiler wrapper that forces -O0 (using the build's
-# EXACT -I/-D flags -- no reconstruction, no per-project quirks) via wllvm, which drops a
-# single-module bitcode sibling `.<name>.o.bc`. We opt-mem2reg that directly (no llvm-link /
-# extract-bc needed) to get clean -O0 IR of the crash function's TU.
+# in-container script: build the project through a compiler wrapper that forces -O0 but
+# keeps the build's own -I/-D flags, via wllvm, which leaves a single-module bitcode
+# sibling `.<name>.o.bc` next to each object. That file is run through mem2reg directly;
+# no llvm-link or extract-bc is needed.
 _SCRIPT = r'''
 set -u
 pip3 install -q wllvm 2>/dev/null || pip3 install -q --user wllvm 2>/dev/null
@@ -77,8 +78,7 @@ def sh(args, timeout=600):
 def extract_ll(bug_id: str, gt: str, keep: bool) -> tuple[str, str] | None:
     """Return (source_file, ll_text) for the crash function's TU, or None."""
     img = f"n132/arvo:{bug_id}-vul"
-    # long timeout: images are ~3 GB and bandwidth is limited; concurrent pulls share it, so
-    # a pull can legitimately take many minutes. A too-short timeout mass-fails as "no-image".
+    # images are ~3 GB and concurrent pulls share bandwidth, so a pull can take many minutes
     if sh(["docker", "pull", img], timeout=2500).returncode != 0:
         return None
     try:
@@ -149,8 +149,8 @@ def main(argv=None):
     bugs = [b for b in json.load(open(args.manifest))
             if b.get("has_var_sink") and not b["in_test_path"] and b.get("crash_func")]
     if not args.cpp:
-        # the crash TU must be C (our detector is C-only); skip bugs whose fix touches no .c/.h
-        # file, to avoid wasting a ~3 GB pull on a C++ crash function we can't score.
+        # the detector is C-only: skip bugs whose fix touches no .c/.h file rather than
+        # spend a ~3 GB pull on a C++ crash function that cannot be scored
         bugs = [b for b in bugs if any(f["file"].endswith((".c", ".h")) for f in b["files"])]
     if args.project:
         projset = set(args.project.split(","))
@@ -165,8 +165,7 @@ def main(argv=None):
         results = json.load(open(out))
         done = {r["id"] for r in results}
     bugs = [b for b in bugs if b["id"] not in done]
-    # process project-by-project so consecutive pulls reuse the project's shared base layers
-    # (same-project -vul images differ mostly in the source layer), cutting total download.
+    # group by project so consecutive pulls reuse the project's shared base layers
     bugs.sort(key=lambda b: (b["project"], b["id"]))
     bugs = bugs[:args.limit]
     print(f"# {len(bugs)} bugs to process ({len(done)} already done), jobs={args.jobs}", flush=True)

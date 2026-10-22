@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""On-demand SMT path-condition solving (Pinpoint-style) for our LLVM-IR taint.
+"""On-demand SMT path-condition solving for the LLVM-IR taint candidates.
 
 For a size-tainted sink candidate, encode the size expression AND the dominating
 branch guards (the path condition to reach the sink) as Z3 bit-vector constraints,
@@ -8,8 +8,8 @@ then ask: can the size still exceed a large threshold under that path condition?
             && ...`) -> SAFE, filter the candidate.
   SAT/unknown -> the size may be attacker-large -> keep.
 
-Only ever FILTERS on a proof (UNSAT); defaults to keeping. This precisely handles
-compound `&&` guards that the syntactic dominating-guard heuristic misses.
+A candidate is only ever filtered on a proof (UNSAT); the default is to keep it. This
+handles compound `&&` guards that the syntactic dominating-guard heuristic misses.
 """
 from __future__ import annotations
 import re
@@ -60,9 +60,9 @@ class Encoder:
             return self._const(int(tok))
         if not tok.startswith("%"):
             return self._fresh()  # global / constant-expr / undef
-        # FIELD-SENSITIVE MEMORY: two SSA values with the same signature (e.g. two
+        # field-sensitive memory: two SSA values with the same signature (e.g. two
         # loads of the same struct field) share one Z3 variable, so a guard on
-        # x->f constrains a size read of x->f.
+        # x->f constrains a size read from x->f
         key = self.sigfn(tok, self.insmap, self.sigmemo)
         if key in self.memo:
             return self.memo[key]
@@ -195,7 +195,7 @@ def _const_or_val(enc, tok):
 
 def dest_provably_in_bounds(f, insmap, dom, sink_ins, dst_val, size_token,
                             sigfn, sigmemo, slicefn) -> bool:
-    """SMT bounds-sufficiency: prove dst_offset + size <= dst_capacity under the
+    """Bounds sufficiency: prove dst_offset + size <= dst_capacity under the
     relevant path condition. Sound: if the capacity can't be established or the
     guards don't cover the DEST (e.g. only the source is checked), returns False."""
     if not HAVE_Z3 or dst_val is None:
@@ -247,7 +247,7 @@ def dest_provably_in_bounds(f, insmap, dom, sink_ins, dst_val, size_token,
 
 def size_provably_bounded(f, insmap, dom, sink_ins, size_vals,
                           sigfn, sigmemo, slicefn) -> bool:
-    """Return True if the RELEVANT path condition proves the size <= THRESHOLD.
+    """Return True if the relevant path condition proves the size <= THRESHOLD.
     Only guards that actually constrain the size are conjoined (avoids spurious
     UNSAT from mutually-exclusive loop-iteration guards); relatedness is
     field-sensitive by value signature."""
@@ -275,7 +275,7 @@ def size_provably_bounded(f, insmap, dom, sink_ins, size_vals,
             continue
         gslice = slicefn(set(cond["ops"]), insmap)
         gsigs = {sigfn(v, insmap, sigmemo) for v in gslice}
-        # RELEVANT only: the guard must constrain a value the size depends on.
+        # relevant guards only: the guard must constrain a value the size depends on
         if (gslice & size_slice) or (gsigs & size_sigs):
             guards.append((b["cond"], pol))
     if not guards:

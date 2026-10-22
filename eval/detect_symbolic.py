@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-built neuro-symbolic detector (no Clearblue, no LLVM 3.6).
+"""AST-level neuro-symbolic detector built on libclang (superseded by taint_llvm.py).
 
 Symbolic layer (libclang AST, intraprocedural):
   - find sink call-sites (memcpy/memmove/memset/strcpy/strncpy/...),
@@ -136,8 +136,8 @@ def analyze_file(path: str, cflags: list[str]) -> list[dict]:
             ptr_tokens = [[t.spelling for t in a.get_tokens()] for a in ptr_args]
             ptr_texts = [" ".join(toks) for toks in ptr_tokens]
 
-            # SOUND SKIP: definitely safe = constant/sizeof size AND no pointer arithmetic.
-            # Match arithmetic on exact TOKENS so member access "->" doesn't count as "-".
+            # definitely safe: constant/sizeof size and no pointer arithmetic. Match
+            # arithmetic on exact tokens so member access "->" does not count as "-".
             size_const = size_text.isdigit() or size_text.startswith("sizeof")
             ptr_arith = any(tok in ("+", "-", "[") for toks in ptr_tokens for tok in toks)
             if size_const and not ptr_arith:

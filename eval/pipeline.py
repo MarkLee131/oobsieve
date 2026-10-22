@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """OOBSieve end-to-end detection pipeline (one command).
 
-Ties the tool's detect + assess halves into a single run over a real C project:
-  ③ symbolic candidate-finding (LLVM def-use taint + sanitizer/field/path/SMT passes)
-  ③ neural confirmation (Gemini)
-  ④ assessment (git-history verification: does upstream later fix this site?)
+Runs the detect and assess stages in one go over a real C project:
+  1. symbolic candidate finding (LLVM def-use taint + sanitizer/field/path/SMT passes)
+  2. neural confirmation (Gemini, reject-only)
+  3. assessment (git-history verification: did upstream later fix this site?)
 
-The value-flow property checked (input-derived size/pointer reaching a memory op
-without a sufficient bounds check) is the generalized spec that stages ①-② produce
-and refine; this driver runs the checking half and reports precision.
+The property checked is an input-derived size or pointer reaching a memory operation
+without a sufficient bounds check.
 
 Usage:
     GEMINI_API_KEY=... python3 eval/pipeline.py <src_dir> \
@@ -40,7 +39,7 @@ def _confirm(cand, src_dir, client, parse):
             f"{cand.get('tainted_operand')} operand. Decide if this is a genuine "
             "out-of-bounds. Reject constant/clamped/allocation-to-fit sizes. IMPORTANT: "
             "a bounds check need not be a plain `if`; longjmp/goto-based bounds MACROS "
-            "that guard the SAME pointer+length just above the op are sufficient — e.g. "
+            "that guard the SAME pointer+length just above the op are sufficient, e.g. "
             "tcpdump ND_TCHECK/ND_TCHECK2/ND_TTEST(ptr,len) before a memcpy(ptr,...,len), "
             "or similar CHECK_*/bounds-assert macros. If such a guard covers the accessed "
             "range, real_bug=false. Flag real_bug=true only if an input-derived size can "
@@ -66,22 +65,22 @@ def main(argv=None):
     files = sorted(glob.glob(os.path.join(args.src_dir, "**", args.glob), recursive=True))
     tmp_ll = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_pipe.ll")
 
-    # ③ symbolic candidates
+    # 1. symbolic candidates
     candidates = []
     for fp in files:
         candidates.extend(T.analyze(fp, cflags, args.clang, tmp_ll))
     print(f"# project={args.project or os.path.basename(args.src_dir.rstrip('/'))}  "
           f"files={len(files)}  symbolic candidates={len(candidates)}")
 
-    # ③ neural confirmation
+    # 2. neural confirmation
     confirmed = candidates
     if not args.no_confirm:
         if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
             sys.exit("GEMINI_API_KEY not set (use --no-confirm for symbolic-only).")
         from oobsieve.llm.gemini_client import GeminiClient
         from oobsieve.agent import _parse_json
-        # thinking_budget=0: a yes/no OOB judgement needs no chain-of-thought pass,
-        # and disabling it cuts per-call latency ~10x (thinking flash was ~10s/call).
+        # thinking_budget=0: disabling the thinking pass cuts per-call latency about 10x
+        # and does not change the yes/no judgement
         client = GeminiClient(model=args.model, thinking_budget=0)
         confirmed = []
         for i, c in enumerate(candidates, 1):
@@ -93,7 +92,7 @@ def main(argv=None):
                   f"({len(confirmed)} real so far)", end="", flush=True)
         print(f"\n# confirmed by {args.model}: {len(confirmed)}/{len(candidates)}")
 
-    # ④ assessment: git-history verification (function got a later bounds/sanity fix)
+    # 3. assessment: git-history verification (did the function get a later bounds fix?)
     rel = "libarchive/{}" if "libarchive" in args.src_dir else "{}"
     real = 0
     for c in confirmed:
