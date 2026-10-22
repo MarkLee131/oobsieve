@@ -1,0 +1,16 @@
+[
+ {
+  "id": "35426",
+  "project": "tinygltf",
+  "build_ok": false,
+  "recall": "error:UnicodeDecodeError",
+  "tb": "nicate\n    stdout, stderr = self._communicate(input, endtime, timeout)\n  File \"/usr/lib/python3.10/subprocess.py\", line 2063, in _communicate\n    stderr = self._translate_newlines(stderr,\n  File \"/usr/lib/python3.10/subprocess.py\", line 1031, in _translate_newlines\n    data = data.decode(encoding, errors)\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0xc1 in position 141: invalid start byte\n"
+ },
+ {
+  "id": "39622",
+  "project": "tinygltf",
+  "build_ok": false,
+  "recall": "error:UnicodeDecodeError",
+  "tb": "nicate\n    stdout, stderr = self._communicate(input, endtime, timeout)\n  File \"/usr/lib/python3.10/subprocess.py\", line 2063, in _communicate\n    stderr = self._translate_newlines(stderr,\n  File \"/usr/lib/python3.10/subprocess.py\", line 1031, in _translate_newlines\n    data = data.decode(encoding, errors)\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0xc1 in position 141: invalid start byte\n"
+ }
+]

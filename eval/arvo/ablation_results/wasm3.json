@@ -1,0 +1,41 @@
+[
+ {
+  "id": "33240",
+  "project": "wasm3",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "miss",
+  "gt_func": "ParseSection_Type",
+  "abl": [
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": false
+   },
+   {
+    "count": 2,
+    "gt_hit": false
+   },
+   {
+    "count": 2,
+    "gt_hit": false
+   }
+  ]
+ }
+]

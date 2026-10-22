@@ -1,0 +1,19 @@
+[
+ {
+  "id": "33991",
+  "project": "readstat",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "miss",
+  "gt_func": "readstat_convert",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 11,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss"
+ }
+]

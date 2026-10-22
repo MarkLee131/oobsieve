@@ -1,0 +1,11 @@
+[
+ {
+  "id": "9325",
+  "project": "mupdf",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "next_null"
+ }
+]

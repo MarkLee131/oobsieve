@@ -1,0 +1,63 @@
+[run ] c-blosc (2 bugs)
+[done] c-blosc 2 rows 31s
+[run ] c-blosc2 (1 bugs)
+[done] c-blosc2 1 rows 16s
+[run ] clamav-devel (1 bugs)
+[done] clamav-devel 1 rows 8s
+[run ] curl (1 bugs)
+[done] curl 1 rows 30s
+[run ] dnsmasq (3 bugs)
+[done] dnsmasq 3 rows 313s
+[run ] htslib (3 bugs)
+[done] htslib 3 rows 255s
+[run ] imagemagick (3 bugs)
+[done] imagemagick 3 rows 359s
+[run ] libarchive (3 bugs)
+[done] libarchive 3 rows 114s
+[run ] libavc (1 bugs)
+[done] libavc 1 rows 139s
+[run ] libdwarf (1 bugs)
+[done] libdwarf 1 rows 88s
+[run ] libhevc (2 bugs)
+[done] libhevc 2 rows 158s
+[run ] libmpeg2 (1 bugs)
+[done] libmpeg2 1 rows 46s
+[run ] libpsl (1 bugs)
+[done] libpsl 1 rows 9s
+[run ] libspng (2 bugs)
+[done] libspng 2 rows 408s
+[run ] libxaac (2 bugs)
+[done] libxaac 2 rows 121s
+[run ] lldpd (1 bugs)
+[done] lldpd 1 rows 36s
+[run ] lxc (1 bugs)
+[done] lxc 1 rows 5s
+[run ] mupdf (1 bugs)
+[done] mupdf 1 rows 18s
+[run ] ndpi (1 bugs)
+[done] ndpi 1 rows 17s
+[run ] net-snmp (2 bugs)
+[done] net-snmp 2 rows 76s
+[run ] openexr (1 bugs)
+[done] openexr 1 rows 70s
+[run ] openjpeg (1 bugs)
+[done] openjpeg 1 rows 4s
+[run ] opensc (3 bugs)
+[done] opensc 3 rows 83s
+[run ] pcre2 (4 bugs)
+[done] pcre2 4 rows 320s
+[run ] readstat (1 bugs)
+[done] readstat 1 rows 42s
+[run ] sleuthkit (2 bugs)
+[done] sleuthkit 2 rows 82s
+[run ] wasm3 (1 bugs)
+[done] wasm3 1 rows 14s
+
+============================================================
+NEURO CONFIRM on ARVO scorable set (both orientations)
+  scorable bugs with confirm: 46   (of which crash-func hits: 29)
+  end-to-end recall  recall-first: 28/46 = 61%   [true bugs dropped: 1]
+  end-to-end recall  aggressive  : 4/46 = 9%   [true bugs dropped: 25]
+  FP-cut (non-crash cands rejected)  recall-first: 27/298 = 9%
+  FP-cut (non-crash cands rejected)  aggressive  : 286/298 = 96%
+summary -> confirm_summary.json

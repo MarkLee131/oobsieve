@@ -1,0 +1,92 @@
+[
+ {
+  "id": "30193",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "blosc_run_decompression_with_context"
+ },
+ {
+  "id": "26442",
+  "project": "c-blosc2",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "blosc_c"
+ },
+ {
+  "id": "33264",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "blosc_d"
+ },
+ {
+  "id": "27818",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "Lizard_decompress_safe"
+ },
+ {
+  "id": "35537",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 7,
+  "recall": "oos",
+  "gt_func": "ZSTD_decompressMultiFrame"
+ },
+ {
+  "id": "42131",
+  "project": "c-blosc2",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ndlz4_decompress"
+ },
+ {
+  "id": "29369",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "oos",
+  "gt_func": "ZSTD_createDDict_advanced"
+ },
+ {
+  "id": "31189",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "frame_get_lazychunk"
+ },
+ {
+  "id": "36103",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "oos",
+  "gt_func": "ZSTD_createDDict_advanced"
+ },
+ {
+  "id": "50433",
+  "project": "c-blosc2",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "do_job"
+ }
+]

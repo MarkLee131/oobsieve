@@ -1,0 +1,11 @@
+[
+ {
+  "id": "17171",
+  "project": "libxslt",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "xsltFormatNumberConversion"
+ }
+]

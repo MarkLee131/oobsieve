@@ -1,5 +1,5 @@
 [project]
-name = "patchintent"
+name = "oobsieve"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = ["google-genai>=1.0"]
@@ -13,4 +13,4 @@ detect = ["clang", "libclang"]  # self-built libclang symbolic detector
 testpaths = ["tests"]
 
 [tool.setuptools]
-packages = ["patchintent", "patchintent.llm"]
+packages = ["oobsieve", "oobsieve.llm"]

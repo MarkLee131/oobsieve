@@ -111,7 +111,7 @@ def build_prompt(func_src: str, sink_line: str, file: str, use_spec: bool = True
 def _parse(raw: str) -> dict:
     # reuse the hardened parser from the neuro layer (scans for the first
     # decodable JSON object; never raises).
-    from patchintent.agent import _parse_json
+    from oobsieve.agent import _parse_json
     return _parse_json(raw)
 
 
@@ -126,7 +126,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
     if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
         sys.exit("GEMINI_API_KEY (or GOOGLE_API_KEY) is not set.")
-    from patchintent.llm.gemini_client import GeminiClient
+    from oobsieve.llm.gemini_client import GeminiClient
     client = GeminiClient(model=args.model)
 
     files = sorted(glob.glob(os.path.join(args.src_dir, "**", args.glob), recursive=True))

@@ -1,0 +1,119 @@
+[
+ {
+  "id": "18696",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "TraceStrokePolygon",
+  "abl": [
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 55,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "10115",
+  "project": "imagemagick",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "DrawDashPolygon",
+  "abl": [
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 55,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "20096",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "TraceStrokePolygon",
+  "abl": [
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 59,
+    "gt_hit": true
+   },
+   {
+    "count": 55,
+    "gt_hit": true
+   }
+  ]
+ }
+]

@@ -1,0 +1,20 @@
+[
+ {
+  "id": "23794",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "miss",
+  "gt_func": "blosclz_compress"
+ },
+ {
+  "id": "38313",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "blosclz_compress"
+ }
+]

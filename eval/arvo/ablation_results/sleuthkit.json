@@ -1,0 +1,80 @@
+[
+ {
+  "id": "24895",
+  "project": "sleuthkit",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "miss",
+  "gt_func": "hfs_load_extended_attrs",
+  "abl": [
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": false
+   },
+   {
+    "count": 9,
+    "gt_hit": false
+   },
+   {
+    "count": 9,
+    "gt_hit": false
+   },
+   {
+    "count": 9,
+    "gt_hit": false
+   },
+   {
+    "count": 9,
+    "gt_hit": false
+   },
+   {
+    "count": 9,
+    "gt_hit": false
+   }
+  ]
+ },
+ {
+  "id": "38872",
+  "project": "sleuthkit",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "ext2fs_dinode_copy",
+  "abl": [
+   {
+    "count": 8,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   }
+  ]
+ }
+]

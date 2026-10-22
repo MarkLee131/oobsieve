@@ -1,7 +1,7 @@
 import json
-from patchintent.spec_model import Spec
-from patchintent.agent import SpecJudgement, Verdict
-from patchintent.rewriter import apply_judgements, write_audit
+from oobsieve.spec_model import Spec
+from oobsieve.agent import SpecJudgement, Verdict
+from oobsieve.rewriter import apply_judgements, write_audit
 
 def _specs():
     return [

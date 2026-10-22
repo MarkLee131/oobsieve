@@ -1,0 +1,20 @@
+[
+ {
+  "id": "24895",
+  "project": "sleuthkit",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "miss",
+  "gt_func": "hfs_load_extended_attrs"
+ },
+ {
+  "id": "38872",
+  "project": "sleuthkit",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "ext2fs_dinode_copy"
+ }
+]

@@ -1,0 +1,53 @@
+[
+ {
+  "id": "43300",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 28,
+  "recall": "hit",
+  "gt_func": "dhcp_reply",
+  "n_gt_cands": 15,
+  "n_gt_confirmed": 13,
+  "n_other_sampled": 13,
+  "n_other_confirmed": 13,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ },
+ {
+  "id": "35865",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "extract_addresses",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss"
+ },
+ {
+  "id": "35870",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 29,
+  "recall": "hit",
+  "gt_func": "dhcp_reply",
+  "n_gt_cands": 15,
+  "n_gt_confirmed": 13,
+  "n_other_sampled": 14,
+  "n_other_confirmed": 14,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "hit",
+  "e2e_aggr": "hit"
+ }
+]

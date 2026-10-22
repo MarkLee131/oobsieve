@@ -1,0 +1,41 @@
+[
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "search_valid_dns",
+  "abl": [
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   }
+  ]
+ }
+]

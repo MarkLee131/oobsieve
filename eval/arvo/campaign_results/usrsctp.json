@@ -1,0 +1,20 @@
+[
+ {
+  "id": "18070",
+  "project": "usrsctp",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "sctp_handle_asconf"
+ },
+ {
+  "id": "26197",
+  "project": "usrsctp",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "sctp_process_init"
+ }
+]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turnkey real-LLM validation of the PatchIntent neuro layer (Layer 1).
+"""Turnkey real-LLM validation of the OOBSieve neuro layer (Layer 1).
 
 Runs the intent-reading agent with a REAL Gemini model over real SEAL specs
 (under eval/real_specs/), printing each spec's keep/drop/subject-correct verdict
@@ -21,8 +21,8 @@ import sys
 # allow running from repo root without install
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from patchintent.cli import refine_patch          # noqa: E402
-from patchintent.context import assemble          # noqa: E402
+from oobsieve.cli import refine_patch          # noqa: E402
+from oobsieve.context import assemble          # noqa: E402
 
 REAL_SPECS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "real_specs")
 
@@ -36,7 +36,7 @@ def main(argv=None):
     if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
         sys.exit("GEMINI_API_KEY (or GOOGLE_API_KEY) is not set. Export it and re-run.")
 
-    from patchintent.llm.gemini_client import GeminiClient
+    from oobsieve.llm.gemini_client import GeminiClient
     client = GeminiClient(model=args.model)
 
     patch_dirs = sorted(
@@ -48,7 +48,7 @@ def main(argv=None):
         sys.exit(f"no patch dirs under {args.specs_dir}")
 
     total = kept = dropped = corrected = 0
-    print(f"# PatchIntent real-LLM validation (model={args.model})\n")
+    print(f"# OOBSieve real-LLM validation (model={args.model})\n")
     for pd in patch_dirs:
         ctx = assemble(pd)
         _refined, judgements = refine_patch(pd, client, retries=2)

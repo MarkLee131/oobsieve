@@ -1,0 +1,83 @@
+[
+ {
+  "id": "14481",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 7,
+  "recall": "hit",
+  "gt_func": "agentx_parse_string"
+ },
+ {
+  "id": "36962",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "gt-not-in-file",
+  "gt_func": "getoid"
+ },
+ {
+  "id": "55847",
+  "project": "net-snmp",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "no-parent",
+  "gt_func": null
+ },
+ {
+  "id": "40429",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "asn_build_string"
+ },
+ {
+  "id": "37564",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "snmp_add_var"
+ },
+ {
+  "id": "64397",
+  "project": "net-snmp",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "no-parent",
+  "gt_func": null
+ },
+ {
+  "id": "64351",
+  "project": "net-snmp",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "no-parent",
+  "gt_func": null
+ },
+ {
+  "id": "55864",
+  "project": "net-snmp",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "no-parent",
+  "gt_func": null
+ },
+ {
+  "id": "40431",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "asn_realloc_rbuild_string"
+ }
+]

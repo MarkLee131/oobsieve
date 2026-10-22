@@ -1,0 +1,125 @@
+[run ] libspng (limit=10, timeout=420s)
+[done] libspng 2 rows in 10s
+[run ] libpsl (limit=10, timeout=420s)
+[done] libpsl 3 rows in 5s
+[run ] mongoose (limit=10, timeout=420s)
+[done] mongoose 3 rows in 13s
+[run ] open62541 (limit=10, timeout=420s)
+[done] open62541 3 rows in 33s
+[run ] yara (limit=10, timeout=420s)
+[done] yara 2 rows in 38s
+[run ] file (limit=10, timeout=420s)
+[done] file 2 rows in 30s
+[run ] sleuthkit (limit=10, timeout=420s)
+[done] sleuthkit 2 rows in 42s
+[run ] mruby (limit=10, timeout=420s)
+[done] mruby 2 rows in 16s
+[run ] libexif (limit=10, timeout=420s)
+[done] libexif 5 rows in 12s
+[run ] espeak-ng (limit=10, timeout=420s)
+[done] espeak-ng 4 rows in 39s
+[run ] c-blosc (limit=10, timeout=420s)
+[done] c-blosc 2 rows in 11s
+[run ] libiec61850 (limit=10, timeout=420s)
+[done] libiec61850 2 rows in 16s
+[run ] libssh2 (limit=10, timeout=420s)
+[done] libssh2 2 rows in 16s
+[run ] usrsctp (limit=10, timeout=420s)
+[done] usrsctp 2 rows in 53s
+[run ] postgis (limit=10, timeout=420s)
+[done] postgis 2 rows in 96s
+[run ] lcms (limit=10, timeout=420s)
+[done] lcms 7 rows in 85s
+[run ] libgit2 (limit=10, timeout=420s)
+[done] libgit2 4 rows in 92s
+[run ] dav1d (limit=10, timeout=420s)
+[done] dav1d 4 rows in 69s
+[run ] leptonica (limit=10, timeout=420s)
+[done] leptonica 3 rows in 53s
+[run ] gstreamer (limit=10, timeout=420s)
+[done] gstreamer 3 rows in 268s
+[run ] libvips (limit=10, timeout=420s)
+[done] libvips 3 rows in 42s
+[run ] curl (limit=10, timeout=420s)
+[done] curl 5 rows in 131s
+[run ] net-snmp (limit=10, timeout=420s)
+[done] net-snmp 9 rows in 363s
+[run ] freeradius-server (limit=10, timeout=420s)
+[done] freeradius-server 9 rows in 139s
+[run ] fluent-bit (limit=10, timeout=420s)
+[done] fluent-bit 10 rows in 218s
+[run ] libxml2 (limit=10, timeout=420s)
+[done] libxml2 7 rows in 93s
+[run ] openvswitch (limit=10, timeout=420s)
+[done] openvswitch 4 rows in 65s
+[run ] libxaac (limit=10, timeout=420s)
+[done] libxaac 8 rows in 49s
+[run ] libhevc (limit=10, timeout=420s)
+[done] libhevc 2 rows in 16s
+[run ] pcre2 (limit=10, timeout=420s)
+[done] pcre2 6 rows in 213s
+[run ] dnsmasq (limit=10, timeout=420s)
+[done] dnsmasq 10 rows in 42s
+[run ] libarchive (limit=10, timeout=420s)
+[done] libarchive 6 rows in 84s
+[run ] c-blosc2 (limit=10, timeout=420s)
+[done] c-blosc2 10 rows in 63s
+[run ] htslib (limit=10, timeout=420s)
+[done] htslib 5 rows in 48s
+[run ] ndpi (limit=10, timeout=420s)
+[done] ndpi 10 rows in 78s
+[run ] libdwarf (limit=10, timeout=420s)
+[done] libdwarf 7 rows in 61s
+[run ] libavc (limit=10, timeout=420s)
+[done] libavc 10 rows in 65s
+[run ] opensc (limit=10, timeout=420s)
+[done] opensc 10 rows in 74s
+
+============================================================
+AGGREGATE across 38 projects, 190 bugs
+  build coverage : 97/190 (51%)
+  scorable       : 34
+  function recall : 23/34 (68%)
+  excluded oos   : 51   gt-not-in-file: 12
+
+project                hit/scorable   (oos/notin/buildfail)
+c-blosc                  1/2         (oos=0, notin=0, bf=0)
+c-blosc2                 1/1         (oos=3, notin=0, bf=6)
+curl                     0/1         (oos=0, notin=0, bf=4)
+dav1d                    0/0         (oos=0, notin=0, bf=4)
+dnsmasq                  2/3         (oos=7, notin=0, bf=0)
+espeak-ng                0/0         (oos=2, notin=0, bf=2)
+file                     0/0         (oos=1, notin=0, bf=1)
+fluent-bit               0/0         (oos=0, notin=0, bf=10)
+freeradius-server        0/0         (oos=0, notin=0, bf=9)
+gstreamer                0/0         (oos=0, notin=0, bf=3)
+htslib                   1/3         (oos=0, notin=1, bf=1)
+lcms                     0/0         (oos=7, notin=0, bf=0)
+leptonica                0/0         (oos=0, notin=1, bf=2)
+libarchive               2/3         (oos=3, notin=0, bf=0)
+libavc                   1/1         (oos=8, notin=0, bf=1)
+libdwarf                 0/1         (oos=1, notin=2, bf=3)
+libexif                  0/0         (oos=0, notin=0, bf=5)
+libgit2                  0/0         (oos=0, notin=0, bf=4)
+libhevc                  2/2         (oos=0, notin=0, bf=0)
+libiec61850              0/0         (oos=0, notin=0, bf=2)
+libpsl                   0/1         (oos=2, notin=0, bf=0)
+libspng                  2/2         (oos=0, notin=0, bf=0)
+libssh2                  0/0         (oos=0, notin=0, bf=2)
+libvips                  0/0         (oos=0, notin=0, bf=3)
+libxaac                  2/2         (oos=6, notin=0, bf=0)
+libxml2                  0/0         (oos=4, notin=3, bf=0)
+mongoose                 0/0         (oos=1, notin=2, bf=0)
+mruby                    0/0         (oos=1, notin=0, bf=1)
+ndpi                     1/1         (oos=1, notin=0, bf=8)
+net-snmp                 1/2         (oos=0, notin=1, bf=6)
+open62541                0/0         (oos=1, notin=0, bf=2)
+opensc                   2/3         (oos=1, notin=2, bf=4)
+openvswitch              0/0         (oos=0, notin=0, bf=4)
+pcre2                    4/4         (oos=0, notin=0, bf=2)
+postgis                  0/0         (oos=0, notin=0, bf=2)
+sleuthkit                1/2         (oos=0, notin=0, bf=0)
+usrsctp                  0/0         (oos=0, notin=0, bf=2)
+yara                     0/0         (oos=2, notin=0, bf=0)
+
+summary -> campaign_summary.json

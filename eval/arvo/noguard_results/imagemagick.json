@@ -1,0 +1,53 @@
+[
+ {
+  "id": "18696",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "TraceStrokePolygon",
+  "n_gt_cands": 12,
+  "n_gt_confirmed": 12,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 14,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ },
+ {
+  "id": "10115",
+  "project": "imagemagick",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "DrawDashPolygon",
+  "n_gt_cands": 5,
+  "n_gt_confirmed": 5,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 15,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ },
+ {
+  "id": "20096",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "TraceStrokePolygon",
+  "n_gt_cands": 12,
+  "n_gt_confirmed": 12,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 15,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ }
+]

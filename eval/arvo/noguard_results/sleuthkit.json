@@ -1,0 +1,36 @@
+[
+ {
+  "id": "24895",
+  "project": "sleuthkit",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "miss",
+  "gt_func": "hfs_load_extended_attrs",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 9,
+  "n_other_confirmed": 9,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss"
+ },
+ {
+  "id": "38872",
+  "project": "sleuthkit",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "ext2fs_dinode_copy",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ }
+]

@@ -1,0 +1,11 @@
+[
+ {
+  "id": "52305",
+  "project": "MapServer",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "msyylex"
+ }
+]

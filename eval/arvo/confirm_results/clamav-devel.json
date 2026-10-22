@@ -1,0 +1,19 @@
+[
+ {
+  "id": "23499",
+  "project": "clamav-devel",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "miss",
+  "gt_func": "cli_codepage_to_utf8",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 0,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss"
+ }
+]

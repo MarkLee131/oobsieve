@@ -15,4 +15,4 @@ The SPEC states that an input-derived size (like the effective source buffer siz
 This is a real out-of-bounds read vulnerability, confirmed by patches in libarchive that added checks like `if (p + 4 > endp)` at these locations.
 
 ## summary: 1 candidate real bugs out of 18 sites checked
-findings -> /home/likaixuan/static_analysis/linux-spec-sast/patchintent/eval/detect_real_findings.json
+findings -> /home/likaixuan/static_analysis/linux-spec-sast/oobsieve/eval/detect_real_findings.json

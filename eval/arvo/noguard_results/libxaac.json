@@ -1,0 +1,36 @@
+[
+ {
+  "id": "61902",
+  "project": "libxaac",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "iusace_estimate_scfs_chan",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ },
+ {
+  "id": "61998",
+  "project": "libxaac",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 14,
+  "recall": "hit",
+  "gt_func": "iusace_estimate_scfs_chan",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 13,
+  "n_other_confirmed": 9,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ }
+]

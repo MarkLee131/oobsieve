@@ -1,0 +1,119 @@
+[
+ {
+  "id": "22231",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 15,
+  "recall": "miss",
+  "gt_func": "hts_md5_update",
+  "abl": [
+   {
+    "count": 24,
+    "gt_hit": true
+   },
+   {
+    "count": 23,
+    "gt_hit": true
+   },
+   {
+    "count": 23,
+    "gt_hit": true
+   },
+   {
+    "count": 19,
+    "gt_hit": false
+   },
+   {
+    "count": 15,
+    "gt_hit": false
+   },
+   {
+    "count": 15,
+    "gt_hit": false
+   },
+   {
+    "count": 15,
+    "gt_hit": false
+   }
+  ]
+ },
+ {
+  "id": "20694",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 15,
+  "recall": "miss",
+  "gt_func": "hts_md5_update",
+  "abl": [
+   {
+    "count": 24,
+    "gt_hit": true
+   },
+   {
+    "count": 23,
+    "gt_hit": true
+   },
+   {
+    "count": 23,
+    "gt_hit": true
+   },
+   {
+    "count": 19,
+    "gt_hit": false
+   },
+   {
+    "count": 15,
+    "gt_hit": false
+   },
+   {
+    "count": 15,
+    "gt_hit": false
+   },
+   {
+    "count": 15,
+    "gt_hit": false
+   }
+  ]
+ },
+ {
+  "id": "65383",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 15,
+  "recall": "hit",
+  "gt_func": "process_one_read",
+  "abl": [
+   {
+    "count": 18,
+    "gt_hit": true
+   },
+   {
+    "count": 18,
+    "gt_hit": true
+   },
+   {
+    "count": 18,
+    "gt_hit": true
+   },
+   {
+    "count": 17,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 15,
+    "gt_hit": true
+   },
+   {
+    "count": 15,
+    "gt_hit": true
+   }
+  ]
+ }
+]

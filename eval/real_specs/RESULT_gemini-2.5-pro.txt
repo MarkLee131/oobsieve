@@ -1,4 +1,4 @@
-# PatchIntent real-LLM validation (model=gemini-2.5-pro)
+# OOBSieve real-LLM validation (model=gemini-2.5-pro)
 
 ## patch_2b064d9  (1 candidate spec(s))
    commit: Subject: media: cx88: Fix a null-ptr-deref bug in buffer_prepare()

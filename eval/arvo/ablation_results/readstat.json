@@ -1,0 +1,41 @@
+[
+ {
+  "id": "33991",
+  "project": "readstat",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 10,
+  "recall": "miss",
+  "gt_func": "readstat_convert",
+  "abl": [
+   {
+    "count": 12,
+    "gt_hit": false
+   },
+   {
+    "count": 12,
+    "gt_hit": false
+   },
+   {
+    "count": 12,
+    "gt_hit": false
+   },
+   {
+    "count": 10,
+    "gt_hit": false
+   },
+   {
+    "count": 10,
+    "gt_hit": false
+   },
+   {
+    "count": 10,
+    "gt_hit": false
+   },
+   {
+    "count": 10,
+    "gt_hit": false
+   }
+  ]
+ }
+]

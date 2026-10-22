@@ -1,5 +1,5 @@
-from patchintent.context import assemble, referenced_funcs
-from patchintent.spec_model import Spec
+from oobsieve.context import assemble, referenced_funcs
+from oobsieve.spec_model import Spec
 
 
 def test_referenced_funcs_extracts_call_targets():

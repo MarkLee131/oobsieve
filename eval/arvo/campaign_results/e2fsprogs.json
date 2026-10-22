@@ -1,0 +1,11 @@
+[
+ {
+  "id": "49679",
+  "project": "e2fsprogs",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ba_get_bmap_range"
+ }
+]

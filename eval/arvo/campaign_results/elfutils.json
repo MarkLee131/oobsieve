@@ -1,0 +1,11 @@
+[
+ {
+  "id": "45628",
+  "project": "elfutils",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "strtol"
+ }
+]

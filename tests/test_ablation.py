@@ -1,6 +1,6 @@
 import json
 from eval.ablation import run_ablation
-from patchintent.llm.mock_client import MockLLMClient
+from oobsieve.llm.mock_client import MockLLMClient
 
 def test_ablation_runs_two_conditions():
     keep = json.dumps({"judgements":[{"spec_id":0,"verdict":"keep",

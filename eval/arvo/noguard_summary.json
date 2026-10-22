@@ -1,0 +1,14 @@
+{
+ "scorable": 46,
+ "hit": 33,
+ "n_cands": 758,
+ "e2e_rf": 30,
+ "e2e_ag": 6,
+ "drop_rf": 3,
+ "drop_ag": 27,
+ "n_conf": 46,
+ "hits_conf": 33,
+ "oth": 328,
+ "oth_kept_rf": 267,
+ "oth_kept_ag": 10
+}

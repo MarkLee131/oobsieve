@@ -1,0 +1,11 @@
+[
+ {
+  "id": "28779",
+  "project": "mdbtools",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "oos",
+  "gt_func": "mdb_xfer_bound_data"
+ }
+]

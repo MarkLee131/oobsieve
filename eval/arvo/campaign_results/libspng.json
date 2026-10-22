@@ -1,0 +1,20 @@
+[
+ {
+  "id": "16091",
+  "project": "libspng",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 102,
+  "recall": "hit",
+  "gt_func": "spng_decode_image"
+ },
+ {
+  "id": "16830",
+  "project": "libspng",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 115,
+  "recall": "hit",
+  "gt_func": "spng_decode_image"
+ }
+]

@@ -1,0 +1,65 @@
+[
+ {
+  "id": "49382",
+  "project": "lcms",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 27,
+  "recall": "oos",
+  "gt_func": "TetrahedralInterp16"
+ },
+ {
+  "id": "49475",
+  "project": "lcms",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 26,
+  "recall": "oos",
+  "gt_func": "cmsMLUgetASCII"
+ },
+ {
+  "id": "49433",
+  "project": "lcms",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 19,
+  "recall": "oos",
+  "gt_func": "Type_MLU_Write"
+ },
+ {
+  "id": "49386",
+  "project": "lcms",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 27,
+  "recall": "oos",
+  "gt_func": "TetrahedralInterp16"
+ },
+ {
+  "id": "49441",
+  "project": "lcms",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 19,
+  "recall": "oos",
+  "gt_func": "WriteSeqID"
+ },
+ {
+  "id": "49505",
+  "project": "lcms",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 17,
+  "recall": "oos",
+  "gt_func": "_cmsWriteXYZNumber"
+ },
+ {
+  "id": "50115",
+  "project": "lcms",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 16,
+  "recall": "oos",
+  "gt_func": "_cmsMAT3per"
+ }
+]

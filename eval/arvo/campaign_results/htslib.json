@@ -1,0 +1,47 @@
+[
+ {
+  "id": "22231",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 15,
+  "recall": "miss",
+  "gt_func": "hts_md5_update"
+ },
+ {
+  "id": "20694",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 15,
+  "recall": "miss",
+  "gt_func": "hts_md5_update"
+ },
+ {
+  "id": "66369",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 15,
+  "recall": "gt-not-in-file",
+  "gt_func": "hts_log"
+ },
+ {
+  "id": "65383",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 15,
+  "recall": "hit",
+  "gt_func": "process_one_read"
+ },
+ {
+  "id": "30012",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "safe_ltf8_get"
+ }
+]

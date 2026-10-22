@@ -1,0 +1,41 @@
+[
+ {
+  "id": "27818",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "Lizard_decompress_safe",
+  "abl": [
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   }
+  ]
+ }
+]

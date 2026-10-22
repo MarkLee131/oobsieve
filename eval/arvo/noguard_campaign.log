@@ -1,0 +1,64 @@
+[run ] c-blosc (2 bugs)
+[done] c-blosc 2 rows 39s
+[run ] c-blosc2 (1 bugs)
+[done] c-blosc2 1 rows 48s
+[run ] clamav-devel (1 bugs)
+[done] clamav-devel 1 rows 10s
+[run ] curl (1 bugs)
+[done] curl 1 rows 4s
+[run ] dnsmasq (3 bugs)
+[done] dnsmasq 3 rows 324s
+[run ] htslib (3 bugs)
+[done] htslib 3 rows 266s
+[run ] imagemagick (3 bugs)
+[done] imagemagick 3 rows 385s
+[run ] libarchive (3 bugs)
+[done] libarchive 3 rows 92s
+[run ] libavc (1 bugs)
+[done] libavc 1 rows 134s
+[run ] libdwarf (1 bugs)
+[done] libdwarf 1 rows 86s
+[run ] libhevc (2 bugs)
+[done] libhevc 2 rows 210s
+[run ] libmpeg2 (1 bugs)
+[done] libmpeg2 1 rows 45s
+[run ] libpsl (1 bugs)
+[done] libpsl 1 rows 11s
+[run ] libspng (2 bugs)
+[done] libspng 2 rows 414s
+[run ] libxaac (2 bugs)
+[done] libxaac 2 rows 128s
+[run ] lldpd (1 bugs)
+[done] lldpd 1 rows 119s
+[run ] lxc (1 bugs)
+[done] lxc 1 rows 4s
+[run ] mupdf (1 bugs)
+[done] mupdf 1 rows 30s
+[run ] ndpi (1 bugs)
+[done] ndpi 1 rows 14s
+[run ] net-snmp (2 bugs)
+[done] net-snmp 2 rows 66s
+[run ] openexr (1 bugs)
+[done] openexr 1 rows 73s
+[run ] openjpeg (1 bugs)
+[done] openjpeg 1 rows 4s
+[run ] opensc (3 bugs)
+[done] opensc 3 rows 104s
+[run ] pcre2 (4 bugs)
+[done] pcre2 4 rows 313s
+[run ] readstat (1 bugs)
+[done] readstat 1 rows 47s
+[run ] sleuthkit (2 bugs)
+[done] sleuthkit 2 rows 86s
+[run ] wasm3 (1 bugs)
+[done] wasm3 1 rows 13s
+
+================================================================
+NO-GUARD pipeline on ARVO scorable set
+  scorable bugs: 46   total candidates: 758
+  SYMBOLIC recall (no guard): 33/46 = 72%   [was 29/46=63% with guard]
+  -- neuro confirm (n=46, crash-hits=33) --
+  e2e recall  recall-first: 30/46 = 65%  [dropped 3]
+  e2e recall  aggressive  : 6/46 = 13%  [dropped 27]
+  FP-cut recall-first: 61/328 = 19%   aggressive: 318/328 = 97%
+summary -> noguard_summary.json

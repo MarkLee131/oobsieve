@@ -1,0 +1,19 @@
+[
+ {
+  "id": "65060",
+  "project": "libavc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "isvcd_start_of_pic",
+  "n_gt_cands": 15,
+  "n_gt_confirmed": 15,
+  "n_other_sampled": 10,
+  "n_other_confirmed": 10,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ }
+]

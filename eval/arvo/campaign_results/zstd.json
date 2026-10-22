@@ -1,0 +1,38 @@
+[
+ {
+  "id": "14368",
+  "project": "zstd",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "MEM_read32"
+ },
+ {
+  "id": "38553",
+  "project": "zstd",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "skipped-test",
+  "gt_func": null
+ },
+ {
+  "id": "17451",
+  "project": "zstd",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ZSTD_copy16"
+ },
+ {
+  "id": "16445",
+  "project": "zstd",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ZSTD_decodeLiteralsBlock"
+ }
+]

@@ -1,0 +1,20 @@
+[
+ {
+  "id": "22507",
+  "project": "mruby",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "oos",
+  "gt_func": "fmt_setup"
+ },
+ {
+  "id": "30886",
+  "project": "mruby",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "heredoc_remove_indent"
+ }
+]

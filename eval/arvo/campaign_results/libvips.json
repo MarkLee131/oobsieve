@@ -1,0 +1,29 @@
+[
+ {
+  "id": "17583",
+  "project": "libvips",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "exif_entry_get_value"
+ },
+ {
+  "id": "16566",
+  "project": "libvips",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "attach_xmp_blob"
+ },
+ {
+  "id": "52606",
+  "project": "libvips",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "vips_isprefix"
+ }
+]

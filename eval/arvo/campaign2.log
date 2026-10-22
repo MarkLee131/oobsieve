@@ -1,0 +1,202 @@
+[run ] ghostpdl (limit=10, timeout=900s)
+[done] ghostpdl 10 rows in 351s
+[run ] imagemagick (limit=10, timeout=900s)
+[done] imagemagick 10 rows in 216s
+[run ] libredwg (limit=10, timeout=900s)
+[time] libredwg exceeded 900s — keeping partial live results
+[fail] libredwg no usable results in 900s
+[run ] binutils-gdb (limit=10, timeout=900s)
+[done] binutils-gdb 10 rows in 876s
+[run ] ffmpeg (limit=10, timeout=900s)
+[done] ffmpeg 10 rows in 280s
+[run ] wireshark (limit=10, timeout=900s)
+[done] wireshark 9 rows in 525s
+[run ] hdf5 (limit=10, timeout=900s)
+[done] hdf5 9 rows in 176s
+[run ] openexr (limit=10, timeout=900s)
+[done] openexr 7 rows in 54s
+[run ] gpac (limit=10, timeout=900s)
+[done] gpac 6 rows in 42s
+[run ] PcapPlusPlus (limit=10, timeout=900s)
+[done] PcapPlusPlus 5 rows in 44s
+[run ] zstd (limit=10, timeout=900s)
+[done] zstd 4 rows in 11s
+[run ] radare2 (limit=10, timeout=900s)
+[done] radare2 4 rows in 127s
+[run ] matio (limit=10, timeout=900s)
+[done] matio 3 rows in 42s
+[run ] draco (limit=10, timeout=900s)
+[done] draco 3 rows in 27s
+[run ] php-src (limit=10, timeout=900s)
+[done] php-src 2 rows in 175s
+[run ] uWebSockets (limit=10, timeout=900s)
+[done] uWebSockets 2 rows in 7s
+[run ] wasm3 (limit=10, timeout=900s)
+[done] wasm3 2 rows in 12s
+[run ] tinygltf (limit=10, timeout=900s)
+[done] tinygltf 2 rows in 27s
+[run ] MapServer (limit=10, timeout=900s)
+[done] MapServer 1 rows in 45s
+[run ] httpd (limit=10, timeout=900s)
+[done] httpd 1 rows in 67s
+[run ] lua (limit=10, timeout=900s)
+[done] lua 1 rows in 8s
+[run ] c-ares (limit=10, timeout=900s)
+[done] c-ares 1 rows in 103s
+[run ] e2fsprogs (limit=10, timeout=900s)
+[done] e2fsprogs 1 rows in 35s
+[run ] glib (limit=10, timeout=900s)
+[done] glib 1 rows in 76s
+[run ] FreeRDP (limit=10, timeout=900s)
+[done] FreeRDP 1 rows in 10s
+[run ] libjpeg-turbo.dev (limit=10, timeout=900s)
+[done] libjpeg-turbo.dev 1 rows in 14s
+[run ] libmpeg2 (limit=10, timeout=900s)
+[done] libmpeg2 1 rows in 6s
+[run ] lxc (limit=10, timeout=900s)
+[done] lxc 1 rows in 61s
+[run ] libxslt (limit=10, timeout=900s)
+[done] libxslt 1 rows in 58s
+[run ] libcoap (limit=10, timeout=900s)
+[done] libcoap 1 rows in 40s
+[run ] ntpsec (limit=10, timeout=900s)
+[done] ntpsec 1 rows in 14s
+[run ] krb5 (limit=10, timeout=900s)
+[done] krb5 1 rows in 29s
+[run ] clamav-devel (limit=10, timeout=900s)
+[done] clamav-devel 1 rows in 88s
+[run ] elfutils (limit=10, timeout=900s)
+[done] elfutils 1 rows in 35s
+[run ] mdbtools (limit=10, timeout=900s)
+[done] mdbtools 1 rows in 12s
+[run ] capstonenext (limit=10, timeout=900s)
+[done] capstonenext 1 rows in 14s
+[run ] fmt (limit=10, timeout=900s)
+[done] fmt 1 rows in 8s
+[run ] faad2 (limit=10, timeout=900s)
+[done] faad2 1 rows in 8s
+[run ] aom (limit=10, timeout=900s)
+[done] aom 1 rows in 28s
+[run ] fio (limit=10, timeout=900s)
+[done] fio 1 rows in 17s
+[run ] h2o (limit=10, timeout=900s)
+[done] h2o 1 rows in 55s
+[run ] readstat (limit=10, timeout=900s)
+[done] readstat 1 rows in 16s
+[run ] unicorn (limit=10, timeout=900s)
+[done] unicorn 1 rows in 14s
+[run ] libical (limit=10, timeout=900s)
+[done] libical 1 rows in 16s
+[run ] md4c (limit=10, timeout=900s)
+[done] md4c 1 rows in 6s
+[run ] relic (limit=10, timeout=900s)
+[done] relic 1 rows in 11s
+[run ] lldpd (limit=10, timeout=900s)
+[done] lldpd 1 rows in 66s
+[run ] openjpeg (limit=10, timeout=900s)
+[done] openjpeg 1 rows in 16s
+[run ] mupdf (limit=10, timeout=900s)
+[done] mupdf 1 rows in 56s
+[run ] cyclonedds (limit=10, timeout=900s)
+[done] cyclonedds 1 rows in 30s
+[run ] wolfssl (limit=10, timeout=900s)
+[done] wolfssl 1 rows in 66s
+
+============================================================
+AGGREGATE across 88 projects, 321 bugs
+  build coverage : 129/321 (40%)
+  scorable       : 46
+  function recall : 29/46 (63%)
+  excluded oos   : 64   gt-not-in-file: 19
+
+project                hit/scorable   (oos/notin/buildfail)
+FreeRDP                  0/0         (oos=0, notin=0, bf=1)
+MapServer                0/0         (oos=0, notin=0, bf=1)
+PcapPlusPlus             0/0         (oos=0, notin=0, bf=5)
+aom                      0/0         (oos=0, notin=0, bf=1)
+binutils-gdb             0/0         (oos=0, notin=0, bf=10)
+c-ares                   0/0         (oos=1, notin=0, bf=0)
+c-blosc                  1/2         (oos=0, notin=0, bf=0)
+c-blosc2                 1/1         (oos=3, notin=0, bf=6)
+capstonenext             0/0         (oos=0, notin=0, bf=1)
+clamav-devel             0/1         (oos=0, notin=0, bf=0)
+curl                     0/1         (oos=0, notin=0, bf=4)
+cyclonedds               0/0         (oos=0, notin=0, bf=1)
+dav1d                    0/0         (oos=0, notin=0, bf=4)
+dnsmasq                  2/3         (oos=7, notin=0, bf=0)
+draco                    0/0         (oos=0, notin=0, bf=3)
+e2fsprogs                0/0         (oos=0, notin=0, bf=1)
+elfutils                 0/0         (oos=0, notin=0, bf=1)
+espeak-ng                0/0         (oos=2, notin=0, bf=2)
+faad2                    0/0         (oos=0, notin=0, bf=1)
+ffmpeg                   0/0         (oos=0, notin=1, bf=9)
+file                     0/0         (oos=1, notin=0, bf=1)
+fio                      0/0         (oos=0, notin=0, bf=1)
+fluent-bit               0/0         (oos=0, notin=0, bf=10)
+fmt                      0/0         (oos=0, notin=0, bf=1)
+freeradius-server        0/0         (oos=0, notin=0, bf=9)
+ghostpdl                 0/0         (oos=0, notin=0, bf=10)
+glib                     0/0         (oos=0, notin=0, bf=1)
+gpac                     0/0         (oos=0, notin=0, bf=6)
+gstreamer                0/0         (oos=0, notin=0, bf=3)
+h2o                      0/0         (oos=0, notin=0, bf=1)
+hdf5                     0/0         (oos=0, notin=0, bf=9)
+htslib                   1/3         (oos=0, notin=1, bf=1)
+httpd                    0/0         (oos=0, notin=0, bf=1)
+imagemagick              3/3         (oos=4, notin=1, bf=2)
+krb5                     0/0         (oos=0, notin=0, bf=1)
+lcms                     0/0         (oos=7, notin=0, bf=0)
+leptonica                0/0         (oos=0, notin=1, bf=2)
+libarchive               2/3         (oos=3, notin=0, bf=0)
+libavc                   1/1         (oos=8, notin=0, bf=1)
+libcoap                  0/0         (oos=1, notin=0, bf=0)
+libdwarf                 0/1         (oos=1, notin=2, bf=3)
+libexif                  0/0         (oos=0, notin=0, bf=5)
+libgit2                  0/0         (oos=0, notin=0, bf=4)
+libhevc                  2/2         (oos=0, notin=0, bf=0)
+libical                  0/0         (oos=0, notin=0, bf=1)
+libiec61850              0/0         (oos=0, notin=0, bf=2)
+libjpeg-turbo.dev        0/0         (oos=0, notin=1, bf=0)
+libmpeg2                 1/1         (oos=0, notin=0, bf=0)
+libpsl                   0/1         (oos=2, notin=0, bf=0)
+libspng                  2/2         (oos=0, notin=0, bf=0)
+libssh2                  0/0         (oos=0, notin=0, bf=2)
+libvips                  0/0         (oos=0, notin=0, bf=3)
+libxaac                  2/2         (oos=6, notin=0, bf=0)
+libxml2                  0/0         (oos=4, notin=3, bf=0)
+libxslt                  0/0         (oos=0, notin=0, bf=1)
+lldpd                    1/1         (oos=0, notin=0, bf=0)
+lua                      0/0         (oos=1, notin=0, bf=0)
+lxc                      0/1         (oos=0, notin=0, bf=0)
+matio                    0/0         (oos=0, notin=0, bf=3)
+md4c                     0/0         (oos=1, notin=0, bf=0)
+mdbtools                 0/0         (oos=1, notin=0, bf=0)
+mongoose                 0/0         (oos=1, notin=2, bf=0)
+mruby                    0/0         (oos=1, notin=0, bf=1)
+mupdf                    1/1         (oos=0, notin=0, bf=0)
+ndpi                     1/1         (oos=1, notin=0, bf=8)
+net-snmp                 1/2         (oos=0, notin=1, bf=6)
+ntpsec                   0/0         (oos=0, notin=0, bf=1)
+open62541                0/0         (oos=1, notin=0, bf=2)
+openexr                  0/1         (oos=0, notin=2, bf=4)
+openjpeg                 0/1         (oos=0, notin=0, bf=0)
+opensc                   2/3         (oos=1, notin=2, bf=4)
+openvswitch              0/0         (oos=0, notin=0, bf=4)
+pcre2                    4/4         (oos=0, notin=0, bf=2)
+php-src                  0/0         (oos=0, notin=0, bf=2)
+postgis                  0/0         (oos=0, notin=0, bf=2)
+radare2                  0/0         (oos=2, notin=1, bf=1)
+readstat                 0/1         (oos=0, notin=0, bf=0)
+relic                    0/0         (oos=1, notin=0, bf=0)
+sleuthkit                1/2         (oos=0, notin=0, bf=0)
+tinygltf                 0/0         (oos=0, notin=0, bf=2)
+uWebSockets              0/0         (oos=0, notin=0, bf=2)
+unicorn                  0/0         (oos=0, notin=0, bf=1)
+usrsctp                  0/0         (oos=0, notin=0, bf=2)
+wasm3                    0/1         (oos=1, notin=0, bf=0)
+wireshark                0/0         (oos=0, notin=0, bf=9)
+wolfssl                  0/0         (oos=0, notin=1, bf=0)
+yara                     0/0         (oos=2, notin=0, bf=0)
+zstd                     0/0         (oos=0, notin=0, bf=4)
+
+summary -> campaign_summary.json

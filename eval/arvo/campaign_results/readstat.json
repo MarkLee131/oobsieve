@@ -1,0 +1,11 @@
+[
+ {
+  "id": "33991",
+  "project": "readstat",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 10,
+  "recall": "miss",
+  "gt_func": "readstat_convert"
+ }
+]

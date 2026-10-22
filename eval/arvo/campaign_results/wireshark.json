@@ -1,0 +1,83 @@
+[
+ {
+  "id": "62370",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ws_manuf_lookup_str"
+ },
+ {
+  "id": "28191",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ieeeNUMBER_fragment_hash"
+ },
+ {
+  "id": "64107",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "dissect_rf4ce_nwk_common"
+ },
+ {
+  "id": "7166",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "inflate"
+ },
+ {
+  "id": "3408",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "zbee_sec_add_key_to_keyring"
+ },
+ {
+  "id": "50477",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "get_transaction"
+ },
+ {
+  "id": "8189",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "Dot11DecryptScanForKeys"
+ },
+ {
+  "id": "5910",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "decode_udvm_multitype_operand"
+ },
+ {
+  "id": "54972",
+  "project": "wireshark",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "dissect_alp"
+ }
+]

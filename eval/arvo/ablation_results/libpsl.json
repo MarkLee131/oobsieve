@@ -1,0 +1,41 @@
+[
+ {
+  "id": "39226",
+  "project": "libpsl",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "domain_to_punycode",
+  "abl": [
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   }
+  ]
+ }
+]

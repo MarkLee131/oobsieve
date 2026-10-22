@@ -1,0 +1,41 @@
+[
+ {
+  "id": "52006",
+  "project": "lldpd",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 7,
+  "recall": "hit",
+  "gt_func": "cdp_decode",
+  "abl": [
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 25,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   }
+  ]
+ }
+]

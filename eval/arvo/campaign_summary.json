@@ -1,0 +1,321 @@
+{
+ "projects": 88,
+ "bugs": 321,
+ "build_ok": 129,
+ "scorable": 46,
+ "hit": 29,
+ "recall_pct": 63.0,
+ "oos": 64,
+ "gt_not_in_file": 19,
+ "per_project": {
+  "FreeRDP": {
+   "build-fail": 1
+  },
+  "MapServer": {
+   "build-fail": 1
+  },
+  "PcapPlusPlus": {
+   "build-fail": 5
+  },
+  "aom": {
+   "build-fail": 1
+  },
+  "binutils-gdb": {
+   "build-fail": 10
+  },
+  "c-ares": {
+   "oos": 1
+  },
+  "c-blosc": {
+   "miss": 1,
+   "hit": 1
+  },
+  "c-blosc2": {
+   "build-fail": 6,
+   "hit": 1,
+   "oos": 3
+  },
+  "capstonenext": {
+   "build-fail": 1
+  },
+  "clamav-devel": {
+   "miss": 1
+  },
+  "curl": {
+   "miss": 1,
+   "build-fail": 4
+  },
+  "cyclonedds": {
+   "build-fail": 1
+  },
+  "dav1d": {
+   "build-fail": 4
+  },
+  "dnsmasq": {
+   "oos": 7,
+   "hit": 2,
+   "miss": 1
+  },
+  "draco": {
+   "build-fail": 3
+  },
+  "e2fsprogs": {
+   "build-fail": 1
+  },
+  "elfutils": {
+   "build-fail": 1
+  },
+  "espeak-ng": {
+   "oos": 2,
+   "build-fail": 2
+  },
+  "faad2": {
+   "build-fail": 1
+  },
+  "ffmpeg": {
+   "build-fail": 9,
+   "gt-not-in-file": 1
+  },
+  "file": {
+   "oos": 1,
+   "build-fail": 1
+  },
+  "fio": {
+   "build-fail": 1
+  },
+  "fluent-bit": {
+   "build-fail": 10
+  },
+  "fmt": {
+   "build-fail": 1
+  },
+  "freeradius-server": {
+   "build-fail": 9
+  },
+  "ghostpdl": {
+   "build-fail": 10
+  },
+  "glib": {
+   "build-fail": 1
+  },
+  "gpac": {
+   "build-fail": 6
+  },
+  "gstreamer": {
+   "build-fail": 3
+  },
+  "h2o": {
+   "build-fail": 1
+  },
+  "hdf5": {
+   "build-fail": 9
+  },
+  "htslib": {
+   "miss": 2,
+   "gt-not-in-file": 1,
+   "hit": 1,
+   "build-fail": 1
+  },
+  "httpd": {
+   "build-fail": 1
+  },
+  "imagemagick": {
+   "oos": 4,
+   "gt-not-in-file": 1,
+   "hit": 3,
+   "build-fail": 2
+  },
+  "krb5": {
+   "build-fail": 1
+  },
+  "lcms": {
+   "oos": 7
+  },
+  "leptonica": {
+   "build-fail": 2,
+   "gt-not-in-file": 1
+  },
+  "libarchive": {
+   "miss": 1,
+   "hit": 2,
+   "oos": 3
+  },
+  "libavc": {
+   "oos": 8,
+   "build-fail": 1,
+   "hit": 1
+  },
+  "libcoap": {
+   "oos": 1
+  },
+  "libdwarf": {
+   "gt-not-in-file": 2,
+   "build-fail": 3,
+   "oos": 1,
+   "miss": 1
+  },
+  "libexif": {
+   "build-fail": 5
+  },
+  "libgit2": {
+   "build-fail": 4
+  },
+  "libhevc": {
+   "hit": 2
+  },
+  "libical": {
+   "build-fail": 1
+  },
+  "libiec61850": {
+   "build-fail": 2
+  },
+  "libjpeg-turbo.dev": {
+   "gt-not-in-file": 1
+  },
+  "libmpeg2": {
+   "hit": 1
+  },
+  "libpsl": {
+   "oos": 2,
+   "miss": 1
+  },
+  "libspng": {
+   "hit": 2
+  },
+  "libssh2": {
+   "build-fail": 2
+  },
+  "libvips": {
+   "build-fail": 3
+  },
+  "libxaac": {
+   "hit": 2,
+   "oos": 6
+  },
+  "libxml2": {
+   "oos": 4,
+   "gt-not-in-file": 3
+  },
+  "libxslt": {
+   "build-fail": 1
+  },
+  "lldpd": {
+   "hit": 1
+  },
+  "lua": {
+   "oos": 1
+  },
+  "lxc": {
+   "miss": 1
+  },
+  "matio": {
+   "build-fail": 3
+  },
+  "md4c": {
+   "oos": 1
+  },
+  "mdbtools": {
+   "oos": 1
+  },
+  "mongoose": {
+   "gt-not-in-file": 2,
+   "oos": 1
+  },
+  "mruby": {
+   "oos": 1,
+   "build-fail": 1
+  },
+  "mupdf": {
+   "hit": 1
+  },
+  "ndpi": {
+   "hit": 1,
+   "oos": 1,
+   "build-fail": 8
+  },
+  "net-snmp": {
+   "hit": 1,
+   "gt-not-in-file": 1,
+   "build-fail": 6,
+   "miss": 1
+  },
+  "ntpsec": {
+   "build-fail": 1
+  },
+  "open62541": {
+   "oos": 1,
+   "build-fail": 2
+  },
+  "openexr": {
+   "gt-not-in-file": 2,
+   "miss": 1,
+   "build-fail": 4
+  },
+  "openjpeg": {
+   "miss": 1
+  },
+  "opensc": {
+   "hit": 2,
+   "build-fail": 4,
+   "gt-not-in-file": 2,
+   "miss": 1,
+   "oos": 1
+  },
+  "openvswitch": {
+   "build-fail": 4
+  },
+  "pcre2": {
+   "hit": 4,
+   "build-fail": 2
+  },
+  "php-src": {
+   "build-fail": 2
+  },
+  "postgis": {
+   "build-fail": 2
+  },
+  "radare2": {
+   "gt-not-in-file": 1,
+   "oos": 2,
+   "build-fail": 1
+  },
+  "readstat": {
+   "miss": 1
+  },
+  "relic": {
+   "oos": 1
+  },
+  "sleuthkit": {
+   "miss": 1,
+   "hit": 1
+  },
+  "tinygltf": {
+   "build-fail": 2
+  },
+  "uWebSockets": {
+   "build-fail": 2
+  },
+  "unicorn": {
+   "build-fail": 1
+  },
+  "usrsctp": {
+   "build-fail": 2
+  },
+  "wasm3": {
+   "oos": 1,
+   "miss": 1
+  },
+  "wireshark": {
+   "build-fail": 9
+  },
+  "wolfssl": {
+   "gt-not-in-file": 1
+  },
+  "yara": {
+   "oos": 2
+  },
+  "zstd": {
+   "build-fail": 4
+  }
+ }
+}

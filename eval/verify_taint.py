@@ -19,22 +19,38 @@ import re
 import subprocess
 import sys
 
-FIX_RE = re.compile(r"protect|bound|overflow|out-of-bound|out of bound|oob|sanity|"
-                    r"check|OOB|validate|integer|underflow|clamp|limit", re.I)
+# STRONG signal: the commit subject names an actual memory-safety defect. These are
+# the words maintainers use when fixing a real OOB, not when refactoring guards.
+STRONG_RE = re.compile(
+    r"overflow|underflow|out-of-bound|out of bound|\boob\b|CVE-\d|"
+    r"read past|write past|over-?read|over-?write|heap|buffer overrun|"
+    r"invalid read|invalid write|use.after.free|\bASAN\b", re.I)
+# WEAK signal: generic hardening words that ALSO match macro churn / refactors
+# (e.g. tcpdump's ND_TTEST->ND_TCHECK sweep). Reported, but not counted as real.
+WEAK_RE = re.compile(r"protect|bound|sanity|check|validate|clamp|limit|truncat", re.I)
 
 
-def func_history(repo: str, func: str, rel: str) -> list[str]:
-    try:
-        out = subprocess.check_output(
-            ["git", "-C", repo, "log", "-L", f":{func}:{rel}", "--oneline"],
-            text=True, stderr=subprocess.DEVNULL, errors="ignore")
-    except subprocess.CalledProcessError:
-        return []
-    # commit lines look like "<sha> <subject>"; keep the ones that mention a fix
+def func_history(repo: str, func: str, rel: str, ref: str = "master",
+                 weak: bool = False) -> list[str]:
+    # trace from a LATER ref (master) so `git log -L` sees fixes that landed AFTER the
+    # analysed version; falls back to main / HEAD.
+    out = ""
+    for r in (ref, "main", "HEAD"):
+        try:
+            out = subprocess.check_output(
+                ["git", "-C", repo, "log", "-L", f":{func}:{rel}", "--oneline", r],
+                text=True, stderr=subprocess.DEVNULL, errors="ignore")
+            if out.strip():
+                break
+        except subprocess.CalledProcessError:
+            continue
+    # commit lines look like "<sha> <subject>"; keep only STRONG memory-safety fixes
+    # (default). weak=True additionally accepts generic-hardening subjects.
+    pat = WEAK_RE if weak else STRONG_RE
     commits = []
     for line in out.splitlines():
         m = re.match(r"^([0-9a-f]{7,}) (.+)$", line)
-        if m and FIX_RE.search(m.group(2)):
+        if m and pat.search(m.group(2)):
             commits.append(f"{m.group(1)} {m.group(2)}")
     return commits
 

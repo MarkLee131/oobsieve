@@ -1,0 +1,92 @@
+[
+ {
+  "id": "20840",
+  "project": "binutils-gdb",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "bfd_getl16"
+ },
+ {
+  "id": "19647",
+  "project": "binutils-gdb",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "bfd_getl16"
+ },
+ {
+  "id": "41337",
+  "project": "binutils-gdb",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fetch_data"
+ },
+ {
+  "id": "61011",
+  "project": "binutils-gdb",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "xstrdup"
+ },
+ {
+  "id": "53740",
+  "project": "binutils-gdb",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "bfd_pef_parse_traceback_table"
+ },
+ {
+  "id": "40620",
+  "project": "binutils-gdb",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fetch_data"
+ },
+ {
+  "id": "24638",
+  "project": "binutils-gdb",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "bfd_getl32"
+ },
+ {
+  "id": "62752",
+  "project": "binutils-gdb",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "bfd_getl16"
+ },
+ {
+  "id": "19650",
+  "project": "binutils-gdb",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "add_symbol"
+ },
+ {
+  "id": "47101",
+  "project": "binutils-gdb",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "dwarf2_directive_filename"
+ }
+]

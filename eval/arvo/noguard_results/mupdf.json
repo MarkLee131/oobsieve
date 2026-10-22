@@ -1,0 +1,19 @@
+[
+ {
+  "id": "9325",
+  "project": "mupdf",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "next_null",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ }
+]

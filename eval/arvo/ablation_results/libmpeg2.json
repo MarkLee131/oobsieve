@@ -1,0 +1,41 @@
+[
+ {
+  "id": "16604",
+  "project": "libmpeg2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+  "abl": [
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   }
+  ]
+ }
+]

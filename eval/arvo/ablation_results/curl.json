@@ -1,0 +1,41 @@
+[
+ {
+  "id": "62175",
+  "project": "curl",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "miss",
+  "gt_func": "canon_query",
+  "abl": [
+   {
+    "count": 0,
+    "gt_hit": false
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   }
+  ]
+ }
+]

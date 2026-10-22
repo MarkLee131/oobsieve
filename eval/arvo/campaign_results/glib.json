@@ -1,0 +1,11 @@
+[
+ {
+  "id": "23816",
+  "project": "glib",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "g_string_insert_len"
+ }
+]

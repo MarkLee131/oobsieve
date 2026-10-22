@@ -1,0 +1,92 @@
+[
+ {
+  "id": "7301",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 54,
+  "recall": "oos",
+  "gt_func": "TracePoint"
+ },
+ {
+  "id": "21961",
+  "project": "imagemagick",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "gt-not-in-file",
+  "gt_func": "PushLongPixel"
+ },
+ {
+  "id": "8383",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "oos",
+  "gt_func": "TracePoint"
+ },
+ {
+  "id": "18696",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "TraceStrokePolygon"
+ },
+ {
+  "id": "29620",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 58,
+  "recall": "oos",
+  "gt_func": "TracePoint"
+ },
+ {
+  "id": "45640",
+  "project": "imagemagick",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ReadDCMImage"
+ },
+ {
+  "id": "27889",
+  "project": "imagemagick",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "decompress_smooth_data"
+ },
+ {
+  "id": "10115",
+  "project": "imagemagick",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "DrawDashPolygon"
+ },
+ {
+  "id": "20096",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "TraceStrokePolygon"
+ },
+ {
+  "id": "7972",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 54,
+  "recall": "oos",
+  "gt_func": "ConvertPrimitiveToPath"
+ }
+]

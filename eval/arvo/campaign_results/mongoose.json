@@ -1,0 +1,29 @@
+[
+ {
+  "id": "53029",
+  "project": "mongoose",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 19,
+  "recall": "gt-not-in-file",
+  "gt_func": "rx_ip"
+ },
+ {
+  "id": "51757",
+  "project": "mongoose",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 20,
+  "recall": "gt-not-in-file",
+  "gt_func": "rx_icmp"
+ },
+ {
+  "id": "53038",
+  "project": "mongoose",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 19,
+  "recall": "oos",
+  "gt_func": "mg_mqtt_parse"
+ }
+]

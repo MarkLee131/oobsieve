@@ -1,0 +1,36 @@
+[
+ {
+  "id": "23794",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "miss",
+  "gt_func": "blosclz_compress",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss"
+ },
+ {
+  "id": "38313",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "hit",
+  "gt_func": "blosclz_compress",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped"
+ }
+]

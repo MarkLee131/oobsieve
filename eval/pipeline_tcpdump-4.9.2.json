@@ -1,0 +1,58 @@
+[
+ {
+  "func": "parse_elements",
+  "sink": "memcpy",
+  "line": 1176,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 3",
+  "file": "print-802_11.c",
+  "reasoning": "The `memcpy` at line 1176 uses `tim.length - 3` as the size. `tim.length` is derived from input and, despite a check `if (tim.length - 3 > (int)sizeof tim.bitmap) return 0;`, if `tim.length` is a large positive value (e.g., max int), `tim.length - 3` could still be a very large number that exceeds the actual buffer capacity if `sizeof tim.bitmap` is small. The check prevents `tim.length - 3` from being greater than `sizeof tim.bitmap`, but it doesn't prevent `tim.length - 3` from being a negative value which could become a large positive unsigned value for `memcpy` size argument, or an unusually large positive value. However, assuming `tim.length` is a positive integer length, the `if (tim.length - 3 > (int)sizeof tim.bitmap)` check *should* prevent an overflow if `tim.length` is a 'sane' positive integer. The issue arises if `tim.length` itself is large but `tim.length - 3` is not negative and less than or equal to `sizeof tim.bitmap` which means `tim.length` can be `sizeof tim.bitmap + 3`. The `memcpy` destination `tim.bitmap` has a fixed size. The source pointer `p + offset` is tainted, and `offset` is incremented by `tim.length` which is input controlled. The buffer `p` is likely the overall input buffer. The size `tim.length - 3` is controlled by input. If `tim.length` is crafted such that `tim.length - 3` is still within the bounds of `tim.bitmap` but `p + offset` is past the end of the `p` buffer, it would be an out-of-bounds read. Since the check `if (tim.length - 3 > (int)sizeof tim.bitmap) return 0;` ensures the copy size fits into `tim.bitmap`, the risk is on the *source* side (`p + offset`). There's no check that `p + offset + (tim.length - 3)` doesn't exceed the bounds of the original buffer `p` (or whatever `p` points to and its allocated size). Given `offset` and `length` are tracking available data, `length` is decremented earlier by `tim.length` which is also input controlled. The critical check missing is whether `tim.length - 3` (the `memcpy` size) would cause a read past the end of the `p` buffer from the `p + offset` position.",
+  "later_fix": [
+   "91b0ee0a IEEE 802.11: Replace some ND_TTEST_*() calls with ND_TCHECK_*() calls",
+   "84ef17ac Replace ND_TTEST2()/ND_TCHECK2() macros by macros using pointers (1/n)"
+  ],
+  "verified": true
+ },
+ {
+  "func": "icmp6_opt_print",
+  "sink": "memcpy",
+  "line": 1353,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 8",
+  "file": "print-icmp6.c",
+  "reasoning": "The memcpy at line 1353 uses `opri + 1` as the source, where `opri` is a pointer to `nd_opt_route_info`. The size is `sizeof(in6)` (16 bytes). The `opri` struct itself has a fixed size. The `opri + 1` effectively means 'the memory immediately following the `opri` struct'. The `nd_opt_len` field, which is input-derived, determines the size of the data to be copied in this and previous cases. If `op->nd_opt_len` is 3, it attempts to copy 16 bytes. If the actual `nd_opt_len` in the network packet indicates that only 8 bytes are available after `opri` (e.g., if `nd_opt_len` was 2, which copies 8 bytes), then copying 16 bytes would result in an out-of-bounds read from the network packet buffer. The `ND_TCHECK(*in6p)` only checks if the first 16 bytes are present, but doesn't prevent `memcpy` from reading past the end of the packet if `op->nd_opt_len` indicates a shorter available length.",
+  "later_fix": [
+   "d3d2f394 \"icmp6_rrenum_print()\" doesn't use its \"icmp6len\" argument (and, as that just reflects the payload length, the snapshot length has been trimmed to correspond to it, so it doesn't need to check it merely to avoid running past the end of the IPv6 payload); get rid of it.",
+   "3c252e8b Fix up some errors from the previous checkin."
+  ],
+  "verified": true
+ },
+ {
+  "func": "ip_finddst",
+  "sink": "memcpy",
+  "line": 128,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 4",
+  "file": "print-ip.c",
+  "reasoning": "The 'len' variable, derived from cp[1], is an input-derived value. It determines the size of the memcpy. While there's a check `if (len < 2) break;` and `if (len < 7) break;` for SSRR/LSRR, there's no upper bound check on 'len' to ensure that `cp + len - 4` does not exceed the bounds of the original `ip` packet data or the `cp` buffer, which is also an input-controlled offset. If `len` is large enough, `cp + len - 4` could read out of bounds. The `ND_TCHECK2(*cp, len)` only checks if `len` bytes starting from `cp` are within the packet, but doesn't guarantee that `cp + len - 4` for the memcpy is within the valid range of `cp` (the beginning of the option) plus the actual option length, especially if `len` itself is malformed to point outside the option's intended end.",
+  "later_fix": [
+   "abc8c2d6 Remove many (762) now redundant ND_TCHECK_n() calls",
+   "84ef17ac Replace ND_TTEST2()/ND_TCHECK2() macros by macros using pointers (1/n)"
+  ],
+  "verified": true
+ },
+ {
+  "func": "ip_finddst",
+  "sink": "memcpy",
+  "line": 133,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 4",
+  "file": "print-ip.c",
+  "reasoning": "The 'len' variable, derived from `cp[1]`, is read from the input and used to calculate the source pointer for `UNALIGNED_MEMCPY(&retval, cp + len - 4, 4);`. The check `if (len < 2)` is insufficient. If `len` is a large value read from the input, `cp + len - 4` could point far beyond the `ip` packet's boundaries, leading to an out-of-bounds read. Although there is an overall `length` check, `len` is not capped by `length`, allowing `cp + len - 4` to exceed the remaining `length` and potentially read from memory outside the packet.",
+  "later_fix": [
+   "abc8c2d6 Remove many (762) now redundant ND_TCHECK_n() calls",
+   "84ef17ac Replace ND_TTEST2()/ND_TCHECK2() macros by macros using pointers (1/n)"
+  ],
+  "verified": true
+ }
+]

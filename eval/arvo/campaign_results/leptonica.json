@@ -1,0 +1,29 @@
+[
+ {
+  "id": "23654",
+  "project": "leptonica",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "pixReadFromTiffStream"
+ },
+ {
+  "id": "22295",
+  "project": "leptonica",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 7,
+  "recall": "gt-not-in-file",
+  "gt_func": "pixGetRGBComponentCmap"
+ },
+ {
+  "id": "21435",
+  "project": "leptonica",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "pixReadFromTiffStream"
+ }
+]

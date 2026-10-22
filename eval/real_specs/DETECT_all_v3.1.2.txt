@@ -85,4 +85,4 @@ Both source and destination buffers are vulnerable to out-of-bounds memory acces
     The `length` argument, which is presumed to be input-derived (common for data parsing routines), is used as the size argument for the `memcpy` operation. While `length` is correctly bounds-checked against the source buffer (`rar->lzss.window` through the `if(windowoffs + length <= lzss_size(&rar->lzss))` check), it is *not* checked against the destination buffer (`rar->unp_buffer`). There is no check to ensure that `rar->unp_offset + length` does not exceed the allocated size of `rar->unp_buffer` (which is `rar->unp_buffer_size`) before the `memcpy` occurs. This missing bounds check on the destination buffer could lead to a heap buffer overflow (out-of-bounds write) if `rar->unp_offset + length` is greater than `rar->unp_buffer_size`.
 
 ## summary: 11 candidate real bugs out of 90 sites checked
-findings -> /home/likaixuan/static_analysis/linux-spec-sast/patchintent/eval/detect_real_findings.json
+findings -> /home/likaixuan/static_analysis/linux-spec-sast/oobsieve/eval/detect_real_findings.json

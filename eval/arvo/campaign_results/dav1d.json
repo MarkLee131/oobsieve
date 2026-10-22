@@ -1,0 +1,38 @@
+[
+ {
+  "id": "38369",
+  "project": "dav1d",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "backup_lpf"
+ },
+ {
+  "id": "38152",
+  "project": "dav1d",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "backup_lpf"
+ },
+ {
+  "id": "40661",
+  "project": "dav1d",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "dav1d_cdef_brow_8bpc"
+ },
+ {
+  "id": "38439",
+  "project": "dav1d",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "padding"
+ }
+]

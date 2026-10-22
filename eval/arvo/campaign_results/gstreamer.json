@@ -1,0 +1,29 @@
+[
+ {
+  "id": "52634",
+  "project": "gstreamer",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "parse_subrip"
+ },
+ {
+  "id": "53210",
+  "project": "gstreamer",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "parse_subrip"
+ },
+ {
+  "id": "8159",
+  "project": "gstreamer",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "tap_type_find"
+ }
+]

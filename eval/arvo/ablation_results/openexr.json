@@ -1,0 +1,41 @@
+[
+ {
+  "id": "47503",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "miss",
+  "gt_func": "uncompress_b44_impl",
+  "abl": [
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": false
+   },
+   {
+    "count": 6,
+    "gt_hit": false
+   },
+   {
+    "count": 6,
+    "gt_hit": false
+   },
+   {
+    "count": 6,
+    "gt_hit": false
+   }
+  ]
+ }
+]

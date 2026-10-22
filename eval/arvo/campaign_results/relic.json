@@ -1,0 +1,11 @@
+[
+ {
+  "id": "53885",
+  "project": "relic",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "oos",
+  "gt_func": "dv_rshd"
+ }
+]

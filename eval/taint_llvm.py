@@ -34,6 +34,15 @@ VALRE = re.compile(r"%[\w.]+")
 INPUT_FNS = ("__archive_read_ahead", "__archive_read_consume", "fread", "read",
              "archive_le16dec", "archive_le32dec", "archive_le64dec", "getc",
              "archive_be16dec", "archive_be32dec", "archive_be64dec")
+# General input model: any call whose callee name reads/decodes/unpacks untrusted bytes is a
+# taint source. Beyond its return value we taint its ARGUMENT pointers too, because such
+# functions commonly fill an OUTPUT buffer passed by address (e.g. read_file(a, &buf, &len)),
+# and the attacker data then flows out of `buf`, not the return value. Keyword-scoped so it
+# stays a dataflow source (functions that call a reader), not a "taint everything" switch.
+INPUT_RE = re.compile(
+    r"@[\w.]*?(?:read|recv|fread|decode|inflate|uncompress|unpack|deserial|unmarshal|"
+    r"get_?byte|get_?bit|get_?data|next_?byte|next_?bit|readbuf|slurp|deflate|scan_?bytes)"
+    r"[\w.]*?\s*\(", re.I)
 SINK_RE = re.compile(r"@(llvm\.(memcpy|memmove|memset)[\w.]*)")
 
 
@@ -135,11 +144,15 @@ def parse_ll(text: str):
 
 def taint_function(f: Func) -> set[str]:
     tainted = set(f.args)
-    # seed: return of input-reading calls
+    # seed: input-reading calls -- both the return value and the argument pointers (an
+    # output buffer the callee fills; later loads from it must be tainted).
     for ins in f.insns:
-        if ins["result"] and "call" in ins["opcode"] and any(
-                fn in ins["raw"] for fn in INPUT_FNS):
-            tainted.add(ins["result"])
+        if "call" not in ins["opcode"]:
+            continue
+        if any(fn in ins["raw"] for fn in INPUT_FNS) or INPUT_RE.search(ins["raw"]):
+            if ins["result"]:
+                tainted.add(ins["result"])
+            tainted.update(ins["ops"])
     # forward fixpoint over def-use
     changed = True
     while changed:
@@ -350,8 +363,19 @@ def _root_ptr(v: str, insmap: dict) -> str:
     return v
 
 
+# The path-sensitive guard relatedness (sink_is_guarded) is a HEURISTIC, not an SMT proof;
+# the full-ARVO ablation showed it over-suppresses ~7 real bugs. Setting GUARD_DEFAULT=False
+# drops it from the default pipeline so the symbolic layer stays high-recall (SMT-only guard
+# sufficiency) and lets the LLM handle the guard-idiom precision. Ablation configs pass an
+# explicit "guard" key and are unaffected.
+GUARD_DEFAULT = True
+
+
 def find_candidates(f: Func, tainted: set[str], bounded: set[str],
-                    dbg: dict) -> list[dict]:
+                    dbg: dict, abl: dict | None = None) -> list[dict]:
+    # abl gates individual modeling layers for the ablation study; default = all ON except
+    # the guard, whose default follows GUARD_DEFAULT.
+    abl = abl or {}
     dom = dominators(f)
     insmap = _insmap(f)
     sig_memo: dict = {}
@@ -378,13 +402,14 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # intra-array element move: `arr[i] = arr[j]` (memcpy of one element between
         # two slots of the SAME array, constant size) is an in-array shuffle, not an
         # overflow. Different bases (rar:2802 dst=unp_buffer, src=lzss.window) are kept.
-        if not size_v and dst_v and src_v and \
+        if abl.get("intra", True) and not size_v and dst_v and src_v and \
                 value_sig(_root_ptr(dst_v[0], insmap), insmap, sig_memo) == \
                 value_sig(_root_ptr(src_v[0], insmap), insmap, sig_memo):
             continue
         # malloc-to-fit (field-sensitive): the destination was allocated with the same
         # size expression (matched by value signature, through struct-field loads).
-        if size_v and any(value_sig(v, insmap, sig_memo) in alloc_sigs for v in size_v):
+        if abl.get("field", True) and size_v and \
+                any(value_sig(v, insmap, sig_memo) in alloc_sigs for v in size_v):
             continue
 
         why = []
@@ -408,13 +433,13 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # relatedness catches source-side guards (e.g. LZSS `windowoffs+length <=
         # src_size`) that do NOT protect a dest write, wrongly clearing real OOB-write
         # bugs (rar:2802). Sufficiency of a guard needs SMT, handled separately.
-        if sink_is_guarded(f, ins, rel_vars, insmap, dom, sig_memo):
+        if abl.get("guard", GUARD_DEFAULT) and sink_is_guarded(f, ins, rel_vars, insmap, dom, sig_memo):
             continue
         # ON-DEMAND SMT: if the dominating path condition provably bounds a VARIABLE
         # size to a small value (e.g. a compound `x>0 && x<=4 && ...`), the whole copy
         # is bounded -> not an attacker overflow. (Constant-size sinks have size_v==[]
         # so this never touches pointer-offset bugs like rar:1304.)
-        if size_tainted and smt_path.size_provably_bounded(
+        if abl.get("smt_size", True) and size_tainted and smt_path.size_provably_bounded(
                 f, insmap, dom, ins, size_v, value_sig, sig_memo, backward_slice):
             continue
         # ON-DEMAND SMT BOUNDS-SUFFICIENCY: prove dst_offset+size <= dst_capacity under
@@ -423,7 +448,7 @@ def find_candidates(f: Func, tainted: set[str], bounded: set[str],
         # (rar:2802) are kept.
         dst_tok = dst_v[0] if dst_v else None
         size_tok = size_v[0] if size_v else args[2].strip().split()[-1]
-        if dst_tok and smt_path.dest_provably_in_bounds(
+        if abl.get("smt_cap", True) and dst_tok and smt_path.dest_provably_in_bounds(
                 f, insmap, dom, ins, dst_tok, size_tok, value_sig, sig_memo, backward_slice):
             continue
         out.append({
@@ -456,6 +481,29 @@ def analyze(c_file: str, cflags: list[str], clang: str, ll_out: str) -> list[dic
     return uniq
 
 
+def analyze_ll_text(text: str, file_label: str = "?", abl: dict | None = None) -> list[dict]:
+    """Run the candidate finder on pre-produced LLVM IR text (already -O0 + mem2reg).
+    Used by the ARVO Docker route, which compiles the crash TU inside the reproduction
+    image (all headers/generated files present) instead of on the host.
+    `abl` gates modeling layers for the ablation study (default = all ON); the sanitizer
+    layer is gated here by suppressing the bounded-value set."""
+    abl = abl or {}
+    funcs, dbg = parse_ll(text)
+    findings = []
+    for f in funcs:
+        t = taint_function(f)
+        b = bounded_values(f) if abl.get("sanitizer", True) else set()
+        for c in find_candidates(f, t, b, dbg, abl):
+            c["file"] = file_label
+            findings.append(c)
+    seen, uniq = set(), []
+    for c in findings:
+        k = (c["file"], c["line"], c["tainted_operand"])
+        if k not in seen:
+            seen.add(k); uniq.append(c)
+    return uniq
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("src_dir")
@@ -478,8 +526,8 @@ def main(argv=None):
     client = _parse = None
     if args.confirm:
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from patchintent.llm.gemini_client import GeminiClient
-        from patchintent.agent import _parse_json as _parse
+        from oobsieve.llm.gemini_client import GeminiClient
+        from oobsieve.agent import _parse_json as _parse
         client = GeminiClient(model=args.model)
 
     confirmed = []

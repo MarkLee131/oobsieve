@@ -24,4 +24,4 @@
 [CAND] archive_read_support_format_rar.c:2818 copy_from_lzss_window  memcpy (tainted=size+src-ptr+dst-ptr, size=i64 %90)
 [CAND] archive_read_support_format_zip.c:622 zip_read_mac_metadata  memcpy (tainted=src-ptr, size=i64 %93)
 
-## 23 candidate findings -> /home/likaixuan/static_analysis/linux-spec-sast/patchintent/eval/taint_findings.json
+## 23 candidate findings -> /home/likaixuan/static_analysis/linux-spec-sast/oobsieve/eval/taint_findings.json

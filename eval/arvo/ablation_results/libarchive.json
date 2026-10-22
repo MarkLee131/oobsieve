@@ -1,0 +1,119 @@
+[
+ {
+  "id": "14331",
+  "project": "libarchive",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "miss",
+  "gt_func": "parse_file_extra_owner",
+  "abl": [
+   {
+    "count": 11,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": false
+   },
+   {
+    "count": 7,
+    "gt_hit": false
+   },
+   {
+    "count": 7,
+    "gt_hit": false
+   },
+   {
+    "count": 5,
+    "gt_hit": false
+   },
+   {
+    "count": 5,
+    "gt_hit": false
+   },
+   {
+    "count": 5,
+    "gt_hit": false
+   }
+  ]
+ },
+ {
+  "id": "14574",
+  "project": "libarchive",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "circular_memcpy",
+  "abl": [
+   {
+    "count": 11,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "13435",
+  "project": "libarchive",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "circular_memcpy",
+  "abl": [
+   {
+    "count": 11,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   }
+  ]
+ }
+]

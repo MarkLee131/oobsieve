@@ -1,0 +1,11 @@
+{
+ "n": 46,
+ "hits": 29,
+ "e2e_recall_first": 28,
+ "e2e_aggressive": 4,
+ "dropped_rf": 1,
+ "dropped_ag": 25,
+ "oth": 298,
+ "oth_kept_rf": 271,
+ "oth_kept_ag": 12
+}

@@ -1,0 +1,36 @@
+[
+ {
+  "id": "14481",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 7,
+  "recall": "hit",
+  "gt_func": "agentx_parse_string",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 6,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 2,
+  "e2e": "hit",
+  "e2e_aggr": "hit"
+ },
+ {
+  "id": "37564",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "snmp_add_var",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss"
+ }
+]

@@ -1,0 +1,19 @@
+[
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "search_valid_dns",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 0,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ }
+]

@@ -1,0 +1,77 @@
+[
+ {
+  "id": "1434",
+  "project": "ffmpeg",
+  "build_ok": false,
+  "recall": "clone-failed"
+ },
+ {
+  "id": "26209",
+  "project": "ffmpeg",
+  "build_ok": false,
+  "recall": "clone-failed"
+ },
+ {
+  "id": "47877",
+  "project": "ffmpeg",
+  "build_ok": false,
+  "recall": "clone-failed"
+ },
+ {
+  "id": "58185",
+  "project": "ffmpeg",
+  "build_ok": false,
+  "recall": "clone-failed"
+ },
+ {
+  "id": "48638",
+  "project": "ffmpeg",
+  "build_ok": false,
+  "recall": "clone-failed"
+ },
+ {
+  "id": "38855",
+  "project": "ffmpeg",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 17,
+  "recall": "gt-not-in-file",
+  "gt_func": "decode_vector"
+ },
+ {
+  "id": "26821",
+  "project": "ffmpeg",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "adpcm_swf_decode"
+ },
+ {
+  "id": "33402",
+  "project": "ffmpeg",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ff_jpegls_decode_picture"
+ },
+ {
+  "id": "36340",
+  "project": "ffmpeg",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "get_bits"
+ },
+ {
+  "id": "48799",
+  "project": "ffmpeg",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "lag_decode_arith_plane"
+ }
+]

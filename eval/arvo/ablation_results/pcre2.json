@@ -1,0 +1,158 @@
+[
+ {
+  "id": "1859",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "internal_dfa_match",
+  "abl": [
+   {
+    "count": 4,
+    "gt_hit": true
+   },
+   {
+    "count": 4,
+    "gt_hit": true
+   },
+   {
+    "count": 4,
+    "gt_hit": true
+   },
+   {
+    "count": 4,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "3852",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "hit",
+  "gt_func": "match",
+  "abl": [
+   {
+    "count": 32,
+    "gt_hit": true
+   },
+   {
+    "count": 32,
+    "gt_hit": true
+   },
+   {
+    "count": 32,
+    "gt_hit": true
+   },
+   {
+    "count": 22,
+    "gt_hit": true
+   },
+   {
+    "count": 11,
+    "gt_hit": true
+   },
+   {
+    "count": 11,
+    "gt_hit": true
+   },
+   {
+    "count": 11,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "783",
+  "project": "pcre2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "pcre2_match_8",
+  "abl": [
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "781",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "match",
+  "abl": [
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   }
+  ]
+ }
+]

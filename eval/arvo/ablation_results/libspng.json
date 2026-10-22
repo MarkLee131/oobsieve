@@ -1,0 +1,80 @@
+[
+ {
+  "id": "16091",
+  "project": "libspng",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 102,
+  "recall": "hit",
+  "gt_func": "spng_decode_image",
+  "abl": [
+   {
+    "count": 106,
+    "gt_hit": true
+   },
+   {
+    "count": 104,
+    "gt_hit": true
+   },
+   {
+    "count": 104,
+    "gt_hit": true
+   },
+   {
+    "count": 103,
+    "gt_hit": true
+   },
+   {
+    "count": 103,
+    "gt_hit": true
+   },
+   {
+    "count": 103,
+    "gt_hit": true
+   },
+   {
+    "count": 102,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "16830",
+  "project": "libspng",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 115,
+  "recall": "hit",
+  "gt_func": "spng_decode_image",
+  "abl": [
+   {
+    "count": 119,
+    "gt_hit": true
+   },
+   {
+    "count": 117,
+    "gt_hit": true
+   },
+   {
+    "count": 117,
+    "gt_hit": true
+   },
+   {
+    "count": 116,
+    "gt_hit": true
+   },
+   {
+    "count": 116,
+    "gt_hit": true
+   },
+   {
+    "count": 116,
+    "gt_hit": true
+   },
+   {
+    "count": 115,
+    "gt_hit": true
+   }
+  ]
+ }
+]

@@ -1,4 +1,4 @@
-from patchintent.spec_model import load_specs, write_specs, SPEC_CSV_FIELDS, Spec
+from oobsieve.spec_model import load_specs, write_specs, SPEC_CSV_FIELDS, Spec
 
 def test_roundtrip_preserves_rows(tmp_path):
     src = "tests/fixtures/sample_specs.csv"

@@ -1,0 +1,38 @@
+[
+ {
+  "id": "11253",
+  "project": "openvswitch",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ofpbuf_insert"
+ },
+ {
+  "id": "10865",
+  "project": "openvswitch",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "nullable_memcpy"
+ },
+ {
+  "id": "9445",
+  "project": "openvswitch",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "parse_intel_port_custom_property"
+ },
+ {
+  "id": "27640",
+  "project": "openvswitch",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "format_generic_odp_key"
+ }
+]

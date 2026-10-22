@@ -1,0 +1,47 @@
+[
+ {
+  "id": "37581",
+  "project": "libexif",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "exif_get_slong"
+ },
+ {
+  "id": "37231",
+  "project": "libexif",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "exif_get_slong"
+ },
+ {
+  "id": "37570",
+  "project": "libexif",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "exif_get_slong"
+ },
+ {
+  "id": "37226",
+  "project": "libexif",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "exif_get_sshort"
+ },
+ {
+  "id": "37222",
+  "project": "libexif",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "exif_mnote_data_apple_load"
+ }
+]

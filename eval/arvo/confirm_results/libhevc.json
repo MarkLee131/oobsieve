@@ -1,0 +1,36 @@
+[
+ {
+  "id": "16804",
+  "project": "libhevc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "hit",
+  "gt_func": "ihevcd_parse_slice_data",
+  "n_gt_cands": 3,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 8,
+  "n_other_confirmed": 7,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ },
+ {
+  "id": "16805",
+  "project": "libhevc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "hit",
+  "gt_func": "ihevcd_parse_slice_data",
+  "n_gt_cands": 3,
+  "n_gt_confirmed": 3,
+  "n_other_sampled": 8,
+  "n_other_confirmed": 7,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ }
+]

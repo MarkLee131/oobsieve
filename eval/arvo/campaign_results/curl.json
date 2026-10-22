@@ -1,0 +1,47 @@
+[
+ {
+  "id": "62175",
+  "project": "curl",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "miss",
+  "gt_func": "canon_query"
+ },
+ {
+  "id": "5397",
+  "project": "curl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "loop"
+ },
+ {
+  "id": "5251",
+  "project": "curl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "loop"
+ },
+ {
+  "id": "5421",
+  "project": "curl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "loop"
+ },
+ {
+  "id": "6483",
+  "project": "curl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "rtsp_rtp_readwrite"
+ }
+]

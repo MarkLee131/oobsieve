@@ -1,0 +1,16 @@
+[
+ {
+  "func": "parse_elements",
+  "sink": "memcpy",
+  "line": 1166,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 2",
+  "file": "print-802_11.c",
+  "reasoning": "The 'cf.length' field is read directly from the input data at line 1159. This value, which is input-derived, is then used to increment 'offset' and decrement 'length' at lines 1160-1161, and also to control the size of a subsequent memcpy at line 1166 (memcpy(&cf.count, p + offset, 6)). However, the crucial check at line 1157 `if (cf.length != 6)` only checks for inequality, not if `cf.length` is too large. If `cf.length` is greater than 6, the `offset` will be advanced by `cf.length` at line 1160, and then the memcpy at line 1166 will attempt to copy 6 bytes from `p + offset`. If `cf.length` is sufficiently large (e.g., if `cf.length` is close to the buffer's end), then `p + offset` could point past the end of the buffer `p`, leading to an out-of-bounds read in the `memcpy` at line 1166. There is no explicit bounds check or macro guarding against an overly large `cf.length` before the memcpy at line 1166.",
+  "later_fix": [
+   "5edf405d CVE-2017-13008/IEEE 802.11: Fix TIM bitmap copy to copy from p + offset.",
+   "99798bd9 CVE-2017-12987/IEEE 802.11: Fix processing of TIM IE."
+  ],
+  "verified": true
+ }
+]

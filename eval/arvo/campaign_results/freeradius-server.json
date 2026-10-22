@@ -1,0 +1,83 @@
+[
+ {
+  "id": "45603",
+  "project": "freeradius-server",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "__covrec_1D46B478ANUMBER"
+ },
+ {
+  "id": "39699",
+  "project": "freeradius-server",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fr_base16_decode_nstd"
+ },
+ {
+  "id": "55910",
+  "project": "freeradius-server",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fr_tacacs_decode"
+ },
+ {
+  "id": "55982",
+  "project": "freeradius-server",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fr_tacacs_decode"
+ },
+ {
+  "id": "39660",
+  "project": "freeradius-server",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fr_struct_from_network"
+ },
+ {
+  "id": "38283",
+  "project": "freeradius-server",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fr_is_base16_nstd"
+ },
+ {
+  "id": "39689",
+  "project": "freeradius-server",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fr_dns_label_to_value_box"
+ },
+ {
+  "id": "40118",
+  "project": "freeradius-server",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fr_unix_time_from_tm"
+ },
+ {
+  "id": "40600",
+  "project": "freeradius-server",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "fr_unix_time_from_tm"
+ }
+]

@@ -1,0 +1,80 @@
+[
+ {
+  "id": "16804",
+  "project": "libhevc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "hit",
+  "gt_func": "ihevcd_parse_slice_data",
+  "abl": [
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 17,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 11,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "16805",
+  "project": "libhevc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "hit",
+  "gt_func": "ihevcd_parse_slice_data",
+  "abl": [
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 17,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 11,
+    "gt_hit": true
+   }
+  ]
+ }
+]

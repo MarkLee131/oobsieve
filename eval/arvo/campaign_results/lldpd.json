@@ -1,0 +1,11 @@
+[
+ {
+  "id": "52006",
+  "project": "lldpd",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 7,
+  "recall": "hit",
+  "gt_func": "cdp_decode"
+ }
+]

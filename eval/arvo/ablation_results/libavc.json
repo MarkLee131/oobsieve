@@ -1,0 +1,41 @@
+[
+ {
+  "id": "65060",
+  "project": "libavc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "isvcd_start_of_pic",
+  "abl": [
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 25,
+    "gt_hit": true
+   }
+  ]
+ }
+]

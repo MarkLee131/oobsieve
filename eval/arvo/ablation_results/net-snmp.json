@@ -1,0 +1,80 @@
+[
+ {
+  "id": "14481",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 7,
+  "recall": "hit",
+  "gt_func": "agentx_parse_string",
+  "abl": [
+   {
+    "count": 8,
+    "gt_hit": true
+   },
+   {
+    "count": 8,
+    "gt_hit": true
+   },
+   {
+    "count": 8,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   },
+   {
+    "count": 7,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "37564",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "snmp_add_var",
+  "abl": [
+   {
+    "count": 9,
+    "gt_hit": false
+   },
+   {
+    "count": 9,
+    "gt_hit": false
+   },
+   {
+    "count": 4,
+    "gt_hit": false
+   },
+   {
+    "count": 2,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   }
+  ]
+ }
+]

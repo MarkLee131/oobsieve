@@ -1,0 +1,11 @@
+[
+ {
+  "id": "59185",
+  "project": "faad2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "hf_adjustment"
+ }
+]

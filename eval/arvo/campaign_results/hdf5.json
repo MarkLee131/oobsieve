@@ -1,0 +1,83 @@
+[
+ {
+  "id": "59695",
+  "project": "hdf5",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5FS__sinfo_serialize_node_cb"
+ },
+ {
+  "id": "57305",
+  "project": "hdf5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5G__node_cmp3"
+ },
+ {
+  "id": "59295",
+  "project": "hdf5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5MM_xstrdup"
+ },
+ {
+  "id": "61803",
+  "project": "hdf5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5O__chunk_protect"
+ },
+ {
+  "id": "63743",
+  "project": "hdf5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5F_addr_decode"
+ },
+ {
+  "id": "62135",
+  "project": "hdf5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5F__accum_free"
+ },
+ {
+  "id": "61625",
+  "project": "hdf5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5MM_memcpy"
+ },
+ {
+  "id": "58622",
+  "project": "hdf5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5FS__sect_link"
+ },
+ {
+  "id": "64525",
+  "project": "hdf5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "H5O__shared_decode"
+ }
+]

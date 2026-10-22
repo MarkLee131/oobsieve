@@ -1,0 +1,11 @@
+[
+ {
+  "id": "31479",
+  "project": "libcoap",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "oos",
+  "gt_func": "coap_pdu_parse_opt"
+ }
+]

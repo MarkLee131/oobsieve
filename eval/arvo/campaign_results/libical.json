@@ -1,0 +1,11 @@
+[
+ {
+  "id": "47986",
+  "project": "libical",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "simple_str_to_doublestr"
+ }
+]

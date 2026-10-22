@@ -1,0 +1,11 @@
+[
+ {
+  "id": "10252",
+  "project": "aom",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "av1_loop_restoration_filter_frame_mt"
+ }
+]

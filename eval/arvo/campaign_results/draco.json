@@ -1,0 +1,29 @@
+[
+ {
+  "id": "37716",
+  "project": "draco",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "bool"
+ },
+ {
+  "id": "37814",
+  "project": "draco",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "draco::MeshPredictionSchemeTexCoordsDecoder<int,"
+ },
+ {
+  "id": "41545",
+  "project": "draco",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "draco::MeshEdgebreakerDecoderImpl<draco::MeshEdgebreakerTraversalValenceDecoder>"
+ }
+]

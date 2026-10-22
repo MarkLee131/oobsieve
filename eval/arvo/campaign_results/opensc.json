@@ -1,0 +1,92 @@
+[
+ {
+  "id": "22967",
+  "project": "opensc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "tcos_decipher"
+ },
+ {
+  "id": "63104",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "entersafe_reverse_buffer"
+ },
+ {
+  "id": "20188",
+  "project": "opensc",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "skipped-test",
+  "gt_func": null
+ },
+ {
+  "id": "63163",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "gt-not-in-file",
+  "gt_func": "iasecc_parse_get_tlv"
+ },
+ {
+  "id": "26900",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "authentic_select_file"
+ },
+ {
+  "id": "32202",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "sc_pkcs15emu_oberthur_add_pubkey"
+ },
+ {
+  "id": "16614",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "miss",
+  "gt_func": "decode_bit_string"
+ },
+ {
+  "id": "60769",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 18,
+  "recall": "oos",
+  "gt_func": "sc_pkcs15_get_lastupdate"
+ },
+ {
+  "id": "25998",
+  "project": "opensc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "gt-not-in-file",
+  "gt_func": "sc_get_response"
+ },
+ {
+  "id": "45459",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "skipped-test",
+  "gt_func": null
+ }
+]

@@ -1,0 +1,19 @@
+[
+ {
+  "id": "52006",
+  "project": "lldpd",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "cdp_decode",
+  "n_gt_cands": 18,
+  "n_gt_confirmed": 18,
+  "n_other_sampled": 7,
+  "n_other_confirmed": 7,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped"
+ }
+]

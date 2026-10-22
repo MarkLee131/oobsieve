@@ -1,0 +1,20 @@
+[
+ {
+  "id": "29769",
+  "project": "libssh2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ecdh_sha2_nistp"
+ },
+ {
+  "id": "58291",
+  "project": "libssh2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "_libssh2_ntohu32"
+ }
+]

@@ -1,0 +1,65 @@
+[
+ {
+  "id": "63082",
+  "project": "libxml2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "oos",
+  "gt_func": "xmlParseCommentComplex"
+ },
+ {
+  "id": "63127",
+  "project": "libxml2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "oos",
+  "gt_func": "xmlParseCommentComplex"
+ },
+ {
+  "id": "63124",
+  "project": "libxml2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "gt-not-in-file",
+  "gt_func": "xmlCopyCharMultiByte"
+ },
+ {
+  "id": "57225",
+  "project": "libxml2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "oos",
+  "gt_func": "xmlParseContentInternal"
+ },
+ {
+  "id": "63086",
+  "project": "libxml2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "gt-not-in-file",
+  "gt_func": "xmlCopyCharMultiByte"
+ },
+ {
+  "id": "57151",
+  "project": "libxml2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "oos",
+  "gt_func": "xmlParseQName"
+ },
+ {
+  "id": "57224",
+  "project": "libxml2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "gt-not-in-file",
+  "gt_func": "htmlParseChunk"
+ }
+]

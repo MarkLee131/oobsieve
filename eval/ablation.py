@@ -1,5 +1,5 @@
 from __future__ import annotations
-from patchintent.cli import refine_patch
+from oobsieve.cli import refine_patch
 
 def run_ablation(patch_dirs, client_factory, conditions=("full", "no_commit"),
                  model="claude-fable-5"):

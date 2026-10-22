@@ -1,0 +1,20 @@
+[
+ {
+  "id": "30018",
+  "project": "yara",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "oos",
+  "gt_func": "macho_handle_unixthread"
+ },
+ {
+  "id": "30217",
+  "project": "yara",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "oos",
+  "gt_func": "macho_handle_unixthread"
+ }
+]

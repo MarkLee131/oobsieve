@@ -1,0 +1,11 @@
+[
+ {
+  "id": "35865",
+  "project": "dnsmasq",
+  "gt_func": "extract_addresses",
+  "build_ok": true,
+  "recall": "miss",
+  "src": "/src/dnsmasq/src/rfc1035.c",
+  "n_candidates": 0
+ }
+]

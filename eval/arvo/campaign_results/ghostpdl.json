@@ -1,0 +1,92 @@
+[
+ {
+  "id": "44610",
+  "project": "ghostpdl",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "read_xref_stream_entries"
+ },
+ {
+  "id": "50834",
+  "project": "ghostpdl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "Ins_NPUSHW"
+ },
+ {
+  "id": "53711",
+  "project": "ghostpdl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "cmap_put_ranges"
+ },
+ {
+  "id": "46307",
+  "project": "ghostpdl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "template_compose_group"
+ },
+ {
+  "id": "44258",
+  "project": "ghostpdl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "read_xref_stream_entries"
+ },
+ {
+  "id": "50326",
+  "project": "ghostpdl",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "gs_glyph_data_from_bytes"
+ },
+ {
+  "id": "44264",
+  "project": "ghostpdl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "pdfi_pscript_interpret"
+ },
+ {
+  "id": "51275",
+  "project": "ghostpdl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "gs_type2_interpret"
+ },
+ {
+  "id": "51418",
+  "project": "ghostpdl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "Ins_PUSHB"
+ },
+ {
+  "id": "42266",
+  "project": "ghostpdl",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "search_table_1"
+ }
+]

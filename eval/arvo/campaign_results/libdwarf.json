@@ -1,0 +1,65 @@
+[
+ {
+  "id": "57442",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "gt-not-in-file",
+  "gt_func": "_dwarf_memcpy_noswap_bytes"
+ },
+ {
+  "id": "60506",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "read_line_table_program"
+ },
+ {
+  "id": "40674",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "oos",
+  "gt_func": "_dwarf_elf_setup_all_section_groups"
+ },
+ {
+  "id": "56897",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "_dwarf_memcpy_noswap_bytes"
+ },
+ {
+  "id": "56456",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 17,
+  "recall": "miss",
+  "gt_func": "dwarf_gdbindex_cuvector_inner_attributes"
+ },
+ {
+  "id": "59091",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "_dwarf_read_line_table_header"
+ },
+ {
+  "id": "56460",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "gt-not-in-file",
+  "gt_func": "_dwarf_memcpy_noswap_bytes"
+ }
+]

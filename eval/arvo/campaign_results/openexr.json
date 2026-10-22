@@ -1,0 +1,65 @@
+[
+ {
+  "id": "47483",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "gt-not-in-file",
+  "gt_func": "generic_unpack"
+ },
+ {
+  "id": "47503",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "miss",
+  "gt_func": "uncompress_b44_impl"
+ },
+ {
+  "id": "46309",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "gt-not-in-file",
+  "gt_func": "Imf_3_1::memstream_read"
+ },
+ {
+  "id": "59267",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "libdeflate_zlib_decompress_ex"
+ },
+ {
+  "id": "59070",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "DwaCompressor_readChannelRules"
+ },
+ {
+  "id": "59382",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "internal_huf_decompress"
+ },
+ {
+  "id": "59457",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "LossyDctDecoder_execute"
+ }
+]

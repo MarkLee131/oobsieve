@@ -1,0 +1,56 @@
+[
+ {
+  "id": "65215",
+  "project": "gpac",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "gf_url_to_fs_path"
+ },
+ {
+  "id": "66949",
+  "project": "gpac",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "BS_ReadByte"
+ },
+ {
+  "id": "66108",
+  "project": "gpac",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "mp3_dmx_process"
+ },
+ {
+  "id": "65218",
+  "project": "gpac",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "BS_ReadByte"
+ },
+ {
+  "id": "65763",
+  "project": "gpac",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "gf_sk_connect"
+ },
+ {
+  "id": "65960",
+  "project": "gpac",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "gf_props_insert_property"
+ }
+]

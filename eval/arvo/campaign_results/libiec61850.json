@@ -1,0 +1,20 @@
+[
+ {
+  "id": "31340",
+  "project": "libiec61850",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "getIndefiniteLength"
+ },
+ {
+  "id": "31339",
+  "project": "libiec61850",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "MmsValue_decodeMmsData"
+ }
+]

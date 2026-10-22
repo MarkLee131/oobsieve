@@ -191,7 +191,7 @@ SMT path conditions + buffer-capacity sufficiency.
 
 # Role of this analysis code (scope note)
 
-`taint_llvm.py` + `smt_path.py` are ONE COMPONENT of the overall PatchIntent tool:
+`taint_llvm.py` + `smt_path.py` are ONE COMPONENT of the overall OOBSieve tool:
 the SYMBOLIC candidate-finder of the DETECT half (the "symbolic" in neuro-symbolic
 detection). Its target is a high-recall, SOUND, good-enough pre-filter so the neural
 (Gemini) confirmation is tractable and accurate. It is NOT meant to be a complete

@@ -1,0 +1,20 @@
+[
+ {
+  "id": "33237",
+  "project": "wasm3",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "oos",
+  "gt_func": "m3_LoadModule"
+ },
+ {
+  "id": "33240",
+  "project": "wasm3",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "miss",
+  "gt_func": "ParseSection_Type"
+ }
+]

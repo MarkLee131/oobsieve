@@ -191,8 +191,8 @@ def main(argv=None):
     client = None
     if args.confirm:
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from patchintent.llm.gemini_client import GeminiClient
-        from patchintent.agent import _parse_json
+        from oobsieve.llm.gemini_client import GeminiClient
+        from oobsieve.agent import _parse_json
         client = GeminiClient(model=args.model)
 
     confirmed = []

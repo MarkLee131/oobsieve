@@ -1,8 +1,8 @@
 import json
-from patchintent.agent import IntentAgent, Verdict
-from patchintent.context import PatchContext
-from patchintent.spec_model import Spec
-from patchintent.llm.mock_client import MockLLMClient
+from oobsieve.agent import IntentAgent, Verdict
+from oobsieve.context import PatchContext
+from oobsieve.spec_model import Spec
+from oobsieve.llm.mock_client import MockLLMClient
 
 def _ctx():
     specs = [

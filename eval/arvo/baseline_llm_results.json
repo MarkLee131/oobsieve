@@ -1,0 +1,377 @@
+{
+ "model": "gemini-2.5-flash",
+ "recall_hit": 19,
+ "recall_n": 38,
+ "ctrl_flag": 17,
+ "ctrl_n": 32,
+ "rows": [
+  {
+   "id": "47503",
+   "project": "openexr",
+   "gt_func": "uncompress_b44_impl",
+   "sym": "miss",
+   "llm": true,
+   "ctrl": null
+  },
+  {
+   "id": "16091",
+   "project": "libspng",
+   "gt_func": "spng_decode_image",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": false
+  },
+  {
+   "id": "16830",
+   "project": "libspng",
+   "gt_func": "spng_decode_image",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": false
+  },
+  {
+   "id": "14481",
+   "project": "net-snmp",
+   "gt_func": "agentx_parse_string",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "37564",
+   "project": "net-snmp",
+   "gt_func": "snmp_add_var",
+   "sym": "miss",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "56456",
+   "project": "libdwarf",
+   "gt_func": "dwarf_gdbindex_cuvector_inner_attributes",
+   "sym": "miss",
+   "llm": null,
+   "ctrl": null
+  },
+  {
+   "id": "21263",
+   "project": "ndpi",
+   "gt_func": "search_valid_dns",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "1859",
+   "project": "pcre2",
+   "gt_func": "internal_dfa_match",
+   "sym": "hit",
+   "llm": null,
+   "ctrl": null
+  },
+  {
+   "id": "3852",
+   "project": "pcre2",
+   "gt_func": "match",
+   "sym": "hit",
+   "llm": null,
+   "ctrl": null
+  },
+  {
+   "id": "783",
+   "project": "pcre2",
+   "gt_func": "pcre2_match_8",
+   "sym": "hit",
+   "llm": null,
+   "ctrl": null
+  },
+  {
+   "id": "781",
+   "project": "pcre2",
+   "gt_func": "match",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": true
+  },
+  {
+   "id": "23499",
+   "project": "clamav-devel",
+   "gt_func": "cli_codepage_to_utf8",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": true
+  },
+  {
+   "id": "18696",
+   "project": "imagemagick",
+   "gt_func": "TraceStrokePolygon",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": false
+  },
+  {
+   "id": "10115",
+   "project": "imagemagick",
+   "gt_func": "DrawDashPolygon",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "20096",
+   "project": "imagemagick",
+   "gt_func": "TraceStrokePolygon",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": false
+  },
+  {
+   "id": "24895",
+   "project": "sleuthkit",
+   "gt_func": "hfs_load_extended_attrs",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": true
+  },
+  {
+   "id": "38872",
+   "project": "sleuthkit",
+   "gt_func": "ext2fs_dinode_copy",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": null
+  },
+  {
+   "id": "65060",
+   "project": "libavc",
+   "gt_func": "isvcd_start_of_pic",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": false
+  },
+  {
+   "id": "16804",
+   "project": "libhevc",
+   "gt_func": "ihevcd_parse_slice_data",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": false
+  },
+  {
+   "id": "16805",
+   "project": "libhevc",
+   "gt_func": "ihevcd_parse_slice_data",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": false
+  },
+  {
+   "id": "16604",
+   "project": "libmpeg2",
+   "gt_func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+   "sym": "hit",
+   "llm": null,
+   "ctrl": null
+  },
+  {
+   "id": "23794",
+   "project": "c-blosc",
+   "gt_func": "blosclz_compress",
+   "sym": "miss",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "38313",
+   "project": "c-blosc",
+   "gt_func": "blosclz_compress",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "33991",
+   "project": "readstat",
+   "gt_func": "readstat_convert",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": null
+  },
+  {
+   "id": "62175",
+   "project": "curl",
+   "gt_func": "canon_query",
+   "sym": "miss",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "9325",
+   "project": "mupdf",
+   "gt_func": "next_null",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "61902",
+   "project": "libxaac",
+   "gt_func": "iusace_estimate_scfs_chan",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": false
+  },
+  {
+   "id": "61998",
+   "project": "libxaac",
+   "gt_func": "iusace_estimate_scfs_chan",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": false
+  },
+  {
+   "id": "43300",
+   "project": "dnsmasq",
+   "gt_func": "dhcp_reply",
+   "sym": "hit",
+   "llm": null,
+   "ctrl": null
+  },
+  {
+   "id": "35865",
+   "project": "dnsmasq",
+   "gt_func": "extract_addresses",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": true
+  },
+  {
+   "id": "35870",
+   "project": "dnsmasq",
+   "gt_func": "dhcp_reply",
+   "sym": "hit",
+   "llm": null,
+   "ctrl": null
+  },
+  {
+   "id": "33240",
+   "project": "wasm3",
+   "gt_func": "ParseSection_Type",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": false
+  },
+  {
+   "id": "22231",
+   "project": "htslib",
+   "gt_func": "hts_md5_update",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": true
+  },
+  {
+   "id": "20694",
+   "project": "htslib",
+   "gt_func": "hts_md5_update",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": true
+  },
+  {
+   "id": "65383",
+   "project": "htslib",
+   "gt_func": "process_one_read",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": true
+  },
+  {
+   "id": "14331",
+   "project": "libarchive",
+   "gt_func": "parse_file_extra_owner",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": false
+  },
+  {
+   "id": "14574",
+   "project": "libarchive",
+   "gt_func": "circular_memcpy",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": false
+  },
+  {
+   "id": "13435",
+   "project": "libarchive",
+   "gt_func": "circular_memcpy",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": false
+  },
+  {
+   "id": "33556",
+   "project": "lxc",
+   "gt_func": "strlcpy",
+   "sym": "miss",
+   "llm": true,
+   "ctrl": null
+  },
+  {
+   "id": "52006",
+   "project": "lldpd",
+   "gt_func": "cdp_decode",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": null
+  },
+  {
+   "id": "47500",
+   "project": "openjpeg",
+   "gt_func": "opj_t1_allocate_buffers",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": false
+  },
+  {
+   "id": "27818",
+   "project": "c-blosc2",
+   "gt_func": "Lizard_decompress_safe",
+   "sym": "hit",
+   "llm": false,
+   "ctrl": true
+  },
+  {
+   "id": "22967",
+   "project": "opensc",
+   "gt_func": "tcos_decipher",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": true
+  },
+  {
+   "id": "32202",
+   "project": "opensc",
+   "gt_func": "sc_pkcs15emu_oberthur_add_pubkey",
+   "sym": "hit",
+   "llm": true,
+   "ctrl": null
+  },
+  {
+   "id": "16614",
+   "project": "opensc",
+   "gt_func": "decode_bit_string",
+   "sym": "miss",
+   "llm": null,
+   "ctrl": null
+  },
+  {
+   "id": "39226",
+   "project": "libpsl",
+   "gt_func": "domain_to_punycode",
+   "sym": "miss",
+   "llm": false,
+   "ctrl": false
+  }
+ ]
+}

@@ -1,0 +1,92 @@
+[
+ {
+  "id": "35861",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "oos",
+  "gt_func": "extract_name"
+ },
+ {
+  "id": "43300",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 27,
+  "recall": "hit",
+  "gt_func": "dhcp_reply"
+ },
+ {
+  "id": "35868",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "oos",
+  "gt_func": "check_bad_address"
+ },
+ {
+  "id": "35865",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "extract_addresses"
+ },
+ {
+  "id": "43304",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "oos",
+  "gt_func": "print_mac"
+ },
+ {
+  "id": "35920",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "oos",
+  "gt_func": "answer_request"
+ },
+ {
+  "id": "35858",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "oos",
+  "gt_func": "extract_name"
+ },
+ {
+  "id": "35870",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 28,
+  "recall": "hit",
+  "gt_func": "dhcp_reply"
+ },
+ {
+  "id": "43299",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 13,
+  "recall": "oos",
+  "gt_func": "extract_name"
+ },
+ {
+  "id": "35887",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "oos",
+  "gt_func": "print_mac"
+ }
+]

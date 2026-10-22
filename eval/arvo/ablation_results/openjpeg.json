@@ -1,0 +1,41 @@
+[
+ {
+  "id": "47500",
+  "project": "openjpeg",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "miss",
+  "gt_func": "opj_t1_allocate_buffers",
+  "abl": [
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   },
+   {
+    "count": 0,
+    "gt_hit": false
+   }
+  ]
+ }
+]

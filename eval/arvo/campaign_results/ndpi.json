@@ -1,0 +1,92 @@
+[
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "search_valid_dns"
+ },
+ {
+  "id": "20832",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "oos",
+  "gt_func": "get16"
+ },
+ {
+  "id": "44405",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ndpi_strncasestr"
+ },
+ {
+  "id": "20162",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "skipped-test",
+  "gt_func": null
+ },
+ {
+  "id": "22419",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ndpi_search_kerberos"
+ },
+ {
+  "id": "43921",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ndpi_workflow_process_packet"
+ },
+ {
+  "id": "23021",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "ndpi_search_kerberos"
+ },
+ {
+  "id": "19544",
+  "project": "ndpi",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "getTLScertificate"
+ },
+ {
+  "id": "21719",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "skipped-test",
+  "gt_func": null
+ },
+ {
+  "id": "20109",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "skipped-test",
+  "gt_func": null
+ }
+]

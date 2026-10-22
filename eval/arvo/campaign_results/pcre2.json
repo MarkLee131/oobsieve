@@ -1,0 +1,56 @@
+[
+ {
+  "id": "1859",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "internal_dfa_match"
+ },
+ {
+  "id": "3852",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "hit",
+  "gt_func": "match"
+ },
+ {
+  "id": "783",
+  "project": "pcre2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "pcre2_match_8"
+ },
+ {
+  "id": "61268",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "match"
+ },
+ {
+  "id": "61269",
+  "project": "pcre2",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "get_grouplength"
+ },
+ {
+  "id": "781",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "match"
+ }
+]

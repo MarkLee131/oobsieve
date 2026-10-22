@@ -1,0 +1,119 @@
+[
+ {
+  "id": "43300",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 27,
+  "recall": "hit",
+  "gt_func": "dhcp_reply",
+  "abl": [
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 29,
+    "gt_hit": true
+   },
+   {
+    "count": 29,
+    "gt_hit": true
+   },
+   {
+    "count": 28,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   },
+   {
+    "count": 27,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "35865",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "extract_addresses",
+  "abl": [
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   },
+   {
+    "count": 1,
+    "gt_hit": false
+   }
+  ]
+ },
+ {
+  "id": "35870",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 28,
+  "recall": "hit",
+  "gt_func": "dhcp_reply",
+  "abl": [
+   {
+    "count": 33,
+    "gt_hit": true
+   },
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 31,
+    "gt_hit": true
+   },
+   {
+    "count": 30,
+    "gt_hit": true
+   },
+   {
+    "count": 28,
+    "gt_hit": true
+   },
+   {
+    "count": 28,
+    "gt_hit": true
+   },
+   {
+    "count": 28,
+    "gt_hit": true
+   }
+  ]
+ }
+]

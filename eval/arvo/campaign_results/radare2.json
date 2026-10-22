@@ -1,0 +1,38 @@
+[
+ {
+  "id": "14690",
+  "project": "radare2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 8,
+  "recall": "gt-not-in-file",
+  "gt_func": "r_core_lines_initcache"
+ },
+ {
+  "id": "15007",
+  "project": "radare2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "oos",
+  "gt_func": "load"
+ },
+ {
+  "id": "63074",
+  "project": "radare2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "load_sections_64"
+ },
+ {
+  "id": "15004",
+  "project": "radare2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "oos",
+  "gt_func": "symbols"
+ }
+]

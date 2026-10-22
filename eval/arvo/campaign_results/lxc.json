@@ -1,0 +1,11 @@
+[
+ {
+  "id": "33556",
+  "project": "lxc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "miss",
+  "gt_func": "strlcpy"
+ }
+]

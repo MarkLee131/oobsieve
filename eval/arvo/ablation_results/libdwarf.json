@@ -1,0 +1,41 @@
+[
+ {
+  "id": "56456",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 17,
+  "recall": "miss",
+  "gt_func": "dwarf_gdbindex_cuvector_inner_attributes",
+  "abl": [
+   {
+    "count": 19,
+    "gt_hit": true
+   },
+   {
+    "count": 19,
+    "gt_hit": true
+   },
+   {
+    "count": 19,
+    "gt_hit": true
+   },
+   {
+    "count": 17,
+    "gt_hit": false
+   },
+   {
+    "count": 17,
+    "gt_hit": false
+   },
+   {
+    "count": 17,
+    "gt_hit": false
+   },
+   {
+    "count": 17,
+    "gt_hit": false
+   }
+  ]
+ }
+]

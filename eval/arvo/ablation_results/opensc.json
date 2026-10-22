@@ -1,0 +1,119 @@
+[
+ {
+  "id": "22967",
+  "project": "opensc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "tcos_decipher",
+  "abl": [
+   {
+    "count": 13,
+    "gt_hit": true
+   },
+   {
+    "count": 12,
+    "gt_hit": true
+   },
+   {
+    "count": 12,
+    "gt_hit": true
+   },
+   {
+    "count": 9,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "32202",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "sc_pkcs15emu_oberthur_add_pubkey",
+  "abl": [
+   {
+    "count": 10,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "16614",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "miss",
+  "gt_func": "decode_bit_string",
+  "abl": [
+   {
+    "count": 19,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 11,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": false
+   },
+   {
+    "count": 3,
+    "gt_hit": false
+   },
+   {
+    "count": 3,
+    "gt_hit": false
+   },
+   {
+    "count": 3,
+    "gt_hit": false
+   }
+  ]
+ }
+]

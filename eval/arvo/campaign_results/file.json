@@ -1,0 +1,20 @@
+[
+ {
+  "id": "16634",
+  "project": "file",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 37,
+  "recall": "oos",
+  "gt_func": "cdf_read_property_info"
+ },
+ {
+  "id": "23044",
+  "project": "file",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "file_strncmp"
+ }
+]

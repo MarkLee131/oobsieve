@@ -1,0 +1,41 @@
+[
+ {
+  "id": "9325",
+  "project": "mupdf",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "next_null",
+  "abl": [
+   {
+    "count": 4,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   },
+   {
+    "count": 2,
+    "gt_hit": true
+   }
+  ]
+ }
+]

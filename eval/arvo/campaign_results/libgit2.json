@@ -1,0 +1,38 @@
+[
+ {
+  "id": "56037",
+  "project": "libgit2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "set_data"
+ },
+ {
+  "id": "55724",
+  "project": "libgit2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "git_oid_raw_cmp"
+ },
+ {
+  "id": "10999",
+  "project": "libgit2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "tag_parse"
+ },
+ {
+  "id": "11004",
+  "project": "libgit2",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "git_buf_vprintf"
+ }
+]

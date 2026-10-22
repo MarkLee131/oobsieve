@@ -1,0 +1,11 @@
+[
+ {
+  "id": "59682",
+  "project": "FreeRDP",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "no-crash-func",
+  "gt_func": null
+ }
+]

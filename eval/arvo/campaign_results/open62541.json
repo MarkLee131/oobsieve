@@ -1,0 +1,29 @@
+[
+ {
+  "id": "14621",
+  "project": "open62541",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 0,
+  "recall": "oos",
+  "gt_func": "UA_unbase64"
+ },
+ {
+  "id": "15152",
+  "project": "open62541",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "UA_copy"
+ },
+ {
+  "id": "44623",
+  "project": "open62541",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "extensionObjectOrder"
+ }
+]

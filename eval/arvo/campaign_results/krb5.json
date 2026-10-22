@@ -1,0 +1,11 @@
+[
+ {
+  "id": "51720",
+  "project": "krb5",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "parse_string"
+ }
+]

@@ -1,6 +1,6 @@
 import json
-from patchintent.cli import refine_patch
-from patchintent.llm.mock_client import MockLLMClient
+from oobsieve.cli import refine_patch
+from oobsieve.llm.mock_client import MockLLMClient
 
 def test_refine_patch_end_to_end():
     resp = json.dumps({"judgements": [

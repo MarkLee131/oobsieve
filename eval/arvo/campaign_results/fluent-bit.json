@@ -1,0 +1,92 @@
+[
+ {
+  "id": "36718",
+  "project": "fluent-bit",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "skipped-test",
+  "gt_func": null
+ },
+ {
+  "id": "51934",
+  "project": "fluent-bit",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "onig_vsnprintf_with_pattern"
+ },
+ {
+  "id": "21953",
+  "project": "fluent-bit",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "logfmt_parser"
+ },
+ {
+  "id": "46049",
+  "project": "fluent-bit",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "onig_node_str_cat"
+ },
+ {
+  "id": "46086",
+  "project": "fluent-bit",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "add_compile_string"
+ },
+ {
+  "id": "26304",
+  "project": "fluent-bit",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "encoded_to_buf"
+ },
+ {
+  "id": "30090",
+  "project": "fluent-bit",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "flb_parser_json_do"
+ },
+ {
+  "id": "26327",
+  "project": "fluent-bit",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "_conv_num"
+ },
+ {
+  "id": "27710",
+  "project": "fluent-bit",
+  "rw": "WRITE",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "flb_signv4_uri_normalize_path"
+ },
+ {
+  "id": "52330",
+  "project": "fluent-bit",
+  "rw": "READ",
+  "build_ok": false,
+  "n_candidates": 0,
+  "recall": "build-fail",
+  "gt_func": "onigenc_unicode_mbc_case_fold"
+ }
+]

@@ -1,0 +1,80 @@
+[
+ {
+  "id": "61902",
+  "project": "libxaac",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "iusace_estimate_scfs_chan",
+  "abl": [
+   {
+    "count": 8,
+    "gt_hit": true
+   },
+   {
+    "count": 8,
+    "gt_hit": true
+   },
+   {
+    "count": 8,
+    "gt_hit": true
+   },
+   {
+    "count": 8,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   },
+   {
+    "count": 6,
+    "gt_hit": true
+   }
+  ]
+ },
+ {
+  "id": "61998",
+  "project": "libxaac",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 14,
+  "recall": "hit",
+  "gt_func": "iusace_estimate_scfs_chan",
+  "abl": [
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 16,
+    "gt_hit": true
+   },
+   {
+    "count": 14,
+    "gt_hit": true
+   },
+   {
+    "count": 14,
+    "gt_hit": true
+   },
+   {
+    "count": 14,
+    "gt_hit": true
+   }
+  ]
+ }
+]

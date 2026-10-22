@@ -1,0 +1,52 @@
+  [openexr          47503] sym=miss llm_oob=True ctrl=None gt=uncompress_b44_impl
+  [libspng          16091] sym=hit  llm_oob=False ctrl=False gt=spng_decode_image
+  [libspng          16830] sym=hit  llm_oob=False ctrl=False gt=spng_decode_image
+  [net-snmp         14481] sym=hit  llm_oob=True ctrl=True gt=agentx_parse_string
+  [net-snmp         37564] sym=miss llm_oob=True ctrl=True gt=snmp_add_var
+  [libdwarf         56456] sym=miss llm_oob=None ctrl=None gt=dwarf_gdbindex_cuvector_inner_attributes
+  [ndpi             21263] sym=hit  llm_oob=True ctrl=True gt=search_valid_dns
+  [pcre2             1859] sym=hit  llm_oob=None ctrl=None gt=internal_dfa_match
+  [pcre2             3852] sym=hit  llm_oob=None ctrl=None gt=match
+  [pcre2              783] sym=hit  llm_oob=None ctrl=None gt=pcre2_match_8
+  [pcre2              781] sym=hit  llm_oob=False ctrl=True gt=match
+  [clamav-devel     23499] sym=miss llm_oob=False ctrl=True gt=cli_codepage_to_utf8
+  [imagemagick      18696] sym=hit  llm_oob=True ctrl=False gt=TraceStrokePolygon
+  [imagemagick      10115] sym=hit  llm_oob=True ctrl=True gt=DrawDashPolygon
+  [imagemagick      20096] sym=hit  llm_oob=True ctrl=False gt=TraceStrokePolygon
+  [sleuthkit        24895] sym=miss llm_oob=False ctrl=True gt=hfs_load_extended_attrs
+  [sleuthkit        38872] sym=hit  llm_oob=False ctrl=None gt=ext2fs_dinode_copy
+  [libavc           65060] sym=hit  llm_oob=True ctrl=False gt=isvcd_start_of_pic
+  [libhevc          16804] sym=hit  llm_oob=True ctrl=False gt=ihevcd_parse_slice_data
+  [libhevc          16805] sym=hit  llm_oob=True ctrl=False gt=ihevcd_parse_slice_data
+  [libmpeg2         16604] sym=hit  llm_oob=None ctrl=None gt=impeg2_fmt_conv_yuv420p_to_yuv420sp_uv
+  [c-blosc          23794] sym=miss llm_oob=True ctrl=True gt=blosclz_compress
+  [c-blosc          38313] sym=hit  llm_oob=True ctrl=True gt=blosclz_compress
+  [readstat         33991] sym=miss llm_oob=False ctrl=None gt=readstat_convert
+  [curl             62175] sym=miss llm_oob=True ctrl=True gt=canon_query
+  [mupdf             9325] sym=hit  llm_oob=True ctrl=True gt=next_null
+  [libxaac          61902] sym=hit  llm_oob=False ctrl=False gt=iusace_estimate_scfs_chan
+  [libxaac          61998] sym=hit  llm_oob=False ctrl=False gt=iusace_estimate_scfs_chan
+  [dnsmasq          43300] sym=hit  llm_oob=None ctrl=None gt=dhcp_reply
+  [dnsmasq          35865] sym=miss llm_oob=False ctrl=True gt=extract_addresses
+  [dnsmasq          35870] sym=hit  llm_oob=None ctrl=None gt=dhcp_reply
+  [wasm3            33240] sym=miss llm_oob=False ctrl=False gt=ParseSection_Type
+  [htslib           22231] sym=miss llm_oob=False ctrl=True gt=hts_md5_update
+  [htslib           20694] sym=miss llm_oob=False ctrl=True gt=hts_md5_update
+  [htslib           65383] sym=hit  llm_oob=False ctrl=True gt=process_one_read
+  [libarchive       14331] sym=miss llm_oob=False ctrl=False gt=parse_file_extra_owner
+  [libarchive       14574] sym=hit  llm_oob=True ctrl=False gt=circular_memcpy
+  [libarchive       13435] sym=hit  llm_oob=False ctrl=False gt=circular_memcpy
+  [lxc              33556] sym=miss llm_oob=True ctrl=None gt=strlcpy
+  [lldpd            52006] sym=hit  llm_oob=True ctrl=None gt=cdp_decode
+  [openjpeg         47500] sym=miss llm_oob=False ctrl=False gt=opj_t1_allocate_buffers
+  [c-blosc2         27818] sym=hit  llm_oob=False ctrl=True gt=Lizard_decompress_safe
+  [opensc           22967] sym=hit  llm_oob=True ctrl=True gt=tcos_decipher
+  [opensc           32202] sym=hit  llm_oob=True ctrl=None gt=sc_pkcs15emu_oberthur_add_pubkey
+  [opensc           16614] sym=miss llm_oob=None ctrl=None gt=decode_bit_string
+  [libpsl           39226] sym=miss llm_oob=False ctrl=False gt=domain_to_punycode
+
+## PURE-LLM BASELINE (gemini-2.5-flash, no symbolic evidence)
+  crash functions evaluated: 38/46
+  function-level recall (LLM flags crash func as OOB): 19/38 = 50%   [symbolic engine: 29/46 = 63%]
+  CONTROL flag rate on non-crash sibling functions: 17/32 = 53%  (LLM says 'OOB' even on non-crash funcs)
+results -> baseline_llm_results.json

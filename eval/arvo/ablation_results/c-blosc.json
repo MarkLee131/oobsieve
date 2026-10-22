@@ -1,0 +1,80 @@
+[
+ {
+  "id": "23794",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "miss",
+  "gt_func": "blosclz_compress",
+  "abl": [
+   {
+    "count": 5,
+    "gt_hit": false
+   },
+   {
+    "count": 5,
+    "gt_hit": false
+   },
+   {
+    "count": 5,
+    "gt_hit": false
+   },
+   {
+    "count": 3,
+    "gt_hit": false
+   },
+   {
+    "count": 3,
+    "gt_hit": false
+   },
+   {
+    "count": 3,
+    "gt_hit": false
+   },
+   {
+    "count": 3,
+    "gt_hit": false
+   }
+  ]
+ },
+ {
+  "id": "38313",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "blosclz_compress",
+  "abl": [
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 5,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   },
+   {
+    "count": 3,
+    "gt_hit": true
+   }
+  ]
+ }
+]
