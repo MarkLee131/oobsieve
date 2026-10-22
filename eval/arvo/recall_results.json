@@ -1,7 +1,7 @@
 [
  {
-  "id": "27818",
-  "project": "c-blosc2",
+  "id": "23499",
+  "project": "clamav-devel",
   "build_ok": false,
   "recall": "error:ClientError",
   "tb": "sponse.status_code, response_json, response)\n  File \"/home/likaixuan/.local/lib/python3.10/site-packages/google/genai/errors.py\", line 146, in raise_error\n    raise ClientError(status_code, response_json, response)\ngoogle.genai.errors.ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Budget 0 is invalid. This model only works in thinking mode.', 'status': 'INVALID_ARGUMENT'}}\n"

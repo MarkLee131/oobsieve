@@ -426,7 +426,9 @@ def main(argv=None):
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
             os.path.abspath(__file__)))))  # repo root for `oobsieve` package
         from oobsieve.llm.gemini_client import GeminiClient
-        CONFIRM_CLIENT = GeminiClient(model=args.model, thinking_budget=0)
+        # pro models only run with thinking enabled; flash models run without it
+        tb = None if "pro" in args.model else 0
+        CONFIRM_CLIENT = GeminiClient(model=args.model, thinking_budget=tb)
 
     bugs = json.load(open(args.manifest))
     # tight recall set: only bugs with a genuine variable-size sink
