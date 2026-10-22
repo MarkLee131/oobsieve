@@ -1,0 +1,814 @@
+[
+ {
+  "id": "23794",
+  "project": "c-blosc",
+  "crash_func": "blosclz_compress",
+  "fix": "e3fdd3e506",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "blosc/blosc.h",
+   "blosc/blosclz.c"
+  ],
+  "fix_funcs": [
+   "blosclz_compress",
+   "blosclz_decompress",
+   "get_match_32",
+   "get_run",
+   "get_run_16"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "38313",
+  "project": "c-blosc",
+  "crash_func": "blosclz_compress",
+  "fix": "8f702156e8",
+  "recall": "hit",
+  "e2e": "dropped",
+  "fix_files": [
+   "blosc/blosc.h",
+   "blosc/blosclz.c"
+  ],
+  "fix_funcs": [
+   "blosclz_compress"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "27818",
+  "project": "c-blosc2",
+  "crash_func": "Lizard_decompress_safe",
+  "fix": "3724317f7b",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "internal-complibs/lizard-1.0/lizard_decompress_liz.h"
+  ],
+  "fix_funcs": [
+   "Lizard_decompress_LIZv1"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "23499",
+  "project": "clamav-devel",
+  "crash_func": "cli_codepage_to_utf8",
+  "fix": "2049078622",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "libclamav/blob.c",
+   "libclamav/entconv.c",
+   "libclamav/vba_extract.c"
+  ],
+  "fix_funcs": [
+   "blobAddData",
+   "blobClose",
+   "cli_codepage_to_utf8"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "62175",
+  "project": "curl",
+  "crash_func": "canon_query",
+  "fix": "a1532a33b3",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "lib/http_aws_sigv4.c",
+   "tests/data/test439"
+  ],
+  "fix_funcs": [
+   "Curl_output_aws_sigv4",
+   "canon_query"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "35865",
+  "project": "dnsmasq",
+  "crash_func": "extract_addresses",
+  "fix": "7b80c75d9d",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "src/cache.c",
+   "src/rfc1035.c"
+  ],
+  "fix_funcs": [
+   "cache_insert",
+   "do_doctor",
+   "extract_addresses",
+   "find_soa",
+   "log_query",
+   "private_net6"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "35870",
+  "project": "dnsmasq",
+  "crash_func": "dhcp_reply",
+  "fix": "41adecad14",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "CHANGELOG",
+   "po/de.po",
+   "po/es.po",
+   "po/fi.po"
+  ],
+  "fix_funcs": [
+   "check_tftp_fileperm",
+   "check_tftp_listeners",
+   "free_transfer",
+   "handle_tftp",
+   "sanitise",
+   "tftp_err",
+   "tftp_err_oops",
+   "tftp_request"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "43300",
+  "project": "dnsmasq",
+  "crash_func": "dhcp_reply",
+  "fix": "e426c2d3bc",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "CHANGELOG",
+   "man/dnsmasq.8",
+   "src/option.c"
+  ],
+  "fix_funcs": [
+   "one_file",
+   "one_opt",
+   "read_file",
+   "read_opts",
+   "read_servers_file"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "20694",
+  "project": "htslib",
+  "crash_func": "hts_md5_update",
+  "fix": "d6f15361ee",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "cram/cram_decode.c"
+  ],
+  "fix_funcs": [
+   "cram_decode_slice_header"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "22231",
+  "project": "htslib",
+  "crash_func": "hts_md5_update",
+  "fix": "382867a850",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "cram/cram_decode.c"
+  ],
+  "fix_funcs": [
+   "cram_decode_slice"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "65383",
+  "project": "htslib",
+  "crash_func": "process_one_read",
+  "fix": "9fe9275138",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "cram/cram_encode.c"
+  ],
+  "fix_funcs": [
+   "cram_encode_aux"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "10115",
+  "project": "imagemagick",
+  "crash_func": "DrawDashPolygon",
+  "fix": "9df54d6958",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "MagickCore/draw.c"
+  ],
+  "fix_funcs": [
+   "RenderMVGContent"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "18696",
+  "project": "imagemagick",
+  "crash_func": "TraceStrokePolygon",
+  "fix": "22fb7aed8f",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "MagickCore/draw.c"
+  ],
+  "fix_funcs": [
+   "TraceStrokePolygon"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "20096",
+  "project": "imagemagick",
+  "crash_func": "TraceStrokePolygon",
+  "fix": "ee86f51fcf",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "MagickCore/draw.c"
+  ],
+  "fix_funcs": [
+   "TraceStrokePolygon"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "13435",
+  "project": "libarchive",
+  "crash_func": "circular_memcpy",
+  "fix": "39736c43bd",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "libarchive/archive_read_support_format_rar5.c",
+   "libarchive/test/test_read_format_rar5.c"
+  ],
+  "fix_funcs": [
+   "DEFINE_TEST",
+   "advance_multivolume",
+   "merge_block",
+   "process_base_block",
+   "process_block",
+   "process_head_main",
+   "read_ahead",
+   "read_bits_16"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "14331",
+  "project": "libarchive",
+  "crash_func": "parse_file_extra_owner",
+  "fix": "2fce6f81cc",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "libarchive/archive_read_support_format_rar5.c"
+  ],
+  "fix_funcs": [
+   "parse_file_extra_owner"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "14574",
+  "project": "libarchive",
+  "crash_func": "circular_memcpy",
+  "fix": "9950d89616",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "libarchive/archive_read_support_format_rar5.c",
+   "libarchive/test/test_read_format_rar5.c",
+   "libarchive/test/test_read_format_rar5_nonempty_dir_stream.rar.uu"
+  ],
+  "fix_funcs": [
+   "DEFINE_TEST",
+   "init_unpack",
+   "process_head_file",
+   "rar5_cleanup",
+   "rar5_read_data"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "65060",
+  "project": "libavc",
+  "crash_func": "isvcd_start_of_pic",
+  "fix": "28727baf58",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "decoder/svc/isvcd_api.c",
+   "decoder/svc/isvcd_parse_headers.c",
+   "decoder/svc/isvcd_structs.h"
+  ],
+  "fix_funcs": [
+   "isvcd_dec_non_vcl",
+   "isvcd_get_buf_info",
+   "isvcd_parse_sps",
+   "isvcd_parse_subset_sps"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "56456",
+  "project": "libdwarf",
+  "crash_func": "dwarf_gdbindex_cuvector_inner_attributes",
+  "fix": "e564c9350c",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "src/lib/libdwarf/dwarf_gdbindex.c",
+   "src/lib/libdwarf/dwarf_gdbindex.h",
+   "src/lib/libdwarf/libdwarf.h"
+  ],
+  "fix_funcs": [
+   "dwarf_gdbindex_addressarea",
+   "dwarf_gdbindex_addressarea_entry",
+   "dwarf_gdbindex_culist_array",
+   "dwarf_gdbindex_culist_entry",
+   "dwarf_gdbindex_cuvector_inner_attributes",
+   "dwarf_gdbindex_cuvector_length",
+   "dwarf_gdbindex_header",
+   "dwarf_gdbindex_string_by_offset"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "16804",
+  "project": "libhevc",
+  "crash_func": "ihevcd_parse_slice_data",
+  "fix": "d28f2210ee",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "Android.bp",
+   "common/arm/ihevc_cmn_utils_neon.h",
+   "common/arm/ihevc_platform_macros.h",
+   "common/arm/ihevc_quant_iquant_ssd_neon_intr.c"
+  ],
+  "fix_funcs": [
+   "CLIP_S12",
+   "CLZ",
+   "CLZNZ",
+   "CTZ",
+   "ITT_BIG_ENDIAN",
+   "ihevc_intra_pred_luma_mode_11_to_17_ssse3",
+   "ihevc_intra_pred_luma_mode_19_to_25_ssse3",
+   "ihevc_sao_band_offset_chroma_ssse3"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "16805",
+  "project": "libhevc",
+  "crash_func": "ihevcd_parse_slice_data",
+  "fix": "d28f2210ee",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "Android.bp",
+   "common/arm/ihevc_cmn_utils_neon.h",
+   "common/arm/ihevc_platform_macros.h",
+   "common/arm/ihevc_quant_iquant_ssd_neon_intr.c"
+  ],
+  "fix_funcs": [
+   "CLIP_S12",
+   "CLZ",
+   "CLZNZ",
+   "CTZ",
+   "ITT_BIG_ENDIAN",
+   "ihevc_intra_pred_luma_mode_11_to_17_ssse3",
+   "ihevc_intra_pred_luma_mode_19_to_25_ssse3",
+   "ihevc_sao_band_offset_chroma_ssse3"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "16604",
+  "project": "libmpeg2",
+  "crash_func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+  "fix": "6f28264c11",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "common/arm/impeg2_format_conv.s",
+   "common/armv8/impeg2_format_conv.s",
+   "common/impeg2_format_conv.c",
+   "decoder/impeg2d_api_main.c"
+  ],
+  "fix_funcs": [
+   "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+   "impeg2_fmt_conv_yuv420p_to_yuv420sp_vu",
+   "impeg2d_api_entity",
+   "impeg2d_get_outbuf_size"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "39226",
+  "project": "libpsl",
+  "crash_func": "domain_to_punycode",
+  "fix": "1023a9ad12",
+  "recall": "hit",
+  "e2e": "dropped",
+  "fix_files": [
+   "src/psl.c"
+  ],
+  "fix_funcs": [
+   "domain_to_punycode"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "16091",
+  "project": "libspng",
+  "crash_func": "spng_decode_image",
+  "fix": "bace14e344",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "spng.c"
+  ],
+  "fix_funcs": [
+   "spng_decode_image"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "16830",
+  "project": "libspng",
+  "crash_func": "spng_decode_image",
+  "fix": "d7d4cced14",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "spng.c"
+  ],
+  "fix_funcs": [
+   "spng_decode_image"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "61902",
+  "project": "libxaac",
+  "crash_func": "iusace_estimate_scfs_chan",
+  "fix": "112fe0d0db",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "encoder/ixheaace_fd_qc_adjthr.c"
+  ],
+  "fix_funcs": [
+   "iusace_estimate_scfs_chan"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "61998",
+  "project": "libxaac",
+  "crash_func": "iusace_estimate_scfs_chan",
+  "fix": "62c8372f6b",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "encoder/iusace_fd_qc_adjthr.h",
+   "encoder/ixheaace_fd_qc_adjthr.c",
+   "encoder/ixheaace_qc_data.h",
+   "encoder/ixheaace_sf_estimation.c"
+  ],
+  "fix_funcs": [
+   "iaace_estimate_scfs_chan",
+   "iaace_improve_scf",
+   "iusace_estimate_scfs_chan",
+   "iusace_improve_scf"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "52006",
+  "project": "lldpd",
+  "crash_func": "cdp_decode",
+  "fix": "a9aeabdf87",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "NEWS",
+   "src/daemon/protocols/cdp.c"
+  ],
+  "fix_funcs": [
+   "cdp_decode"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "33556",
+  "project": "lxc",
+  "crash_func": "strlcpy",
+  "fix": "2e5c468aa5",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "src/lxc/conf.c"
+  ],
+  "fix_funcs": [
+   "parse_lxc_mntopts"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "9325",
+  "project": "mupdf",
+  "crash_func": "next_null",
+  "fix": "09f2e17385",
+  "recall": "hit",
+  "e2e": "hit",
+  "class": "no-repo"
+ },
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "crash_func": "search_valid_dns",
+  "fix": "c6acf97bfb",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "src/lib/protocols/dns.c",
+   "src/lib/protocols/fix.c",
+   "src/lib/protocols/ssh.c",
+   "src/lib/protocols/yahoo.c"
+  ],
+  "fix_funcs": [
+   "check_ymsg",
+   "concat_hash_string",
+   "ndpi_search_fix",
+   "search_valid_dns"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "14481",
+  "project": "net-snmp",
+  "crash_func": "agentx_parse_string",
+  "fix": "7de049193a",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "agent/mibgroup/agentx/protocol.c"
+  ],
+  "fix_funcs": [
+   "agentx_parse_string"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "37564",
+  "project": "net-snmp",
+  "crash_func": "snmp_add_var",
+  "fix": "d9cab398b8",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "snmplib/snmp_api.c"
+  ],
+  "fix_funcs": [
+   "snmp_add_var"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "47503",
+  "project": "openexr",
+  "crash_func": "uncompress_b44_impl",
+  "fix": "7629dad94a",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "src/lib/OpenEXRCore/chunk.c",
+   "src/lib/OpenEXRCore/coding.c",
+   "src/lib/OpenEXRCore/internal_b44.c",
+   "src/lib/OpenEXRCore/internal_util.h"
+  ],
+  "fix_funcs": [
+   "compress_b44_impl",
+   "compute_chunk_unpack_size",
+   "exr_read_scanline_chunk_info",
+   "exr_write_scanline_chunk_info",
+   "extract_chunk_table",
+   "internal_coding_fill_channel_info",
+   "internal_coding_update_channel_info",
+   "internal_exr_undo_b44"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "47500",
+  "project": "openjpeg",
+  "crash_func": "opj_t1_allocate_buffers",
+  "fix": "0535bfc3b7",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "src/lib/openjp2/ht_dec.c"
+  ],
+  "fix_funcs": [
+   "opj_t1_allocate_buffers"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "16614",
+  "project": "opensc",
+  "crash_func": "decode_bit_string",
+  "fix": "9b4b080be7",
+  "recall": "hit",
+  "e2e": "dropped",
+  "fix_files": [
+   "src/libopensc/asn1.c"
+  ],
+  "fix_funcs": [
+   "decode_bit_string"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "22967",
+  "project": "opensc",
+  "crash_func": "tcos_decipher",
+  "fix": "9d294de90d",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "src/libopensc/card-tcos.c"
+  ],
+  "fix_funcs": [
+   "tcos_decipher"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "32202",
+  "project": "opensc",
+  "crash_func": "sc_pkcs15emu_oberthur_add_pubkey",
+  "fix": "5d4daf6c92",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "src/libopensc/pkcs15-oberthur.c"
+  ],
+  "fix_funcs": [
+   "sc_pkcs15emu_oberthur_add_pubkey"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "1859",
+  "project": "pcre2",
+  "crash_func": "internal_dfa_match",
+  "fix": "3f96e07e6b",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "ChangeLog",
+   "src/pcre2_dfa_match.c",
+   "testdata/testinput6",
+   "testdata/testoutput6"
+  ],
+  "fix_funcs": [
+   "for",
+   "if"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "3852",
+  "project": "pcre2",
+  "crash_func": "match",
+  "fix": "36366914f5",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "ChangeLog",
+   "src/pcre2_compile.c",
+   "src/pcre2_internal.h",
+   "src/pcre2_intmodedep.h"
+  ],
+  "fix_funcs": [
+   "for",
+   "if"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "781",
+  "project": "pcre2",
+  "crash_func": "match",
+  "fix": "143c136ac6",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "ChangeLog",
+   "src/pcre2_match.c"
+  ],
+  "fix_funcs": [
+   "fprintf"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "783",
+  "project": "pcre2",
+  "crash_func": "pcre2_match_8",
+  "fix": "26e92bc554",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "ChangeLog",
+   "src/pcre2_match.c",
+   "testdata/testinput2",
+   "testdata/testoutput2"
+  ],
+  "fix_funcs": [
+   "fprintf",
+   "switch"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "33991",
+  "project": "readstat",
+  "crash_func": "readstat_convert",
+  "fix": "c7baae72b3",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "src/spss/readstat_sav_read.c"
+  ],
+  "fix_funcs": [
+   "sav_process_row"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "24895",
+  "project": "sleuthkit",
+  "crash_func": "hfs_load_extended_attrs",
+  "fix": "d4fe8a8130",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "tsk/fs/hfs.c"
+  ],
+  "fix_funcs": [
+   "hfs_load_extended_attrs"
+  ],
+  "class": "fix-in-crash-func"
+ },
+ {
+  "id": "38872",
+  "project": "sleuthkit",
+  "crash_func": "ext2fs_dinode_copy",
+  "fix": "675093ee08",
+  "recall": "hit",
+  "e2e": "hit",
+  "fix_files": [
+   "tsk/fs/ext2fs.c"
+  ],
+  "fix_funcs": [
+   "ext4_load_attrs_inline"
+  ],
+  "class": "fix-elsewhere"
+ },
+ {
+  "id": "33240",
+  "project": "wasm3",
+  "crash_func": "ParseSection_Type",
+  "fix": "a6b4a11f80",
+  "recall": "miss",
+  "e2e": "miss",
+  "fix_files": [
+   "source/m3_bind.c",
+   "source/m3_compile.c",
+   "source/m3_core.h",
+   "source/m3_env.c"
+  ],
+  "fix_funcs": [
+   "Compile_BlockStatements",
+   "_"
+  ],
+  "class": "fix-elsewhere"
+ }
+]
