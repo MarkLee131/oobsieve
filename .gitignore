@@ -4,3 +4,4 @@ __pycache__/
 *.egg-info/
 _*.ll
 .pytest_cache/
+eval/arvo/gemini-*/
