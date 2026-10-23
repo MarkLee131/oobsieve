@@ -74,6 +74,11 @@ cache and compiles the crash function's translation unit):
 | `ablation_campaign.py DIR` | candidate count and recall retention per modeling stage | `ablation_summary.json` |
 | `baseline_llm.py DIR` | pure-LLM baseline on the crash function and a sibling control | `baseline_llm_results.json` |
 
+The two LLM system prompts used in the paper (recall-first and aggressive) are the
+`_CONFIRM_SYS` and `_AGGRESSIVE_SYS` strings in `eval/arvo/recall_runner.py`; the user
+prompt is built in `_confirm_cand` (110 lines before and 15 after the candidate).
+Cross-model and repeated runs are archived under `eval/arvo/crossmodel/`.
+
 `recall_runner.py` is the per-bug worker behind these (`--project`, `--ids`,
 `--confirm`, `--ablation`, `--no-guard`). Pass `--container NAME` to configure
 autotools projects inside a Docker container that has libtool.
