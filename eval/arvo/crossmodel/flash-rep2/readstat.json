@@ -1,0 +1,241 @@
+[
+ {
+  "id": "33991",
+  "project": "readstat",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "miss",
+  "gt_func": "readstat_convert",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 11,
+  "n_other_confirmed": 7,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "readstat_parse_sav",
+    "line": 1603,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1603 (not present in the provided code snippet, but assuming it exists and is the target of the analysis) has a size of 64 bytes and the source pointer is input-derived. The provided code snippet does not contain any explicit bounds checks (like `if (off + n > cap)`) or bounds checking macros (ND_TCHECK/ND_TTEST/CHECK_*/GROW/ENSURE) that would cover a 64-byte read from an input-derived pointer on the path leading to the `memcpy` operation. Without a visible and sufficient guard, it is assumed to be a real bug."
+   },
+   {
+    "func": "sav_read_value_label_record",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 580 copies 8 bytes from `vlabel->raw_value`. The `raw_value` field is part of the `value_label_t` structure. This structure is allocated earlier with `value_labels = readstat_calloc(label_count, sizeof(value_label_t))`. The `raw_value` field is then populated by reading 8 bytes from `io` in the loop at line 539: `if (io->read(vlabel->raw_value, 8, io->io_ctx) < 8)`. There is no explicit bounds check on `vlabel->raw_value` or the `value_label_t` structure itself that would prevent a read beyond the allocated 8 bytes of `raw_value` if the `io->read` operation somehow provided more data than requested or if the `memcpy` was later accessed with a larger size. While the initial `io->read` is for 8 bytes, the analysis states the size expression is `i64 8`, and the issue is whether the `src-ptr` (which is `vlabel->raw_value`) is covered for *this* access. There's no further check on `vlabel->raw_value` before the `memcpy` that ensures it's still pointing to a valid 8-byte buffer. The assumption is that `io->read` correctly fills the buffer, but the analysis is specifically about a *bounds check* protecting the `src-ptr` for this `memcpy`. Without an explicit check verifying `vlabel->raw_value` can hold 8 bytes, or that the `memcpy` is within the bounds of `vlabel->raw_value` (which is defined to be 8 bytes long), it is considered a potential bug."
+   },
+   {
+    "func": "sav_parse_machine_floating_point_record",
+    "line": 972,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 972 copies `sizeof(sav_machine_floating_point_info_record_t)` bytes from `data`. The `data` buffer's length is provided by the `size` and `count` parameters. There's a check at the beginning of the function: `if (size != 8 || count != 3) return READSTAT_ERROR_PARSE;`. This means `data_len` is `size * count = 8 * 3 = 24`. The `sizeof(sav_machine_floating_point_info_record_t)` is 24 bytes (sysmis (8) + highest (8) + lowest (8)). Therefore, the `memcpy` is bounded by the `data_len` check `if (size != 8 || count != 3)`. The check ensures that `data` contains at least 24 bytes, which is exactly the amount copied by `memcpy`."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1108,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1108 copies `sizeof(uint32_t)` (which is 4) bytes from `data_ptr`. The `data_ptr` is an input-derived value. While there is a check `if (data_ptr + sizeof(uint32_t) > data_end)` immediately before this `memcpy`, this check ensures that `data_ptr + 4` is not beyond `data_end`. However, it does not guarantee that `data_ptr` itself is within the bounds of `data` (which is `data` to `data+count`). If `data_ptr` points to an address before `data`, the check `data_ptr + 4 > data_end` could still pass, leading to an out-of-bounds read at `data_ptr`. The taint analysis already confirmed `src-ptr` is input-derived. No guard explicitly checks that `data_ptr` is within the `data` to `data+count` range *before* the `memcpy`."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1123,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1123 reads `sizeof(uint32_t)` (4 bytes) from `data_ptr`. Immediately before this `memcpy`, at line 1120, there is a bounds check: `if (data_ptr + sizeof(uint32_t) > data_end)`. This check ensures that `data_ptr` has at least `sizeof(uint32_t)` bytes available before the `memcpy` operation. If the condition is true, an `READSTAT_ERROR_PARSE` is returned, preventing the `memcpy` from an out-of-bounds read."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1152,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 1152 reads `sizeof(uint32_t)` (which is 4 bytes) into `label_len` from `data_ptr`. Immediately before this operation, at line 1148, there is a bounds check `if (data_ptr + sizeof(uint32_t) > data_end) { ... }`. This check ensures that there are at least 4 bytes available starting from `data_ptr` before the `memcpy` is performed. Therefore, the access is covered."
+   },
+   {
+    "func": "sav_parse_long_string_missing_values_record",
+    "line": 1237,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1237 copies `sizeof(uint32_t)` (i.e., 4 bytes) from `data_ptr` into `&label_len`. There is a check `if (data_ptr + sizeof(uint32_t) > data_end)` just before this `memcpy` operation. However, the tainted operand src-ptr is `data_ptr` for `memcpy(&var_name_len, data_ptr, sizeof(uint32_t))` at line 1237, which is inside a loop, not the one for `&label_len`. The `memcpy` at line 1237 is `memcpy(&var_name_len, data_ptr, sizeof(uint32_t));`. There is a check `if (data_ptr + sizeof(uint32_t) > data_end)` right before this `memcpy` call at line 1234. This check covers the access for `data_ptr` with size `sizeof(uint32_t)`. My apologies, I was looking at the wrong memcpy in the provided code snippet. I will re-evaluate for the correct line 1237. The snippet provided is cut short. Given the line 1237 from the prompt as `memcpy(&var_name_len, data_ptr, sizeof(uint32_t));`, the preceding bounds check is at line 1234: `if (data_ptr + sizeof(uint32_t) > data_end)`. This check is sufficient to cover the `memcpy` operation."
+   },
+   {
+    "func": "sav_read_variable_missing_double_values",
+    "line": 265,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 265 copies 8 bytes from `&info->missing_double_values[i]` into `long_value`. The source pointer `&info->missing_double_values[i]` is derived from `info->missing_double_values`, which is an array allocated based on `info->n_missing_values`. The loop iterates from `i=0` to `info->n_missing_values - 1`. The `io->read` call before the loop ensures that `info->n_missing_values * sizeof(double)` bytes were successfully read into `info->missing_double_values`. However, this read operation does not guarantee that `info->missing_double_values` is large enough to hold `info->n_missing_values` doubles. The allocation of `info->missing_double_values` is not shown in the provided code snippet, but assuming it was properly allocated for `info->n_missing_values` doubles, then the access `info->missing_double_values[i]` would be within bounds for `i < info->n_missing_values`. Without the allocation site, it's impossible to confirm if the size of `info->missing_double_values` truly covers `info->n_missing_values * sizeof(double)` bytes. Therefore, lacking a definitive bounds check for the allocation size that covers this access, I must default to true."
+   },
+   {
+    "func": "sav_read_pascal_string",
+    "line": 1038,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1038 copies `sizeof(uint32_t)` bytes into `var_name_len`. This operation is guarded by the check `if (data_ptr + sizeof(uint32_t) > data_end)` at line 1035, which ensures that there are at least `sizeof(uint32_t)` bytes available from `data_ptr` to `data_end`. `data_end` is `data_ptr_len` bytes after `data_ptr`, so this check covers the access."
+   },
+   {
+    "func": "sav_process_row",
+    "line": 714,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 714 copies `8` bytes from `&buffer[data_offset]` to `ctx->raw_string + raw_str_used`. The `src-ptr` operand `&buffer[data_offset]` is INPUT-DERIVED. The loop condition `data_offset < buffer_len` partially bounds `data_offset`, but there is no explicit check to ensure `data_offset + 8` does not exceed `buffer_len`. Therefore, an overflow on the source buffer is possible if `data_offset` is `buffer_len - 1` through `buffer_len - 7`."
+   },
+   {
+    "func": "sav_process_row",
+    "line": 744,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 744 copies 8 bytes from `&buffer[data_offset]`. The `data_offset` is controlled by the `while (data_offset < buffer_len ...)` loop condition. This condition ensures that `data_offset` is less than `buffer_len`. However, `data_offset < buffer_len` only guarantees that `buffer[data_offset]` is a valid read. It does not guarantee that `buffer[data_offset + 7]` (for a total of 8 bytes) is valid. For the memcpy to be safe, the condition should be `data_offset + 8 <= buffer_len`. Without this, there is a potential for an out-of-bounds read if `buffer_len` is between `data_offset + 1` and `data_offset + 7` inclusive."
+   },
+   {
+    "func": "readstat_parse_sav",
+    "line": 1603,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet for `readstat_parse_sav` shows a `memcpy` operation at line 1603. The `src-ptr` operand is `&header` and the `size` is `sizeof(sav_file_header_record_t)`. The `memcpy` itself is a read from `io->read` into `&header`. The taint analysis flags `src-ptr` which is `&header`. However, `header` is a local variable `sav_file_header_record_t header;`. The `memcpy` target (`&header`) is a fixed-size local buffer. The size argument to `memcpy` (read in from `io->read`) is `sizeof(sav_file_header_record_t)`, which is constant. There is no `memcpy` in this snippet where `src-ptr` is input-derived AND its size is also input-derived or controlled in a way that would lead to an out-of-bounds write to a local buffer. The flagged line 1603 is `if (io->read(&header, sizeof(sav_file_header_record_t), io->io_ctx) < sizeof(sav_file_header_record_t))`. This is a `read` operation, not a `memcpy` in the traditional sense of C's `memcpy` function, but rather an I/O read into a buffer. The `src-ptr` in the context of `io->read` would be the internal buffer used by the `io` implementation, and its size is controlled by the `io->read` call. The *destination* (`&header`) is a fixed-size local buffer. An out-of-bounds write *to* `header` is not possible because the size argument to `io->read` is `sizeof(sav_file_header_record_t)`. The taint could be indicating that `io->read` returns an input-derived pointer, but that's not how `io->read` typically works; it takes a destination buffer. The `src-ptr` being 'input-derived' for a read operation *into* a local buffer (the `&header` argument) doesn't make sense as an OOB to `&header`. If `src-ptr` refers to the *return value* of `io->read` being input-derived, and that return value was then used as `src-ptr` for a subsequent `memcpy` into a buffer that was too small, that would be a bug. However, the line 1603 is directly handling the return value (`< sizeof(...)`). Therefore, based on the provided code, there's no apparent out-of-bounds write to `&header` due to tainted `src-ptr` and fixed `size`."
+   },
+   {
+    "func": "sav_read_value_label_record",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 580 copies 8 bytes from `vlabel->raw_value` to `&val_d`. `val_d` is a `double`, which is typically 8 bytes, so the destination buffer is large enough. The source `vlabel->raw_value` is a field of `value_label_t`. This `raw_value` field is read directly from the input stream with `io->read(vlabel->raw_value, 8, io->io_ctx)` at line 527. This ensures that `vlabel->raw_value` is always populated with at least 8 bytes before the `memcpy` is called. Therefore, there is no out-of-bounds read from `vlabel->raw_value`, and no out-of-bounds write to `&val_d`."
+   },
+   {
+    "func": "sav_parse_machine_floating_point_record",
+    "line": 972,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 972 has `data` as the source pointer and `sizeof(sav_machine_floating_point_info_record_t)` as the size. The function `sav_parse_machine_floating_point_record` takes `data` and `size` as arguments. There's a check `if (size != 8 || count != 3)` at the beginning of the function. This implies that the expected `size` of each element (which `data` points to) is 8 bytes, and there are 3 such elements (`count`). The `memcpy` uses `sizeof(sav_machine_floating_point_info_record_t)`. Looking at the definition of `sav_machine_floating_point_info_record_t`, it's likely composed of three `double` fields (sysmis, highest, lowest), each 8 bytes, making the total size 24 bytes. The `memcpy` itself copies 24 bytes, which corresponds to the size of the `fp_info` struct. The `data` argument passed to the function would point to a block of 24 bytes (8 bytes * 3 elements). Therefore, `memcpy(&fp_info, data, sizeof(sav_machine_floating_point_info_record_t))` is writing 24 bytes from `data` into `fp_info`, which is of size 24. This looks correct and not an out-of-bounds access. The `size` argument to the function is 8, which is the size of *one* element, not the total size of the `data` buffer, but the `memcpy` uses `sizeof(sav_machine_floating_point_info_record_t)` which is 24, and the `data` buffer is expected to be at least 24 bytes long given the `count != 3` check. The 'tainted operand src-ptr' likely refers to the `data` parameter. However, `data_len` is used to guard the copy in `sav_parse_machine_integer_info_record`, and here `size` and `count` are used, implicitly defining the length of `data` as `size * count = 8 * 3 = 24`. The `memcpy` copies exactly this amount (24 bytes)."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1108,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1108 copies 4 bytes (sizeof(uint32_t)) into `value_len` from `data_ptr`. The preceding `if` statement at line 1106, `if (data_ptr + sizeof(uint32_t) > data_end)`, acts as a bounds check. If `data_ptr + 4` would exceed `data_end`, the function returns `READSTAT_ERROR_PARSE`, preventing the `memcpy` from going out of bounds. This indicates a careful guard against an out-of-bounds read."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1123,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 1123 reads 'value_len', which is user-controlled. However, the subsequent `data_ptr + value_len > data_end` check at line 1137 ensures that the 'value_len' read from the input cannot cause `data_ptr + value_len` to exceed the bounds of `data_end`. Therefore, the `value_len` used to calculate `value_buffer_len` and in the subsequent check is constrained, preventing an out-of-bounds read or write."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1152,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1152 is `memcpy(&label_count, data_ptr, sizeof(uint32_t))`. Preceding this, at line 1148, there is a bounds check: `if (data_ptr + sizeof(uint32_t) > data_end)`. If this condition is true, the function returns `READSTAT_ERROR_PARSE` via `goto cleanup;`. This means that `data_ptr` is guaranteed to point to at least `sizeof(uint32_t)` bytes before the `memcpy` is executed. The size expression for the `memcpy` is `i64 4`, which is equivalent to `sizeof(uint32_t)`. Therefore, the `memcpy` is guarded and will not read out of bounds."
+   },
+   {
+    "func": "sav_parse_long_string_missing_values_record",
+    "line": 1237,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1237 copies `sizeof(uint32_t)` bytes from `data_ptr` into `label_len`. The `src-ptr` for this `memcpy` is `data_ptr`. The buffer `data_ptr` is checked against `data_end` two lines above: `if (data_ptr + sizeof(uint32_t) > data_end) { ... goto cleanup; }`. This check ensures that there are enough bytes remaining in the input buffer to perform the `memcpy` without going out of bounds. Therefore, the `memcpy` is guarded."
+   },
+   {
+    "func": "sav_read_variable_missing_double_values",
+    "line": 265,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for the `memcpy` operation at line 265 is `&info->missing_double_values[i]`. This pointer is an element within the `info->missing_double_values` array. The size of the `memcpy` is `8` bytes, which is `sizeof(double)`. This perfectly matches the size of an individual element `info->missing_double_values[i]`. The array itself `info->missing_double_values` is allocated to hold `info->n_missing_values` doubles. The loop iterates from `i=0` to `i<info->n_missing_values`. Therefore, `info->missing_double_values[i]` will always be within the bounds of the allocated array. The `memcpy` is reading exactly one `double` from its memory location, which is a valid operation."
+   },
+   {
+    "func": "sav_read_pascal_string",
+    "line": 1038,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1038 copies `sizeof(uint32_t)` bytes into `var_name_len`. The `src-ptr` operand is `data_ptr`. Before this `memcpy`, there's a bounds check: `if (data_ptr + sizeof(uint32_t) > data_end)`. If this condition is true, `retval` is set to `READSTAT_ERROR_PARSE`, and the function jumps to `cleanup`, preventing the `memcpy`. This check ensures that `data_ptr` always has enough space for `sizeof(uint32_t)` bytes, thus preventing an out-of-bounds read."
+   },
+   {
+    "func": "sav_process_row",
+    "line": 714,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 714 copies 8 bytes from `&buffer[data_offset]` to `ctx->raw_string + raw_str_used`. The `src-ptr` operand `&buffer[data_offset]` is indeed input-derived. However, the copy is guarded by `if (raw_str_used + 8 <= ctx->raw_string_len)`. The `buffer` itself has a length `buffer_len` that is checked against `data_offset` in the `while (data_offset < buffer_len ...)` loop condition. The `data_offset` is incremented by 8 after each memcpy because `SPSS_DOC_LINE_SIZE` is 8 (from a previous `sav_skip_document_record` where it increments `n_lines * SPSS_DOC_LINE_SIZE`), implicitly ensuring `data_offset + 8` does not exceed `buffer_len` (because `data_offset` must be strictly less than `buffer_len`). Thus, the read from `buffer[data_offset]` is bounds-checked by `data_offset < buffer_len`, and the write to `ctx->raw_string` is guarded by the explicit `raw_str_used + 8 <= ctx->raw_string_len` check. Therefore, this does not appear to be a real out-of-bounds bug."
+   },
+   {
+    "func": "sav_process_row",
+    "line": 744,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 744 is reading 8 bytes from `buffer[data_offset]`. The `data_offset` is controlled by the loop condition `data_offset < buffer_len`. `buffer_len` is the length of the input buffer. Thus, `buffer[data_offset]` will always be within the bounds of `buffer` as long as `data_offset + 8 <= buffer_len`. The loop continues as long as `data_offset < buffer_len`, and `data_offset` is incremented by `8` in each iteration. The largest value `data_offset` can have is `buffer_len - 8` to allow `data_offset + 8 <= buffer_len`. If `data_offset` becomes `buffer_len - 7` (for example), the condition `data_offset < buffer_len` is still true, but `data_offset + 8` would be `buffer_len + 1`, leading to an out-of-bounds read. However, `data_offset` is always incremented by `8`. This means that if `buffer_len` is not a multiple of `8`, `data_offset` might exceed `buffer_len - 8` while still satisfying `data_offset < buffer_len`, leading to an out-of-bounds read. But the loop condition `data_offset < buffer_len` ensures that `data_offset` will not go past `buffer_len - 1`. The `memcpy` copies 8 bytes starting at `buffer[data_offset]`. If `data_offset` is `buffer_len - 7` for example, this would read 7 bytes within `buffer` and 1 byte out-of-bounds. Since `data_offset` is incremented by 8, and the check is `data_offset < buffer_len`, an out-of-bounds read can occur if `buffer_len % 8 != 0`. For example, if `buffer_len = 7`, the loop `while (data_offset < buffer_len)` will not execute. If `buffer_len = 8`, `data_offset` can be `0`, `memcpy` reads `buffer[0..7]`. If `buffer_len = 9`, `data_offset` can be `0`. `memcpy` reads `buffer[0..7]`. Then `data_offset` becomes `8`. The loop condition `8 < 9` is true. `memcpy` reads `buffer[8..15]`, which is an OOB read. This is a real bug."
+   }
+  ]
+ }
+]

@@ -1,0 +1,41 @@
+[
+ {
+  "id": "23499",
+  "project": "clamav-devel",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "cli_codepage_to_utf8",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 256 copies `len` bytes from `data` to `b->data` starting at offset `b->len`. Immediately preceding this, there is a re/allocation logic. The `if (b->size < b->len + (off_t)len)` condition at lines 228 and 245 ensures that `b->data` is sufficiently sized to hold `b->len + len` bytes. If the current `b->size` is not enough, `cli_realloc` is called to increase `b->size` by `growth` (which is at least `pagesize` or `len * 4`, ensuring enough space for `len` bytes). Therefore, the `memcpy` is covered by the preceding size check and reallocations."
+   },
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code first checks if `b->size < b->len + (off_t)len`. If the current allocated size `b->size` is not large enough to accommodate the existing data `b->len` plus the new data `len`, it reallocates memory. In the `HAVE_CLI_GETPAGESIZE` block, it reallocates `b->size + growth`, where `growth` is at least `pagesize` (usually 4096) or `((len / pagesize) + 1) * pagesize` if `len` is large. In the `!HAVE_CLI_GETPAGESIZE` block, it reallocates `b->size + (len * 4)`. Both approaches ensure that the new `b->size` is at least `b->len + len` (in fact, it's larger). Therefore, the `memcpy` operation `memcpy(&b->data[b->len], data, len)` will always have sufficient space allocated at `b->data` starting from `b->len` to copy `len` bytes."
+   }
+  ]
+ }
+]

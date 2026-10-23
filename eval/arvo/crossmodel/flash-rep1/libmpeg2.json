@@ -1,0 +1,141 @@
+[
+ {
+  "id": "16604",
+  "project": "libmpeg2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+    "line": 372,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 372 is within a loop. The size of the copy, `u4_width`, is input-derived. The `pu1_dst` and `pu1_src` pointers are incremented in each iteration by `u4_dest_inc_y` (derived from `u4_dest_stride_y`) and `u4_stridey` respectively. While the loop iterates `u4_height` times, there is no visible bounds check or guard that explicitly verifies if `pu1_dst` will go out of bounds of `pu1_dest_y` + (`u4_dest_stride_y` * `u4_height`) or if `pu1_src` will go out of bounds of `pu1_y` + (`u4_stridey` * `u4_height`), considering `u4_width` for each copy. The current code does not provide any explicit bounds check for the `memcpy` operation."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 126 copies `i4_uv_width` bytes. This value is derived from `u4_width >> 1`, which is an input parameter. The `for` loop iterates `i4_uv_height` times, where `i4_uv_height` is derived from `u4_height >> 1`, also an input parameter. There are no explicit bounds checks (e.g., `if (i4_uv_width > max_buf_size)`) on `i4_uv_width` or `i4_uv_height` that would ensure the `memcpy` operations do not write past the allocated buffers for `pu1_dst_v` or read past `pu1_src_v`. Since `u4_width` and `u4_height` are input-derived and not checked, an attacker could provide values that cause an out-of-bounds access. The function takes `u4_dst_stride_v` and `u4_src_stride_v` as separate stride parameters, which further complicates simple buffer size assumptions without explicit checks. The analysis indicates the size, source, and destination pointers are input-derived, but no corresponding input-derived buffer sizes are checked against them."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 133,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 133 copies `u4_width` bytes. This `u4_width` is an input-derived value. The destination pointer `pu1_dst_y` is advanced by `u4_dst_stride_y` in each iteration of the loop, and the source pointer `pu1_src_y` by `u4_src_stride_y`. There is no explicit bounds check (e.g., `if (pu1_dst_y + u4_width > end_of_buffer)`) for either the source or destination buffers before or within the loop that covers this specific `memcpy` operation. The loop condition `i4_cnt < i4_y_height` only ensures that the loop runs for a certain number of iterations, not that each individual `memcpy` access is within bounds of the actual memory allocated for `pu1_dst_y` or `pu1_src_y`."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 141,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %42",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 141 is within a loop. The size operand `u4_width` (for Y plane) and `i4_uv_width` (for U/V planes) are derived from `u4_width` and `u4_height` function arguments. The source and destination pointers `pu1_src_y`, `pu1_dst_y`, etc. are incremented by `u4_src_stride_y`, `u4_dst_stride_y`, etc. in each iteration. There are no explicit bounds checks (e.g., `if (off+n > cap)`) or bounds checking macros (like ND_TCHECK/ND_TTEST/CHECK_*/GROW/ENSURE) visible in the provided code snippet that would ensure the `memcpy` operations do not read or write beyond the allocated buffers for `pu1_src_y`, `pu1_src_u`, `pu1_src_v`, `pu1_dst_y`, `pu1_dst_u`, and `pu1_dst_v`. Without knowledge of how these pointers and their sizes are managed by the caller, it's impossible to guarantee memory safety. Thus, a real bug is assumed."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_vu",
+    "line": 314,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 314 copies `u4_width` bytes. The loop iterates `u4_height` times. `pu1_src` is incremented by `u4_stridey` and `pu1_dst` is incremented by `u4_dest_stride_y`. There is no bounds check visible on `pu1_src` or `pu1_dst` to ensure that `u4_width` bytes can be read from `pu1_src` or written to `pu1_dst` in each iteration, given the initial pointer and stride values. The `u4_width` and `u4_height` values are inputs and can be controlled by an attacker."
+   },
+   {
+    "func": "impeg2d_api_init",
+    "line": 1678,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %67",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` operates on `ps_mem_rec->pv_base` with a size of `ps_mem_rec->u4_mem_size`. The `ps_mem_rec` pointer is advanced in a loop (`for(i = 1; i < ps_dec_init_ip->s_ivd_init_ip_t.u4_num_mem_rec; i++)`). The value of `ps_dec_init_ip->s_ivd_init_ip_t.u4_num_mem_rec` is derived from input (`ps_dec_init_ip`). There is no explicit bounds check on `ps_mem_rec` itself to ensure it remains within a valid array of `iv_mem_rec_t` structures, nor is there a check on `ps_mem_rec->u4_mem_size` to ensure it does not exceed the allocated size of `ps_mem_rec->pv_base`. Thus, both the pointer `ps_mem_rec` and the size `ps_mem_rec->u4_mem_size` can be input-derived without sufficient bounds checks covering this specific `memset` operation."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+    "line": 372,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 372 is `memcpy((void *)pu1_dst,(void *)pu1_src, u4_width);`. The size operand is `u4_width`. This `memcpy` is within a loop that runs `u4_height` times. The pointers `pu1_dst` and `pu1_src` are incremented by `u4_dest_inc_y` (which is `u4_dest_stride_y`) and `u4_stridey` respectively in each iteration. This pattern is typical for copying rows of image data. An out-of-bounds access would occur if `u4_width` is greater than the allocated size for a row in either `pu1_src` or `pu1_dst`, or if `u4_height` causes `pu1_src` or `pu1_dst` to go beyond the total allocated buffer. However, the function arguments `u4_height`, `u4_width`, `u4_stridey`, `u4_dest_stride_y` are expected to define the valid dimensions and strides of the input and output buffers. Without knowing the allocation and the constraints on these input parameters, it's difficult to confirm an OOB. Assuming typical image processing where `stride >= width`, this `memcpy` is usually safe. The taint analysis flags it because `u4_width` is input-derived, but it doesn't automatically mean it's a bug. The caller of this function is responsible for ensuring the dimensions and strides are consistent with the allocated buffers. Based on the provided snippet, there are no obvious arithmetic overflows or underflows that would lead to an OOB here, given valid image dimensions and strides."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The size argument of memcpy (i64 %20, which is i4_uv_width) is derived from u4_width, an input parameter. The destination and source pointers (pu1_dst_v, pu1_src_v) are also input parameters. The loop iterates i4_uv_height times, also derived from u4_height. There are no explicit checks in the provided code snippet to ensure that u4_width, u4_height, u4_src_stride_v, or u4_dst_stride_v are within safe bounds for the allocated buffers for pu1_dst_v and pu1_src_v. An attacker could potentially provide large width/height values that lead to an out-of-bounds write or read when memcpy is called, as the size of the copy (i4_uv_width) and the pointer increments (u4_dst_stride_v, u4_src_stride_v) are directly controlled by these input values. This constitutes a real, triggerable out-of-bounds vulnerability if the calling context doesn't properly validate these parameters."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 133,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 133 is within a loop. The size operand for this `memcpy` is `u4_width`. This `u4_width` is an input parameter to the function. While `u4_width` is input-derived, the `memcpy` is copying one row of data at a time. The loop iterates `i4_y_height` times, which is derived from `u4_height`. The `pu1_dst_y` and `pu1_src_y` pointers are advanced by their respective strides (`u4_dst_stride_y` and `u4_src_stride_y`) in each iteration. For this to be an out-of-bounds access, either `u4_width` would have to be greater than the allocated size for a single row in `pu1_dst_y` or `pu1_src_y`, or the strides would have to be such that the `memcpy` accesses memory outside the total allocated buffer for `pu1_dst_y` or `pu1_src_y` after `i4_y_height` iterations. However, `u4_width`, `u4_height`, and the stride values are typically expected to be consistent with the allocated buffer sizes by the caller. The function itself does not perform any checks on these input parameters against the actual buffer allocations. This is a common pattern in image processing functions where the caller is responsible for ensuring the buffer sizes are adequate. Without knowing how `impeg2_copy_frm_yuv420p` is called and how `pu1_src_y`, `pu1_dst_y`, `u4_width`, `u4_height`, and strides are determined, we cannot definitively say there's an out-of-bounds write within this function. The function's logic itself seems to correctly copy data row by row based on the provided dimensions and strides. A conservative approach dictates that we assume the caller provides valid parameters within the bounds of allocated buffers. If the caller provides malicious or incorrect dimensions/strides that exceed actual buffer allocations, then it would be an out-of-bounds write, but the vulnerability would lie at the call site rather than in the `memcpy` logic itself, as the `memcpy` is merely fulfilling the request with the provided (potentially invalid) dimensions."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 141,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %42",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted size operand `u4_width` is passed directly as a function argument. The function `impeg2_copy_frm_yuv420p` copies `u4_width` bytes for each row of the Y plane, and `i4_uv_width` (which is `u4_width >> 1`) for the U and V planes. The code does not perform any explicit bounds checking on `u4_width` against the allocated sizes of `pu1_src_y`, `pu1_dst_y`, etc. However, this is a common pattern in image processing where the caller is responsible for ensuring that the provided `u4_width`, `u4_height`, and stride values are valid and do not lead to out-of-bounds accesses. Without knowing the context of how `impeg2_copy_frm_yuv420p` is called and what validation is performed on its inputs, it's difficult to definitively say this is a *genuine* bug within *this specific function*. Many image processing libraries assume valid input parameters. If the `u4_width` can be controlled by an attacker and made arbitrarily large, then it would be a bug. But simply being input-derived doesn't automatically make it a bug without understanding the calling context and expected input constraints. Given the conservative nature of the request, I will assume that typical image processing libraries expect valid dimensions from the caller."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_vu",
+    "line": 314,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand `i64 %20` is `u4_width`. The memcpy operates within a loop that iterates `u4_height` times. In each iteration, it copies `u4_width` bytes from `pu1_src` to `pu1_dst`. The `pu1_src` pointer is incremented by `u4_stridey` and `pu1_dst` by `u4_dest_stride_y`. As long as `u4_width` is less than or equal to both `u4_stridey` and `u4_dest_stride_y`, and the input/output buffers are appropriately sized (which is an assumption for correct media processing), this `memcpy` operation will not go out of bounds. The code structure for Y-plane copying is standard for YUV format conversion and appears robust if the input parameters (`u4_width`, `u4_height`, `u4_stridey`, `u4_dest_stride_y`) correctly reflect the allocated buffer sizes and image dimensions. There's no immediate indication within the snippet that `u4_width` would exceed the allocated buffer size or stride. The remaining code handles the UV plane interleaving, which is separate from this specific memcpy and is not part of the current tainted operation."
+   },
+   {
+    "func": "impeg2d_api_init",
+    "line": 1678,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %67",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation is performed inside a loop. The size of the memory to be set (`ps_mem_rec->u4_mem_size`) is taken directly from the `iv_mem_rec_t` structure pointed to by `ps_mem_rec`. The `pv_base` member of the same structure is used as the destination pointer. This indicates that each memory record is responsible for specifying its own base address and size. The critical aspect here is whether `ps_mem_rec` can point to an invalid memory record or whether `ps_mem_rec->u4_mem_size` can be arbitrarily large. The `u4_num_mem_rec` field in `ps_dec_init_ip->s_ivd_init_ip_t` controls the loop's iteration count. If an attacker can control `u4_num_mem_rec` and the contents of the `pv_mem_rec_location` array, they could potentially cause an out-of-bounds write. However, the input `ps_dec_init_ip` is a structure passed to the API. It is expected that `ps_dec_init_ip->s_ivd_init_ip_t.pv_mem_rec_location` points to a valid array of `iv_mem_rec_t` structures and that `ps_dec_init_ip->s_ivd_init_ip_t.u4_num_mem_rec` accurately reflects the number of valid records in that array. Without a concrete exploit path showing how an attacker can manipulate these values to point to arbitrary memory or provide an oversized `u4_mem_size` for a given `pv_base`, I am considering this as careful code. The `ps_mem_rec` pointer is incremented within the loop, meaning it iterates through an array of memory records. The size for each `memset` call is taken from the `u4_mem_size` field of the current `iv_mem_rec_t` structure. This pattern is common for initializing pre-allocated memory pools. A vulnerability would arise if the `u4_mem_size` for a given record exceeds the actual buffer size allocated for `pv_base`, or if `u4_num_mem_rec` is too large causing `ps_mem_rec` to read past the end of the `pv_mem_rec_location` array."
+   }
+  ]
+ }
+]

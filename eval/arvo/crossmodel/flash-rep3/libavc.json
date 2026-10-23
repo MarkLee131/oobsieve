@@ -1,0 +1,521 @@
+[
+ {
+  "id": "65060",
+  "project": "libavc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "isvcd_start_of_pic",
+  "n_gt_cands": 15,
+  "n_gt_confirmed": 15,
+  "n_other_sampled": 10,
+  "n_other_confirmed": 10,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 298,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %276",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 298 is writing `num_mbs * sizeof(UWORD16)` bytes to `ps_dec->pu2_slice_num_map`. The size `num_mbs` is derived from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` and `ps_dec->ps_cur_sps->u1_frame_mbs_only_flag`, both of which are input-derived. There is no visible explicit bounds check (like an `if (size > capacity)` or a bounds macro) on `ps_dec->pu2_slice_num_map` before this `memset` call to ensure that the calculated `num_mbs * sizeof(UWORD16)` does not exceed the allocated size of `ps_dec->pu2_slice_num_map`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 303,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %284",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` operations at lines 303, 308, and 313 use `num_mbs` as the size, which is derived from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` and `ps_dec->ps_cur_sps->u1_frame_mbs_only_flag`. The pointer `ps_dec->pu1_dec_mb_map`, `ps_dec->pu1_recon_mb_map`, and `ps_dec->pu2_slice_num_map` are also members of the `ps_dec` structure. While there are checks `if(ps_dec->pu1_dec_mb_map)`, `if(ps_dec->pu1_recon_mb_map)`, and `if(ps_dec->pu2_slice_num_map)` to ensure the pointers are not NULL, there is no explicit bounds check (e.g., `if (num_mbs > allocated_size)`) that covers the size `num_mbs` against the allocated buffer sizes for these pointers. Without information on how these buffers are allocated and their maximum possible sizes, or a visible check that `num_mbs` is within those bounds, a potential overflow exists."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 308,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %294",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 308 is inside an `if(ps_dec->pu2_slice_num_map)` block. The size operand is `(num_mbs * sizeof(UWORD16))`. While `num_mbs` is calculated from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` and `ps_dec->ps_cur_sps->u1_frame_mbs_only_flag`, there is no explicit bounds check or allocation for `ps_dec->pu2_slice_num_map` visible in the provided code snippet that would guarantee it can hold `num_mbs * sizeof(UWORD16)` bytes. The `if` condition only checks if the pointer is non-NULL, not if the allocated buffer is large enough."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 385,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20184",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 385 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `src-ptr` (`ps_dec->ps_sei`) is INPUT-DERIVED. While `ps_cur_pic` is obtained from a buffer manager, there's no visible bounds check ensuring that the `sizeof(sei)` bytes read from `ps_dec->ps_sei` do not exceed the allocated size for `ps_dec->ps_sei` itself. The analysis already confirmed `ps_dec->ps_sei` is not a constant, not clamped, and not an allocate-to-fit size, which suggests its size might not be fully controlled or validated. Therefore, without an explicit check on `ps_dec->ps_sei`'s allocated size before this memcpy, a real bug is assumed."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 397,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %484",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The size for the memset operation is `i64 %484`, which is `mb_info_map_size = ps_dec->u4_total_mbs << 2`. This size is derived from `ps_dec->u4_total_mbs`, which is a decoder parameter. There are no explicit bounds checks (like `if (size > buffer_capacity) return;`) or calls to allocation/reallocation functions that would ensure `ps_dec->as_buf_id_info_map[cur_pic_buf_id].pu1_qp_map` and `ps_dec->as_buf_id_info_map[cur_pic_buf_id].pu1_mb_type_map` are large enough to accommodate this `mb_info_map_size` based on the input-derived `u4_total_mbs`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 398,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %491",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 398 is part of a block that is conditionally executed if `ps_dec->u1_enable_mb_info` is true. The size of the `memset` is `mb_info_map_size`, which is derived from `ps_dec->u4_total_mbs`. The destination pointer is `ps_dec->as_buf_id_info_map[cur_pic_buf_id].pu1_qp_map`, which is calculated as `ps_dec->pu1_qp_map_base + cur_pic_buf_id * mb_info_map_size`. Although `cur_pic_buf_id` is bounded by `MAX_DISP_BUFS_NEW` (implicitly by the `ih264_buf_mgr_get_next_free` function and the subsequent check `if(0 == ps_dec->u4_disp_buf_mapping[cur_pic_buf_id]) break;`), there is no explicit bounds check to ensure that `ps_dec->pu1_qp_map_base + cur_pic_buf_id * mb_info_map_size + mb_info_map_size` does not go out of bounds of the allocated memory for `ps_dec->pu1_qp_map_base`. The initial allocation of `ps_dec->pu1_qp_map_base` is not visible in this snippet, and there's no guarantee that it's large enough to accommodate the calculated offset and size for all possible `cur_pic_buf_id` and `mb_info_map_size` values derived from input. Therefore, a bounds check covering this exact access is not visible."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 410,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 410 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `ps_dec->ps_sei` pointer is INPUT-DERIVED. There are no explicit bounds checks on `ps_dec->ps_sei` before this memcpy operation to ensure it points to a buffer at least `sizeof(sei)` bytes long. While `ps_dec->ps_cur_pic` and related buffers are obtained from a buffer manager, this does not guarantee the safety of the source `ps_dec->ps_sei`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 412,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 412 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `ps_cur_pic->s_sei_pic`. The `ps_dec->ps_sei` pointer is INPUT-DERIVED. There are no explicit bounds checks on `ps_dec->ps_sei` or its contents that would ensure it can safely provide `sizeof(sei)` bytes. The only checks are for `ps_cur_pic` and `ps_col_mv` being NULL, which are unrelated to the size of `ps_dec->ps_sei`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 414,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 414 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `ps_dec->ps_sei` pointer is tainted, indicating it comes from an input-derived source. There are no bounds checks on `ps_dec->ps_sei` before this `memcpy` operation. Although `ps_cur_pic->s_sei_pic` is a field within a newly acquired `pic_buffer_t`, the source pointer `ps_dec->ps_sei` is not validated against its allocated size, making it vulnerable to an out-of-bounds read if `ps_dec->ps_sei` points to a smaller buffer than `sizeof(sei)`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 416,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 416 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `ps_dec->ps_sei` is the tainted operand. There is no visible bounds check on `ps_dec->ps_sei` prior to this memcpy operation. The `ps_cur_pic` is obtained from `ih264_buf_mgr_get_next_free` and its allocation size is unknown, but even if it were properly sized, the source `ps_dec->ps_sei` is not checked. Therefore, if `ps_dec->ps_sei` points to an undersized buffer, a buffer overflow could occur."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 417,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 417 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `ps_dec->ps_sei` operand is identified as input-derived. There is no explicit bounds check or guard (like ND_TCHECK or an if condition) on the path leading to this memcpy that ensures `ps_dec->ps_sei` is large enough to contain `sizeof(sei)` bytes. The `ps_dec->ps_cur_pic` comes from `ih264_buf_mgr_get_next_free`, which likely ensures the destination buffer is valid, but doesn't guarantee the source buffer's size."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 419,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 419 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `ps_dec->ps_sei` pointer is tainted and the size `20296` is not `sizeof(sei)` bytes which is used in the `memcpy`. There is no bounds check visible on the path reaching this operation that covers the `ps_dec->ps_sei` pointer with the specified size of `20296` bytes. The only `sizeof(sei)` used is 4 bytes. Thus, there is a potential for a buffer overflow if `ps_dec->ps_sei` points to a buffer smaller than 20296 bytes."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 420,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 420 copies `i64 20296` bytes to `ps_dec->ps_decode_cur_slice`. The `ps_dec->ps_decode_cur_slice` pointer is initialized to `&(ps_dec->ps_dec_slice_buf[0])` at line 348. The size of `ps_dec_slice_buf` is not visible in the provided code snippet, nor is there any explicit bounds check (e.g., `if (20296 > sizeof(ps_dec->ps_dec_slice_buf))` or `ND_TCHECK` etc.) that covers this specific memory operation."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 422,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 422 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `src-ptr` (`ps_dec->ps_sei`) is identified as INPUT-DERIVED. There are no explicit bounds checks (like `if (ptr + len > end_ptr)`) or robust macros (ND_TCHECK/ND_TTEST/CHECK_*/GROW/ENSURE) covering `ps_dec->ps_sei` to ensure it can safely provide `sizeof(sei)` bytes. The only checks related to `ps_dec->ps_sei` prior to this are likely parsing/validation, but they do not guarantee the buffer's size for this `memcpy` specifically."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 444,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 444 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The issue states that `src-ptr` (which is `ps_dec->ps_sei`) is INPUT-DERIVED. There is no explicit bounds check (like an `if` statement or a macro like `ND_TCHECK`) visible in the provided code snippet that would ensure the size of `ps_dec->ps_sei` is at least `sizeof(sei)` (which is `20296` based on the given size expression). Therefore, if the input-derived `ps_dec->ps_sei` points to a buffer smaller than `20296` bytes, a buffer overflow will occur."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 199,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 199 has a size of 2228 bytes. The destination `ps_subset_seq` is initialized with `ps_subset_seq = ps_svc_lyr_dec->pv_scratch_subset_sps;` and then `memset(ps_subset_seq, 0, sizeof(dec_svc_seq_params_t));`. The `sizeof(dec_svc_seq_params_t)` is 2228 bytes. The source `ps_seq` is initialized with `ps_seq = ps_dec->pv_scratch_sps_pps;` and then `memset(ps_seq, 0, sizeof(dec_seq_params_t));`. There is no explicit bounds check or guard (like ND_TCHECK/ND_TTEST or an if statement with `off+n > cap`) that confirms `ps_dec->ps_cur_sps` (the source of the memcpy via `*ps_seq = *ps_dec->ps_cur_sps;`) is at least 2228 bytes in size or large enough to hold `dec_seq_params_t`. Without a clear check on the source buffer's size, a potential overflow exists if `ps_dec->ps_cur_sps` points to a smaller buffer than `sizeof(dec_seq_params_t)`."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 883,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 883 copies 2228 bytes, but there is no preceding bounds check that covers this specific size and the `src-ptr` operand. The numerous `if` conditions and `EXCEED_OFFSET` check primarily deal with structural validity and bitstream boundaries, not the allocation or bounds of the `src-ptr` itself with respect to a 2228-byte copy. Without more context on `ps_dec->ps_sps` and `ps_seq`, it's impossible to verify if this operation is safe."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 889,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted operand `src-ptr` of `memcpy` at line 889 is `ps_dec->ps_sps[u1_seq_parameter_set_id]`. This is being assigned the value of `*ps_seq`. The size of the copy is `80`. There is no explicit bounds check (like an `if (off+n > cap)` or `ND_TCHECK`) immediately preceding this `memcpy` operation that specifically checks if `ps_dec->ps_sps[u1_seq_parameter_set_id]` can accommodate 80 bytes from `*ps_seq`. While there are various checks throughout the function related to picture dimensions, reorder depth, and other parameters, none of them directly guarantee the buffer capacity for the `memcpy` of size 80."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1192,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 1192 copies 2228 bytes into `ps_seq` which is `ps_dec->pv_scratch_sps_pps`. This is a scratch buffer of type `dec_seq_params_t`. There's no explicit bounds check or a known macro guard for this specific copy operation. The preceding `memset(ps_seq, 0, sizeof(dec_seq_params_t));` only initializes the buffer but doesn't guarantee the size of `dec_seq_params_t` is at least 2228 bytes. The size of `dec_seq_params_t` is not visible in the provided code snippet to confirm it covers 2228 bytes. Therefore, without a visible guard or confirmation of buffer size, it's assumed to be a real bug."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1670,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1670 is `ps_dec->ps_sps[u1_seq_parameter_set_id] = *ps_seq;` which is a struct copy. The size of this struct, `sps_t`, is 2228 bytes. The `src-ptr` (`ps_seq`) is derived from the input. There are no explicit bounds checks (like `if (size > capacity) return error;` or a macro like `ND_TCHECK`) covering the allocation or access of `ps_dec->ps_sps` or the size `2228` on the path leading to this operation. While there are other checks for stream width/height and reorder depth, they don't directly address the size of this `sps_t` struct copy."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1671,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1671 is `ps_dec->ps_sps[u1_seq_parameter_set_id] = *ps_seq;`. This is a struct copy of `h264_sps_t` (80 bytes). The destination `ps_dec->ps_sps` is an array. The index `u1_seq_parameter_set_id` is derived from input bitstream. There is no explicit bounds check on `u1_seq_parameter_set_id` against the size of `ps_dec->ps_sps` array before this memory operation. The `EXCEED_OFFSET(ps_bitstrm)` check only validates bitstream read offset, not array indices."
+   },
+   {
+    "func": "isvcd_parse_pps",
+    "line": 1713,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 544",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1713 uses `ps_dec->ps_pps[u4_temp]` as the source, and `u4_temp` is an input-derived value. While there is a check `if(u4_temp & MASK_ERR_PIC_SET_ID) return ERROR_INV_SPS_PPS_T;`, this only checks if the ID is too large (likely exceeding a certain bit mask value), but it does not perform a bounds check against the actual array size of `ps_dec->ps_pps`. Therefore, an attacker could craft `u4_temp` to be an out-of-bounds index, leading to a read out of bounds from `ps_dec->ps_pps`."
+   },
+   {
+    "func": "isvcd_parse_pps",
+    "line": 1872,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 544",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code snippet provided does not contain a bounds check that specifically covers a `memcpy` operation of size 544 from the tainted `src-ptr` at line 1872. The existing checks like `ps_pps->u1_wted_bipred_idc > MAX_WEIGHT_BIPRED_IDC`, `(i8_temp < MIN_H264_QP) || (i8_temp > MAX_H264_QP)`, `(i_temp < -12) || (i_temp > 12)`, `ps_pps->u1_num_slice_groups > 7`, and `EXCEED_OFFSET(ps_bitstrm)` are for other parameters or general bitstream integrity, not for the specific memory access of 544 bytes. There's no visible `if (src_ptr + 544 > src_ptr_capacity)` or a macro like `ND_TCHECK` that would protect this copy."
+   },
+   {
+    "func": "isvcd_parse_decode_slice_ext_nal",
+    "line": 1535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 524",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1535 copies `sizeof(dpb_commands_t)` (524 bytes) from `&(ps_dec->s_dpb_cmds_scratch)` to `ps_dec->ps_dpb_cmds`. The `ps_dec->ps_dpb_cmds` is an input-derived pointer. There is no visible bounds check, `if (off+n > cap) ...`, or any macro for `ps_dec->ps_dpb_cmds` that ensures it can hold at least 524 bytes. Thus, if `ps_dec->ps_dpb_cmds` points to a smaller buffer, it could lead to an overflow."
+   },
+   {
+    "func": "isvcd_parse_decode_slice",
+    "line": 2775,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 524",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 2775 uses `ps_dec->ps_dpb_cmds` as the destination and `sizeof(dpb_commands_t)` (which evaluates to 524) as the size. The source is `&(ps_dec->s_dpb_cmds_scratch)`. The problem statement indicates the `src-ptr` is tainted and `INPUT-DERIVED`, and no bounds check is present on the path reaching this operation. Even though `sizeof(dpb_commands_t)` is a constant, if the src-ptr itself (i.e. `&(ps_dec->s_dpb_cmds_scratch)`) is an input-derived address, there is no check ensuring that reading 524 bytes from that input-derived address will not cause an out-of-bounds read. The previous `if(!ps_dec->ps_dpb_cmds->u1_dpb_commands_read)` only checks a flag, not the buffer's bounds."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 298,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %276",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `num_mbs` is derived from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` and `ps_dec->ps_cur_sps->u1_frame_mbs_only_flag`. These are fields within `ps_dec->ps_cur_sps`, which is a pointer to an SPS (Sequence Parameter Set) structure. SPS data is typically parsed from the bitstream, but it represents parameters of the video sequence itself, like resolution. The `u2_total_num_of_mbs` field defines the total number of macroblocks in a frame/field. The `u1_frame_mbs_only_flag` is also a standard H.264 parameter. These values are part of the video stream's configuration and are used to correctly allocate and manage buffers for the video frames. While these values are derived from input, they define the expected dimensions of the video. The code then uses `num_mbs` to determine the size for `memset` operations on `ps_dec->pu1_dec_mb_map`, `ps_dec->pu1_recon_mb_map`, and `ps_dec->pu2_slice_num_map`. These pointers are expected to point to buffers correctly sized based on these SPS parameters. Assuming a robust decoder implementation, these buffers (`pu1_dec_mb_map`, `pu1_recon_mb_map`, `pu2_slice_num_map`) would have been allocated based on the same SPS-derived `num_mbs` value earlier in the decoding process (e.g., during SPS parsing or picture allocation). Therefore, the `memset` operation should be writing within the bounds of the allocated memory. A bug would only exist if the buffer allocation mechanism itself is flawed or if `ps_dec->ps_cur_sps` contains malicious, out-of-spec values that are not properly validated before allocation. Without seeing the allocation of these buffers, it's difficult to definitively say there's no bug, but based purely on the `memset` call, the size is derived from standard video parameters. The size calculation `num_mbs = ps_dec->ps_cur_sps->u2_total_num_of_mbs << (1 - ps_dec->ps_cur_sps->u1_frame_mbs_only_flag);` seems correct for calculating the total number of macroblocks based on frame/field status. This is a common pattern in video decoders and typically assumes that the allocated buffers match these dimensions. It's not immediately apparent that an attacker could provide an `u2_total_num_of_mbs` that would exceed a pre-allocated buffer without causing earlier crashes or being caught by other validation checks (e.g., during SPS parsing). Thus, it's more likely that the `num_mbs` accurately reflects the size of the destination buffers."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 303,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %284",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `size` is `num_mbs * sizeof(UWORD16)`. `num_mbs` is derived from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` and `ps_dec->ps_cur_sps->u1_frame_mbs_only_flag`. `ps_dec->pu2_slice_num_map` is a pointer to memory allocated based on these values. The `memset` operation is guarded by `if(ps_dec->pu2_slice_num_map)`, ensuring it only operates on a valid, previously allocated buffer. The size calculation `num_mbs * sizeof(UWORD16)` correctly reflects the intended size for the buffer based on the number of macroblocks and the size of the UWORD16 type. Assuming `ps_dec->ps_cur_sps->u2_total_num_of_mbs` is a valid, constrained value within the H.264 standard and the memory for `ps_dec->pu2_slice_num_map` was allocated based on this value, there is no apparent out-of-bounds write."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 308,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %294",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size `num_mbs` is derived from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` and `ps_dec->ps_cur_sps->u1_frame_mbs_only_flag`. These values are part of the H.264 SPS (Sequence Parameter Set), which is parsed from the input bitstream but typically undergoes validation against H.264 standard limits during parsing. The memory being cleared, `ps_dec->pu1_dec_mb_map`, `ps_dec->pu1_recon_mb_map`, and `ps_dec->pu2_slice_num_map`, are allocated based on these same SPS parameters. Assuming a robust H.264 parser validates the SPS values to prevent excessively large allocations, the `memset` operations should operate within the bounds of the allocated memory. The only potential issue would be an integer overflow if `num_mbs * sizeof(UWORD16)` exceeds `SIZE_MAX`, but `u2_total_num_of_mbs` is a `UWORD16`, and even `65535 * 2` is well within typical `size_t` limits. Thus, it's unlikely to be a real out-of-bounds bug without more context about the SPS parsing and allocation validation."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 385,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20184",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 385 copies data from `ps_dec->ps_sei` to `ps_cur_pic->s_sei_pic`. The size of the copy is `sizeof(sei)`. The `src-ptr` `ps_dec->ps_sei` is initialized earlier in the code (not shown in the provided snippet) from the nal unit parser, which could be considered input-derived. However, the `memcpy` operation copies a fixed size (`sizeof(sei)`), which is a constant, into a member of a `pic_buffer_t` structure. This fixed size copy prevents a direct out-of-bounds write to `ps_cur_pic->s_sei_pic` if `ps_dec->ps_sei` were to point to a smaller buffer. The `sizeof(sei)` ensures that the destination buffer `s_sei_pic` is always correctly sized for the copy, assuming `s_sei_pic` itself is an `sei` structure or a buffer of sufficient size to hold an `sei` structure.  The `src-ptr` being 'tainted' just means its content is from input; as long as the size is fixed and known, and the destination is also fixed and known, this is not an OOB."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 397,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %484",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size for the memset operation at line 397 is `num_mbs`. This value is derived from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` which is part of the Sequence Parameter Set (SPS). The H.264 standard specifies constraints on the SPS values, including `total_num_of_mbs`. Video decoders are expected to validate these SPS values against the specified limits. If `ps_dec->ps_cur_sps->u2_total_num_of_mbs` is properly validated (e.g., against a maximum allowed frame size or allocated buffer size), then `num_mbs` will not exceed the allocated size for `ps_dec->pu1_dec_mb_map`. Without knowing the specific validation logic for SPS parameters, it's difficult to be certain, but generally, a compliant decoder would validate these parameters before memory allocations and operations. Therefore, assuming proper SPS validation, this would not be a real out-of-bounds bug. If SPS parsing and validation were flawed, then it could be a vulnerability, but this particular line is not inherently the source of the vulnerability if such a flaw exists upstream."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 398,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %491",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `num_mbs` is derived from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` which is part of the SPS (Sequence Parameter Set). The SPS is typically parsed from the input bitstream, making `num_mbs` an input-derived value. The destination pointers `ps_dec->pu1_dec_mb_map`, `ps_dec->pu1_recon_mb_map`, and `ps_dec->pu2_slice_num_map` are likely allocated based on the SPS parameters during initialization. Although `num_mbs` is input-derived, it is expected to be within valid bounds as determined by the H.264 standard. Without seeing the allocation of these buffers or any explicit bounds checks on `num_mbs` relative to the allocated buffer sizes, it's difficult to definitively confirm an out-of-bounds write. However, it's common for decoders to allocate buffers sized to accommodate `u2_total_num_of_mbs` or `num_mbs`. Given the context of a video decoder, these values are usually constrained by the standard and processed carefully. The code also checks if the pointers are non-NULL before calling `memset`, indicating some level of robustness. Without more context on the buffer allocation, it's safer to assume no bug here, as it's a standard operation based on header values."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 410,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 410 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `src-ptr` `ps_dec->ps_sei` is a pointer to a `sei` struct, and the `dst-ptr` `&ps_cur_pic->s_sei_pic` is a pointer to a `sei` struct member within `ps_cur_pic`. Both are of the same type `sei`. The size of the copy is `sizeof(sei)`, which matches the size of the source and destination types. Therefore, this `memcpy` is not an out-of-bounds access on either the source or destination. The taint on `ps_dec->ps_sei` indicates it is input-derived, but the copy operation itself is bounded by the size of the `sei` structure, preventing a buffer overflow here. This looks like a safe structure copy."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 412,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 412 is `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei));`. The size of the copy is `sizeof(sei)`, which is a fixed size. The destination `ps_cur_pic->s_sei_pic` is a member of `pic_buffer_t` structure. The source `ps_dec->ps_sei` is a pointer to a `sei` structure. This looks like a straightforward structure copy. The `ps_dec->ps_sei` pointer is likely initialized earlier in the code, and if it were `NULL`, a `NULL` dereference would occur before the `memcpy`, which is a different class of bug. Assuming `ps_dec->ps_sei` points to a valid `sei` structure, the copy size is fixed and matches the size of the destination member, making it safe. The taint on `src-ptr` (ps_dec->ps_sei) probably comes from input parsing, but `sizeof(sei)` ensures that it doesn't lead to an out-of-bounds write *on the destination*. If the *source* itself were malformed (e.g., `ps_dec->ps_sei` points to a buffer smaller than `sizeof(sei)`), that would be an out-of-bounds read, but the current analysis is about `src-ptr` as tainted operand of `memcpy` with size `20296`, implying an out-of-bounds write on the *destination*. However, the code snippet clearly shows `sizeof(sei)` as the size, not `20296`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 414,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 414 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `src-ptr` operand, `ps_dec->ps_sei`, is input-derived. However, the size is a fixed `sizeof(sei)`, which suggests a copy of a structured type. It's common for decoders to parse SEI messages into a fixed-size structure. An out-of-bounds write would only occur if `ps_dec->ps_sei` points to an area smaller than `sizeof(sei)`, which would typically be an allocation issue or a corrupted pointer. The context doesn't provide enough information to determine if `ps_dec->ps_sei` is guaranteed to point to a buffer of at least `sizeof(sei)` bytes. However, without evidence of a preceding allocation or parsing error that could lead to `ps_dec->ps_sei` being undersized, and given the fixed, struct-sized copy, it's difficult to confidently state this is a 'real_bug' that is triggerable by malformed input leading to an OOB read on `ps_dec->ps_sei` itself. It looks like a standard struct copy. If `ps_dec->ps_sei` is supposed to be a pointer to a fully parsed `sei` structure, then copying it by `sizeof(sei)` is correct. The taint indicates it's 'input-derived', which is expected for decoded data. The key question is whether the *allocation* or *parsing* of `ps_dec->ps_sei` prior to this point could lead to it being smaller than `sizeof(sei)`. Without that information, it's safer to assume it's correctly sized for the operation it's performing, as fixed-size struct copies are generally safe unless the source pointer itself is corrupted or points to an undersized allocation, which is not directly indicated here."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 416,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 417,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 417 copies `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `src-ptr` operand, `ps_dec->ps_sei`, is a pointer to a `sei` struct. The size of the copy is `sizeof(sei)`. This means it's copying exactly the size of the `sei` structure. Unless `ps_dec->ps_sei` itself is an invalid pointer or points to a buffer smaller than `sizeof(sei)`, this `memcpy` operation itself is not an out-of-bounds write. The taint analysis indicates `src-ptr` is input-derived, but without more context on *how* it's derived and where it points, and given the copy size perfectly matches the type size, it's unlikely to be an out-of-bounds bug *at this specific memcpy call*. It could be an issue if `ps_dec->ps_sei` is made to point to a too-small buffer, but the copy size itself is safe. The size expression `i64 20296` in the analysis for `sizeof(sei)` is also suspiciously large, implying `sei` might be a very large struct or `sizeof` is misinterpreted. Assuming `sizeof(sei)` is the actual size, this specific copy looks safe. If `ps_dec->ps_sei` can be controlled to point outside allocated memory, that would be a different bug, but not an out-of-bounds write *due to the size of the memcpy*."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 419,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 419 copies the content of `ps_dec->ps_sei` into `ps_cur_pic->s_sei_pic` with a size of `sizeof(sei)`. The `src-ptr` operand is `ps_dec->ps_sei`. `ps_dec->ps_sei` is of type `sei*`, and `ps_cur_pic->s_sei_pic` is also of type `sei`. The size of the copy is determined by `sizeof(sei)`, which is the size of the destination and the expected size of the source. While `ps_dec->ps_sei` is input-derived, the `sizeof(sei)` ensures that the copy operation will not go out of bounds of the `sei` structure itself. The risk would be if `ps_dec->ps_sei` pointed to a buffer smaller than `sizeof(sei)`, but the code doesn't provide information to suggest that `ps_dec->ps_sei` could be an arbitrarily small buffer controlled by input, especially since it's used as a direct pointer to a `sei` structure. Assuming `ps_dec->ps_sei` is a valid pointer to at least `sizeof(sei)` bytes, this specific `memcpy` is not an out-of-bounds access. The `ps_dec->ps_sei` is likely populated elsewhere based on parsed SEI NAL units, and the `sizeof(sei)` is a constant, ensuring the copy fits the structure."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 420,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is copying `sizeof(sei)` bytes from `ps_dec->ps_sei` to `ps_cur_pic->s_sei_pic`. The `src-ptr` `ps_dec->ps_sei` points to a `sei` structure. The destination `ps_cur_pic->s_sei_pic` is also a `sei` structure. The size of the `memcpy` is explicitly `sizeof(sei)`, which is the size of the source and destination structures. This suggests a direct structure copy, which is typically safe unless `ps_dec->ps_sei` itself is uninitialized or points to invalid memory. However, based on the provided code snippet, there's no direct indication that `ps_dec->ps_sei` is improperly sized or allocated in a way that would lead to an overflow *at the point of this specific memcpy*. The `src-ptr` is tainted, implying that the contents of `ps_dec->ps_sei` might be attacker-controlled, but the size of the copy is fixed to `sizeof(sei)`. An out-of-bounds write would only occur if `ps_dec->ps_sei` points to a buffer smaller than `sizeof(sei)`, which is not shown here."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 422,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy is copying `sizeof(sei)` bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. The `ps_dec->ps_sei` pointer is typically populated from parsed SEI messages in the bitstream, which is user-controlled. However, the destination `ps_cur_pic->s_sei_pic` is a member of the `pic_buffer_t` structure, specifically of type `sei`. The `sizeof(sei)` should match the size of the `s_sei_pic` member. If `sizeof(sei)` is correctly defined and the `ps_sei` pointer points to a valid `sei` structure, then this memcpy would not be an out-of-bounds write. The size argument for memcpy is `sizeof(sei)`, not `i64 20296`. The value `20296` is likely the size of `pic_buffer_t` or some other buffer. The line `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei));` explicitly uses `sizeof(sei)` as the size, which means it will copy exactly the size of the `sei` structure. This operation looks safe assuming `ps_dec->ps_sei` points to a valid `sei` structure. The taint on `src-ptr` (ps_dec->ps_sei) is expected as it comes from parsed input, but as long as the size copied matches the destination buffer, it's not a bug. The provided information about `size expr i64 20296` seems to be extraneous or misinterpreted, as the code clearly states `sizeof(sei)`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 444,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation copies the contents of `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic` with a size of `sizeof(sei)`. The `ps_dec->ps_sei` pointer is a member of the `ps_dec` structure, which is likely part of the decoder's internal state. The `ps_cur_pic` pointer is obtained from `ih264_buf_mgr_get_next_free`, which manages picture buffers. Assuming `ps_dec->ps_sei` is always a valid pointer to a `sei` structure (which it should be if the decoder is initialized correctly and the SEI message parsing is sound), and `&ps_cur_pic->s_sei_pic` is a valid address within a `pic_buffer_t` structure, there is no inherent out-of-bounds access. The size of the copy is fixed to `sizeof(sei)`, which is a constant and doesn't depend on input-derived values that could lead to an overflow. The taint on `src-ptr` (`ps_dec->ps_sei`) alone does not indicate a vulnerability, as long as the source buffer is of at least `sizeof(sei)` bytes, which is expected for a `sei` structure. The provided code does not show how `ps_dec->ps_sei` is populated or if its size is checked before this `memcpy`. However, assuming standard H.264 decoder operation, `ps_dec->ps_sei` would point to a correctly parsed SEI message, which would inherently be at least `sizeof(sei)` in size if `sei` is the structure meant to hold such a message. Without more context on how `ps_dec->ps_sei` is populated and if its allocated size can be less than `sizeof(sei)` due to malicious input, I cannot confirm a real bug."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 199,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 199 is not present in the provided code snippet. The latest `memcpy` found is at line 170 `memset(ps_subset_seq, 0, sizeof(dec_svc_seq_params_t));` and at line 171 `memset(ps_seq, 0, sizeof(dec_seq_params_t));`. The `src-ptr` for these `memset` calls is a literal `0`, which is not an input-derived tainted operand. Therefore, there is no out-of-bounds bug associated with a tainted `src-ptr` at line 199 or in the nearby vicinity of the provided code."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 883,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The memcpy is copying `*ps_seq` to `ps_dec->ps_sps[u1_seq_parameter_set_id]`. The `u1_seq_parameter_set_id` is derived from input, and used as an index into the `ps_dec->ps_sps` array. While a check `(1 == ps_dec->ps_sps[u1_seq_parameter_set_id].u1_is_valid)` exists earlier, it's used within an `if` condition and does not guarantee that `u1_seq_parameter_set_id` is within bounds for the assignment `ps_dec->ps_sps[u1_seq_parameter_set_id] = *ps_seq;`. If `u1_seq_parameter_set_id` is out of bounds, this will lead to an out-of-bounds write of size `sizeof(*ps_seq)` (which is 2228 bytes as per the provided context 'size expr `i64 2228`')."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 889,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 889 `ps_dec->ps_sps[u1_seq_parameter_set_id] = *ps_seq;` is a struct assignment, not a `memcpy` in the traditional sense of a library call. The size `i64 80` is likely the size of the `sps_t` struct. The tainted operand `src-ptr` (`ps_seq`) is a pointer to a local variable `s_sps` in the caller function `isvcd_parse_seq_parameter_set`. This local variable is properly initialized and its size is known. The destination `ps_dec->ps_sps` is an array of `sps_t` structs, indexed by `u1_seq_parameter_set_id`, which is validated by `if(u1_seq_parameter_set_id >= MAX_SPS_ID) { return ERROR_INV_SPS_PPS_T; }` earlier in the `isvcd_parse_seq_parameter_set` function. Therefore, both source and destination are valid and within bounds, and this is not a triggerable out-of-bounds bug."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1192,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is at line 1192 and the tainted operand is `src-ptr`. The size of the `memcpy` is `2228`. The `src-ptr` is `ps_svc_lyr_dec->pv_scratch_subset_sps`. This variable is assigned the return value of `ps_svc_lyr_dec->pv_scratch_subset_sps;`. The structure `dec_svc_seq_params_t` is being copied. The preceding lines show `memset(ps_subset_seq, 0, sizeof(dec_svc_seq_params_t));` and `memset(ps_seq, 0, sizeof(dec_seq_params_t));`. The `sizeof(dec_svc_seq_params_t)` is 2228 bytes. The `memcpy` is copying from `ps_dec->ps_cur_sps` into `ps_seq`. The size of the `memcpy` is `sizeof(dec_seq_params_t)` which is 2228. This appears to be a copy of a `dec_seq_params_t` structure. This `memcpy` is guarded by the condition `if (ps_dec->i4_header_decoded & 1)`. And if `ps_dec->ps_cur_sps` is `NULL`, it returns `ERROR_INV_SPS_PPS_T`. The `ps_dec->ps_cur_sps` variable is a pointer to `dec_seq_params_t` structure. The `memcpy` operation copies data from one `dec_seq_params_t` structure to another `dec_seq_params_t` structure, so it is copying between structures of the same size. Thus, this is not an out-of-bounds access."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1670,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1670 is `ps_dec->ps_sps[u1_seq_parameter_set_id] = *ps_seq;`. This is a struct assignment, which is essentially a `memcpy` of the struct `*ps_seq` to the destination `ps_dec->ps_sps[u1_seq_parameter_set_id]`. The `src-ptr` being flagged as input-derived refers to `ps_seq`. However, `ps_seq` is a pointer to an `sps_t` struct (`struct sps_t *ps_seq`) that is allocated on the stack within the calling function `isvcd_parse_sps`. Its contents are populated by parsing the bitstream (which is input-derived), but the pointer itself (`ps_seq`) points to a valid, stack-allocated memory region. The `size expr` of `i64 2228` is the `sizeof(sps_t)`, which is a fixed size. Therefore, copying the contents of a valid stack-allocated struct to another valid array element (`ps_dec->ps_sps[u1_seq_parameter_set_id]`) does not constitute an out-of-bounds access. The index `u1_seq_parameter_set_id` is validated earlier in the `isvcd_parse_sps` function with `if(u1_seq_parameter_set_id >= MAX_SPS_PARAMS) { return ERROR_INV_SPS_PPS_T; }` ensuring it's within bounds of the `ps_dec->ps_sps` array."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1671,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1671 is actually a struct assignment `ps_dec->ps_sps[u1_seq_parameter_set_id] = *ps_seq;`. The size is `sizeof(sps_t)`, which is `80`. The `src-ptr` operand is `ps_seq`, which is a local variable (allocated on the stack). The `u1_seq_parameter_set_id` is parsed from the bitstream, but it's checked against `MAX_SPS_ID` (32) earlier in the `isvcd_parse_sps` function (at line 1058, `if(u1_seq_parameter_set_id >= MAX_SPS_ID)`), before any write to `ps_dec->ps_sps`. Therefore, the array access `ps_dec->ps_sps[u1_seq_parameter_set_id]` is bounded, and the source `ps_seq` is a valid pointer to a local stack variable. There is no out-of-bounds access."
+   },
+   {
+    "func": "isvcd_parse_pps",
+    "line": 1713,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 544",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for the `memcpy` is `ps_dec->ps_pps[u4_temp]`. The `u4_temp` variable is read from the bitstream using `ih264d_uev` and then checked against `MASK_ERR_PIC_SET_ID`. If the value of `u4_temp` exceeds this mask, the function returns an error `ERROR_INV_SPS_PPS_T`. This check ensures that `u4_temp` is within a valid range for indexing the `ps_pps` array, thus preventing an out-of-bounds access. The size of the `memcpy` (544 bytes) is fixed and appears to be the size of `dec_pic_params_t` struct, which `ps_pps` points to."
+   },
+   {
+    "func": "isvcd_parse_pps",
+    "line": 1872,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 544",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is a parsing function (`isvcd_parse_pps`) for H.264 Picture Parameter Set (PPS). The `memcpy` operation is not present in the provided code snippet. The taint analysis report states the `memcpy` is at line 1872 with a size expression `i64 544`. However, the provided code only goes up to line 1877, and there is no `memcpy` call within this range, nor can a `memcpy` with size 544 be inferred from the existing code. Without the actual `memcpy` call and its context (source, destination, and size calculation), it's impossible to determine if `src-ptr` is genuinely out-of-bounds. The provided code does include several checks for input-derived values (e.g., `MAX_WEIGHT_BIPRED_IDC`, `MIN_H264_QP`, `MAX_H264_QP`, `-12`/`12` range checks, `u1_num_slice_groups` check). It also has `MORE_RBSP_DATA` and `EXCEED_OFFSET` checks to ensure data isn't read past the end of the bitstream buffer. Given these explicit checks and the absence of the reported `memcpy` in the provided code, I cannot confidently conclude it's a real bug."
+   },
+   {
+    "func": "isvcd_parse_decode_slice_ext_nal",
+    "line": 1535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 524",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1535 copies `sizeof(dpb_commands_t)` bytes from `&(ps_dec->s_dpb_cmds_scratch)` to `ps_dec->ps_dpb_cmds`. Both `ps_dec->ps_dpb_cmds` and `ps_dec->s_dpb_cmds_scratch` are members of the `ps_dec` structure. The `src-ptr` `&(ps_dec->s_dpb_cmds_scratch)` is an internal structure member, meaning its size is determined by the `dpb_commands_t` definition, and the `size` argument to `memcpy` is explicitly `sizeof(dpb_commands_t)`. This setup strongly suggests that the copy size perfectly matches the source and destination buffer sizes, which are known and fixed at compile time. Thus, it's highly unlikely to be an out-of-bounds access. The taint analysis might have flagged it because `s_dpb_cmds_scratch` could itself contain input-derived values, but the operation itself is safe with respect to buffer boundaries."
+   },
+   {
+    "func": "isvcd_parse_decode_slice",
+    "line": 2775,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 524",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 2775 copies `sizeof(dpb_commands_t)` bytes from `&(ps_dec->s_dpb_cmds_scratch)` to `ps_dec->ps_dpb_cmds`. The size of the copy is a fixed constant, `sizeof(dpb_commands_t)`, not the `i64 524` mentioned in the prompt. The `src-ptr` `&(ps_dec->s_dpb_cmds_scratch)` is a pointer to a member of the `ps_dec` structure, which is itself likely allocated and managed internally. There is no obvious way for external input to control the size of `dpb_commands_t` or the bounds of `s_dpb_cmds_scratch`. The tainted operand `src-ptr` being 'input-derived' for `s_dpb_cmds_scratch` is suspicious, but without more context on how `ps_dec` is initialized and how the structure `dpb_commands_t` is defined, it's hard to confidently say there's an out-of-bounds read. However, given that it's a `memcpy` of a fixed-size struct to another fixed-size struct (within the same parent struct), it's highly unlikely to be a genuine out-of-bounds issue unless the `ps_dec` pointer itself is corrupted or points to an invalid memory region, which is a different class of bug not directly related to this `memcpy`'s source buffer bounds based on the information provided. The prompt's 'size expr `i64 524`' seems incorrect for this specific memcpy call, as the code shows `sizeof(dpb_commands_t)`."
+   }
+  ]
+ }
+]

@@ -1,0 +1,181 @@
+[
+ {
+  "id": "47503",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 8,
+  "recall": "hit",
+  "gt_func": "uncompress_b44_impl",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 7,
+  "n_other_confirmed": 6,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 2,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "uncompress_b44_impl",
+    "line": 505,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 505 is used to copy data from `row0` to `s[0]`. The size of the copy is `4 * sizeof(uint16_t)`. The source pointer `row0` is advanced by 4 in each iteration of the inner loop. The values `row0`, `row1`, `row2`, and `row3` are offsets into the `scratch` buffer. While there are checks for `y + 3 >= ny` and `x + 3 >= nx` to handle boundary conditions by copying individual elements, the `memcpy` is used in the `else` branch, implying `x + 3 < nx` and `y + 3 < ny`. However, there isn't an explicit bounds check that verifies `row0 + 4 * sizeof(uint16_t)` (or its equivalents for `row1`, `row2`, `row3`) against the allocated size of the `scratch` buffer or the `nBytes` calculated earlier. The only check `if (bIn + nBytes > comp_buf_size)` ensures `nBytes` fits within `comp_buf_size`, but `nBytes` is for the entire channel, not the current row segment. The `scratch` buffer is used as a temporary storage, but its total size is not explicitly checked against the cumulative access of `row0`, `row1`, `row2`, and `row3` during the `memcpy` operations within the loops. Therefore, it's unclear if `row0`, `row1`, `row2`, `row3` always point to valid memory locations with enough space for 4 `uint16_t` values."
+   },
+   {
+    "func": "internal_coding_fill_channel_info",
+    "line": 32,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The size operand `(size_t) (chans) * sizeof (exr_coding_channel_info_t)` for the `memset` call at line 32 is derived from `chans`. `chans` is either `<= 5` in which case `chanfill` points to a `builtinextras` array (which is assumed to be large enough to hold 5 `exr_coding_channel_info_t` structures), or `chans > 5`, in which case `chanfill` is allocated with `pctxt->alloc_fn` to be precisely `chans * sizeof(exr_coding_channel_info_t)` bytes. This allocation ensures that `chanfill` is large enough to accommodate `chans` elements, directly matching the size used in `memset`. Therefore, the `memset` operation is covered by the allocation size."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 353,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %46",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 353 copies `bpl` bytes from `packed` to `tmp`. The `tmp` pointer is calculated based on `scratch`, `y`, `bpl`, `cury`, `curc->y_samples`, and `curc->height`. The `scratch` buffer is allocated with `encode->scratch_alloc_size_1` which is set to `encode->packed_bytes`. The `nBytes` variable is calculated as `((uint64_t) (ny)) * bpl`. The `scratch` pointer is advanced by `nBytes` in each channel loop. The `tmp` pointer can be `scratch + ((uint64_t) (y / curc->y_samples)) * bpl` or `scratch + ((uint64_t) y) * bpl`. The `packed` pointer is advanced by `bpl` after each memcpy. The size of the `packed_buffer` is `encode->packed_bytes`. There is no explicit bounds check on `tmp` to ensure that `tmp + bpl` does not exceed the allocated size of `encode->scratch_buffer_1`, which is `encode->packed_bytes`. The calculation of `tmp` and the subsequent addition of `bpl` could potentially lead to an out-of-bounds write if the sum of `nBytes` across channels, or the `y` and `y_samples` values, cause `tmp + bpl` to go beyond the `encode->packed_bytes` limit for the `scratch_buffer_1`. Therefore, without a visible bounds check, this is considered a real bug."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 377,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %110",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 377 copies `nBytes` bytes from `scratch` to `out`. The `nBytes` value is calculated as `((uint64_t) (ny)) * bpl`. There is a check `if (nOut + nBytes > encode->compressed_alloc_size)` immediately before the `memcpy`. This check covers the destination buffer `out`. However, there is no bounds check for the source buffer `scratch`. The `scratch` pointer is advanced by `nBytes` in each iteration, but `nBytes` itself is derived from `curc->width`, `curc->height`, and `curc->bytes_per_element`, which are input-derived. While `scratch` is initially allocated based on `encode->packed_bytes` (via `internal_encode_alloc_buffer` call), the `nBytes` value in this loop iteration is not explicitly checked against the allocated size of `scratch_buffer_1` (which is `encode->scratch_alloc_size_1`). Thus, it's possible for `scratch` to read beyond its allocated bounds if `nBytes` is sufficiently large."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 429,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 429 has `row0` as the source pointer and `4 * sizeof(uint16_t)` (i.e., 8 bytes) as the size. `row0` is derived from `scratch`, which is `encode->scratch_buffer_1`. The calculation `row0 += y * nx;` occurs before the loop. Inside the `for (int x = 0; x < nx; x += 4)` loop, `row0` is incremented by 4. The `if (x + 3 >= nx)` condition checks for bounds related to `nx` (width) for the destination array `s`, but there is no explicit check to ensure that `row0` (or `row1`, `row2`, `row3`) will not read beyond the allocated size of `encode->scratch_buffer_1` when `memcpy` is called. The earlier `if (nOut + nBytes > encode->compressed_alloc_size)` check is for the destination `out` buffer, not `scratch`. Therefore, there's no visible bounds check covering the read from `row0` into `s`."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 430,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted operand `src-ptr` in the `memcpy` at line 430 is `row0`. The size of the copy is `4 * sizeof(uint16_t)` which is 8 bytes. The pointer `row0` is calculated as `(uint16_t*) scratch + y * nx`. The `scratch` buffer is `encode->scratch_buffer_1`. While `nBytes` (which is `((uint64_t) (ny)) * bpl`) is used to increment `scratch` and its size is compared against `encode->compressed_alloc_size` for other data types, there is no explicit bounds check on `row0` (or `row1`, `row2`, `row3`) against the allocated size of `encode->scratch_buffer_1` before the `memcpy` operation. The loops iterate based on `nx` and `ny`, which are derived from `curc->width` and `curc->height`, but these dimensions are not directly used to bound the access to `scratch_buffer_1` for the `memcpy` operation in the `EXR_PIXEL_HALF` case. Even though `s` is a stack array, the `memcpy` uses `row0`, `row1`, `row2`, `row3` as source pointers, which are derived from `scratch`. If `y * nx` or subsequent additions to `row0`, `row1`, `row2`, `row3` exceed the allocated size for `encode->scratch_buffer_1`, it would be an out-of-bounds read."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 431,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 431 is `memcpy (&s[12], row3, 4 * sizeof (uint16_t))`. The `src-ptr` operand is `row3`. The value of `row3` is derived from `scratch`, which is `encode->scratch_buffer_1`. The size of `row3` (and `row0`, `row1`, `row2`) is determined by `nx` and `ny`. Although there is a check `if (x + 3 >= nx)` and `if (y + 3 >= ny)` which adjusts `row1`, `row2`, `row3` if the access goes out of bounds, these checks only ensure that `row0`, `row1`, `row2`, `row3` point to a valid row within the `scratch` buffer. However, within the loop `for (int i = 0; i < 4; ++i)`, when `x + 3 >= nx` is true, the `memcpy` is replaced by individual assignments `s[i + 0] = row0[j]`, `s[i + 4] = row1[j]`, etc. When `x + 3 >= nx` is false, the `memcpy` is used. In this case, `memcpy (&s[12], row3, 4 * sizeof (uint16_t))` copies 8 bytes from `row3`. `row3` is incremented by 4 in each iteration of the inner loop (`row3 += 4;`). The `memcpy` itself copies 4 `uint16_t` values (8 bytes). There is no explicit bounds check guaranteeing that `row3` can safely provide 4 `uint16_t` values (8 bytes) at the current `x` offset. The `row3` pointer is advanced by 4 `uint16_t`s in each iteration, but the `nx` value could be such that `row3` plus the 4 `uint16_t`s copied by `memcpy` could go beyond the allocated memory for that row. For example, if `nx` is 5 and `x` is 0, the check `x + 3 >= nx` (0+3 >= 5) is false. `memcpy` attempts to read `row3[0]`, `row3[1]`, `row3[2]`, `row3[3]`. But the valid indices for `row3` would be 0 to `nx-1` (i.e., 0 to 4). `row3[4]` is valid, but `row3[3]` is already the 4th element (0-indexed). The `memcpy` reads `row3[0]` through `row3[3]`. When `x` advances to 4, `x+3 >= nx` (4+3 >= 5) is true, so the `memcpy` is not called, and the individual assignments handle the boundary. So, it seems like the `memcpy` itself is protected against going past `nx` when `x + 3 >= nx` is true. However, let's re-examine `row3` calculation. `row3 = row2 + nx`. This means `row3` points to the start of the 4th row for the current channel. The maximum `x` for `row3` is `nx-1`. The `memcpy` copies 4 `uint16_t` values. So, it accesses `row3[x]` to `row3[x+3]`. This means `x+3` must be less than `nx`. The condition `x + 3 >= nx` correctly switches to individual element copying to handle the boundary. Therefore, when `memcpy` is executed, we know `x + 3 < nx`, which means `x+3` is a valid index relative to `row3` (and `row0`, `row1`, `row2`). So the access is covered."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 432,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 432 is `memcpy (&s[0], row0, 4 * sizeof (uint16_t))`. The size of the access is `4 * sizeof(uint16_t)` which is 8 bytes. The destination `s` is a local array of `uint16_t s[16]`, so it has a size of `16 * sizeof(uint16_t)` which is 32 bytes. The `memcpy` will write to `s[0]` through `s[3]`, which is `&s[0]` up to `&s[0] + 8 - 1` bytes. This is within the bounds of `s`. However, the source pointer `row0` is derived from `scratch`, which is `encode->scratch_buffer_1`. While `nBytes` is checked against `encode->compressed_alloc_size` in a block above, that check is for `nBytes` when `curc->data_type != EXR_PIXEL_HALF`. This specific `memcpy` is inside a block for `curc->data_type == EXR_PIXEL_HALF`. There are no visible bounds checks or guards covering the read from `row0`, `row1`, `row2`, or `row3` before they are used as source operands for the `memcpy` operations. The pointer `scratch` is adjusted by `nBytes` in the previous loop, but there's no explicit check for `encode->scratch_buffer_1` bounds given that `row0` is an offset from `scratch`."
+   },
+   {
+    "func": "uncompress_b44_impl",
+    "line": 505,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand `i64 %29` corresponds to `4 * sizeof (uint16_t)`, which is a constant value of 8 bytes. The destination buffer `&s[0]` is a `uint16_t s[16]`, which is 32 bytes in size. Copying 8 bytes into a 32-byte buffer at an offset of 0, 4, 8, and 12 (corresponding to `&s[0]`, `&s[4]`, etc.) is safe, as the maximum index accessed is `s[12 + 3] = s[15]`, which is within the bounds of `s[16]`. The `memcpy` operations are guarded by `else { ... }` block, which is entered when `x + 3 < nx`, indicating that there are at least 4 elements to process. The loops and conditional statements appear to handle boundary conditions carefully, either by adjusting the `rowN` pointers to point within `row0` or by using a specific loop to copy individual elements when `x + 3 >= nx` (meaning fewer than 4 elements are remaining). The relevant `memcpy` calls in `uncompress_b44_impl` are not present in the provided snippet. The `memcpy` at line 505 refers to a call within the `compress_b44_impl` function, which copies 4 `uint16_t` values into a local `s` array of size 16 `uint16_t` values. This is not an out-of-bounds access. The `size` in this case `4 * sizeof(uint16_t)` is constant and not directly derived from input in a malicious way. It is a fixed size copy."
+   },
+   {
+    "func": "internal_coding_fill_channel_info",
+    "line": 32,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size is calculated as `(size_t) (chans) * sizeof (exr_coding_channel_info_t)`. The `chans` variable is derived from `chanlist->num_channels`, which is input-derived. However, the `chanfill` buffer is allocated using `pctxt->alloc_fn` with the exact same calculated size `(size_t) (chans) * sizeof (exr_coding_channel_info_t)`. This means the `memset` operates within the bounds of the freshly allocated memory. If `chans` is `<= 5`, `chanfill` points to `builtinextras`, a pre-allocated buffer. In this case, `builtinextras` is likely a fixed-size array, and if `chans` is greater than its capacity, an out-of-bounds write could occur. However, the code handles this by only using `builtinextras` when `chans <= 5`. It's a common pattern to have small fixed buffers for performance. So if `builtinextras` is indeed at least size 5 (or more precisely, `5 * sizeof(exr_coding_channel_info_t)`), then the `memset` will be safe in both branches. Without seeing the definition of `builtinextras`, we must assume it's correctly sized for the `chans <= 5` case, making this a safe operation."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 353,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %46",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 353 has a size operand `bpl` which is derived from `nx` (channel width) and `curc->bytes_per_element`. The destination pointer `tmp` is offset by `y * bpl` or `(y / curc->y_samples) * bpl`. The source pointer `packed` is advanced by `bpl` in each iteration. The `packed` buffer itself is filled earlier with `encode->packed_bytes` total bytes. The `scratch_buffer_1` is allocated with `encode->packed_bytes` as its size. However, the `scratch` pointer is advanced by `nBytes` (channel height * bpl) for each channel. If the sum of `nBytes` for all channels exceeds `encode->packed_bytes`, then `scratch` could go out of bounds of `scratch_buffer_1`. Since `encode->packed_bytes` is input-derived, an attacker could craft an input where `nBytes` for some channels are large, causing `scratch` to point beyond the allocated `scratch_buffer_1`, leading to an out-of-bounds write on subsequent `memcpy` calls. The size of the `memcpy` (`bpl`) is also input-derived, exacerbating the issue if `bpl` is large."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 377,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %110",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand `nBytes` for `memcpy` at line 377 is calculated as `((uint64_t) (ny)) * bpl` where `bpl` is `((uint64_t) (nx)) * (uint64_t) (curc->bytes_per_element)`. The destination buffer `out` is checked against `encode->compressed_alloc_size` with `if (nOut + nBytes > encode->compressed_alloc_size) return EXR_ERR_OUT_OF_MEMORY;` immediately before the `memcpy`. This check ensures that the copy size does not exceed the allocated buffer size, preventing an out-of-bounds write. Therefore, it is not a genuine out-of-bounds bug."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 429,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `src-ptr` in the `memcpy` call at line 429 refers to `&s[0]`, `&s[4]`, `&s[8]`, or `&s[12]`. The destination buffer `s` is a local array of `uint16_t s[16]`, meaning it has a size of `16 * sizeof(uint16_t) = 32` bytes. The `memcpy` operations are `memcpy(&s[0], row0, 4 * sizeof(uint16_t))`, `memcpy(&s[4], row1, 4 * sizeof(uint16_t))`, etc. Each `memcpy` copies `4 * sizeof(uint16_t) = 8` bytes. The target pointers (`&s[0]`, `&s[4]`, `&s[8]`, `&s[12]`) and the size (8 bytes) are all well within the bounds of the `s` array. Specifically:\n- `&s[0]` + 8 bytes covers `s[0]` through `s[3]`. Valid.\n- `&s[4]` + 8 bytes covers `s[4]` through `s[7]`. Valid.\n- `&s[8]` + 8 bytes covers `s[8]` through `s[11]`. Valid.\n- `&s[12]` + 8 bytes covers `s[12]` through `s[15]`. Valid.\n\nThe `size expr i64 8` in the prompt refers to `4 * sizeof(uint16_t)`. The `src-ptr` is derived from `row0`, `row1`, `row2`, `row3`, which are pointers into `encode->scratch_buffer_1` and are ultimately derived from input, but the question specifically asks about the `src-ptr` operand of the `memcpy` which is the *source* of the data *being copied into `s`*, not the destination `s` itself. However, the analyzer flagged the *src-ptr* operand, which in this context means the pointer `&s[0]`, `&s[4]`, etc. which are the *destinations* of the memcpy, but they are literally local variables. The prompt is a bit confusing on which `src-ptr` is being referred to: the `src` argument to `memcpy` (e.g. `row0`) or the `dst` argument (e.g. `&s[0]`). Given the phrasing 'memcpy at line 429 ... tainted operand src-ptr', and `&s[0]` is the first argument (dst), `row0` is the second argument (src), it's likely referring to `row0`. If `row0` is the tainted operand, then we need to check if `row0` itself could be out-of-bounds. However, the analysis output says 'tainted operand src-ptr' with `size expr i64 8`. This refers to the *second* argument of `memcpy` (the source pointer), which is `row0`, `row1`, `row2`, or `row3`. These pointers are derived from `scratch`, which is `encode->scratch_buffer_1`. The calculation of `row0`, `row1`, `row2`, `row3` involves `y * nx`, `+ nx`, etc., all bounded by `nBytes` (`ny * bpl`) that was checked against `encode->compressed_alloc_size` for `EXR_PIXEL_HALF` earlier. The first `memcpy` (line 347) also uses `bpl` which was checked. So `scratch` itself should be within bounds of `encode->scratch_buffer_1`. The subsequent manipulation `row0 += y * nx` and `row0 += 4` are all within the `ny` and `nx` loops. The padding logic `if (y + 3 >= ny)` handles cases where `ny` is not a multiple of 4, adjusting `row1`, `row2`, `row3` to point to valid rows. Similarly, the `if (x + 3 >= nx)` block handles `nx` not being a multiple of 4. Therefore, `row0`, `row1`, `row2`, `row3` (the `src` pointers for these `memcpy`s) should always point to valid memory regions within the `scratch` buffer for the given `n` (which is `nx - x` or 4). The `memcpy` then copies `4 * sizeof(uint16_t)` (8 bytes) from these `rowX` pointers. The bounds of `scratch_buffer_1` are managed by `nBytes = ((uint64_t) (ny)) * bpl;` and the outer loop for `y` and `c` ensures that `scratch` is advanced appropriately. The initial `memcpy` into `tmp` (which is `scratch`) ensures that the `scratch` buffer is populated. Therefore, the source pointers `row0`, `row1`, `row2`, `row3` are expected to be within valid bounds, and the `memcpy` operation itself does not cause an out-of-bounds write to `s` or an out-of-bounds read from `rowX` assuming `encode->scratch_buffer_1` was correctly sized and populated earlier in the function."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 430,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `src-ptr` in the memcpy at line 430 refers to `row0`, `row1`, `row2`, `row3`. These pointers are derived from `scratch`, which is `encode->scratch_buffer_1`. The calculation of these pointers involves `y`, `nx`, and the `uint16_t` type. The loops iterating over `y` and `x` ensure that the access within `row0` to `row3` (and consequently into `s`) is bounded. Specifically, `row0` to `row3` are adjusted by `y * nx`, `(y+1) * nx`, etc. The `memcpy` itself copies 4 * sizeof(uint16_t) bytes, meaning 8 bytes. The conditions `y + 3 >= ny` and `x + 3 >= nx` handle edge cases where the width or height is not a multiple of 4 by repeating rows/columns. In the 'else' branch where the memcpy occurs, `x + 3 < nx` is true, meaning there are at least 4 elements available from `row0`, `row1`, `row2`, and `row3` at the current `x` offset. Thus, reading 4 `uint16_t` elements (8 bytes) from each row pointer is within bounds because `nx` is guaranteed to be at least `x + 4`. The `scratch_buffer_1` is allocated to hold `nBytes` (which is `ny * bpl = ny * nx * curc->bytes_per_element`), and `curc->bytes_per_element` is 2 for `EXR_PIXEL_HALF`. Therefore, `scratch_buffer_1` is large enough to hold `ny * nx * 2` bytes. The row pointers `row0` through `row3` will point within this allocated buffer or at the end of it (due to padding logic when `y + 3 >= ny` is true) and the memcpy will read 4 `uint16_t`s (8 bytes) at a time. The loop conditions and padding logic appear to correctly constrain the access to within the allocated buffer for `scratch_buffer_1`."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 431,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 431 uses `row0`, `row1`, `row2`, and `row3` as source pointers. These pointers are derived from `scratch`, which is `encode->scratch_buffer_1`. The calculation of these row pointers involves `y * nx`, `nx`, etc., where `nx` and `ny` are `curc->width` and `curc->height` respectively, both of which are input-derived. The problem lies in the conditional assignment to `row1`, `row2`, and `row3` when `y + 3 >= ny`. While these assignments attempt to prevent out-of-bounds reads when `ny` is not a multiple of 4, they only ensure that the pointers don't go past `row0`. However, `row0` itself can still point to an invalid memory location if `y * nx` causes an offset beyond the allocated size for `scratch`. The `scratch` buffer is sized by `nBytes = ny * bpl = ny * nx * curc->bytes_per_element`. If `ny` or `nx` are large due to malicious input, `y * nx` (or similar arithmetic for other rows) could cause `row0`, `row1`, `row2`, `row3` to point outside the `scratch` buffer. The subsequent `memcpy` reads `4 * sizeof(uint16_t)` (8 bytes) from these potentially out-of-bounds locations without sufficient bounds checking for the `scratch` buffer itself."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 432,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `src-ptr` operand is `row0`, `row1`, `row2`, or `row3`. These pointers are derived from `scratch`, which is `encode->scratch_buffer_1`. The calculation of `rowX` involves `y` and `nx` (width), and they are bounded by `ny` (height). The `memcpy` operation copies `4 * sizeof(uint16_t)` bytes. The outer loop iterates `y` from `0` to `ny` with a step of 4, and `x` from `0` to `nx` with a step of 4. Inside the `x` loop, there's a check `if (x + 3 >= nx)`. If this condition is true, a loop copies individual `uint16_t` values, and the index `j` is capped by `n-1` (where `n = nx - x`), preventing `rowX[j]` from going out of bounds beyond `nx`. If `x + 3 < nx`, then `memcpy(&s[0], row0, 4 * sizeof(uint16_t))` is executed. In this case, `row0` (and `row1`, `row2`, `row3`) will always point to an address within `scratch_buffer_1` such that `row0[x]` to `row0[x+3]` are valid. The pointers `row0` to `row3` are adjusted within the `y` loop, and the `if (y + 3 >= ny)` block handles boundary conditions for height, ensuring that `row1`, `row2`, `row3` don't point beyond `ny` rows. The `bpl` and `nBytes` calculations for `scratch_buffer_1` correctly allocate for `nx` and `ny`. Overall, the indexing and `memcpy` size seem to be carefully handled to stay within the bounds of the `scratch` buffer."
+   }
+  ]
+ }
+]

@@ -1,0 +1,498 @@
+[
+ {
+  "id": "1859",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "internal_dfa_match",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "internal_dfa_match",
+    "line": 512,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %234",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 512 is inside an 'if (!workspace[0])' block. The size argument to memcpy is `(size_t)new_count * sizeof(stateblock)`. The `new_count` value is assigned from `workspace[1]` earlier in the 'restarting' block. `active_states` is `(stateblock *)(workspace + 2)`. `new_states` is `active_states + wscount`. There is no explicit bounds check (like `if (new_count * sizeof(stateblock) > capacity)`) on the `workspace` array or `active_states`/`new_states` buffers that ensures `new_count` elements can be copied from `active_states` to `new_states` without going out of bounds. The `wscount` value is derived from `mb->workspace_size` but `new_count` from `workspace[1]` is not checked against it."
+   },
+   {
+    "func": "pcre2_dfa_match_8",
+    "line": 3228,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 3228 uses `subject` as the source pointer. `subject` is an input-derived pointer and its value can be arbitrary, as stated in the problem description. The size of the copy is a constant `24`. There is no bounds check visible on the path before this memcpy operation that verifies if `subject + 24` is within a valid memory region. The `start_offset > length` check and other plausibility checks on `length` and `start_offset` do not cover the bounds of `subject` itself. Therefore, a `24`-byte read from `subject` could go out of bounds."
+   },
+   {
+    "func": "pcre2_dfa_match_8",
+    "line": 3241,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted `src-ptr` for the `memcpy` at line 3241 is `re`, which is a `pcre2_real_code *`. The size is 24. This operation is copying the `pcre2_real_code` struct itself. There are various plausibility checks on `re` (null check, magic number check, mode check), but none of these checks explicitly guarantee that `re` points to a buffer of at least 24 bytes, nor is `re` the subject string, so `length` and `start_offset` checks are irrelevant. Without a specific bounds check on the `re` pointer that covers a read of 24 bytes, the `memcpy` is considered a potential out-of-bounds read."
+   },
+   {
+    "func": "internal_dfa_match",
+    "line": 512,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %234",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation's `size` argument `(size_t)new_count * sizeof(stateblock)` is derived from `workspace[1]`. However, the `memcpy` is guarded by `if (!workspace[0])`. The `new_count` and `workspace` array are likely internal state managed by PCRE2 for its DFA matching engine. Without further context on how `workspace[0]` and `workspace[1]` are populated and validated, it's difficult to definitively say whether a malicious input could directly control these values to trigger an OOB read. Given that `new_count` is read from `workspace[1]` which is part of the internal state, it's more likely to be an internal corruption rather than a direct user-controlled value leading to an OOB. The surrounding code also sets `new_count = workspace[1]` and initializes `active_states` and `new_states` based on `wscount`, which itself is calculated from `wscount -= 2` and a modulo operation, suggesting careful internal management of these buffers. Therefore, being conservative, I'm marking it as not a real bug because it's not immediately apparent how an external input could directly manipulate `workspace[1]` to cause an OOB without violating other internal invariants that would likely crash the program earlier."
+   },
+   {
+    "func": "pcre2_dfa_match_8",
+    "line": 3228,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `src-ptr` (which is `subject` in this context) is used in a `memcpy` operation. The size of the `memcpy` is a constant 24 bytes. The `subject` pointer is checked early in the function to ensure it's not NULL: `if (re == NULL || subject == NULL || workspace == NULL || match_data == NULL) return PCRE2_ERROR_NULL;`. This prevents a NULL dereference. There are no other operations that could cause `subject` to point to an invalid memory location before this `memcpy`. The `memcpy` itself is not directly in the provided snippet, but based on the constant size and the initial checks, there's no clear indication of an out-of-bounds read from `subject` or an out-of-bounds write to the destination, as the destination (`mb` or `actual_match_block`) is a local stack variable of sufficient size. The `memcpy` is likely copying part of `subject` to `mb`, and while `subject` is input-derived, the bounds check `start_offset > length` guards against simple out-of-bounds access. Without the exact line of the memcpy and its destination, it's hard to be definitive, but the provided context doesn't reveal an immediate vulnerability."
+   },
+   {
+    "func": "pcre2_dfa_match_8",
+    "line": 3241,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is a part of the `pcre2_dfa_match_8` function. The `memcpy` operation is at line 3241, and its `src-ptr` operand is flagged as input-derived with a size of 24 bytes. However, the `memcpy` operation itself is not shown in the provided code snippet. The code snippet mainly contains initialization, plausibility checks, and setup for various parameters like `subject`, `length`, `start_offset`, `options`, and `match_context`. Without the actual `memcpy` call and its arguments, especially the `src-ptr` itself, it's impossible to determine if a genuine out-of-bounds access occurs. The surrounding code indicates careful handling of input parameters and boundary checks (e.g., `start_offset > length`, `wscount < 20`, `mcontext->offset_limit` checks). These checks make it less likely for a simple input-derived pointer to cause an out-of-bounds access without further manipulation or an actual flaw in the `memcpy`'s arguments themselves. Therefore, based on the provided information, I cannot confidently state that this is a real vulnerability."
+   }
+  ]
+ },
+ {
+  "id": "3852",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 12,
+  "recall": "hit",
+  "gt_func": "match",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 11,
+  "n_other_confirmed": 10,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "match",
+    "line": 847,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %397",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 847 copies data from Fovector to ovector. The size of the copy is `(i - 2) * sizeof(PCRE2_SIZE)`. The variable `i` is determined by `i = 2 * ((top_bracket + 1 > oveccount)? oveccount : top_bracket + 1);`. The `oveccount` is the size of the external ovector, and `top_bracket + 1` is related to the number of capturing groups. The `Fovector` is an array within the current frame `F`. The size of the `Fovector` is implicitly determined by the `frame_size` and `PRIVATE_PCRE2_FRAME_MAX_OVECTOR_SIZE` macros. There is no explicit bounds check ensuring that `(i - 2) * sizeof(PCRE2_SIZE)` does not exceed the actual allocated size of `Fovector` within the frame `F`. If `oveccount` or `top_bracket` are large enough, it could lead to an out-of-bounds read from `Fovector`."
+   },
+   {
+    "func": "pcre2_code_copy_8",
+    "line": 1115,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %21",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1115 copies `code->blocksize` bytes from `code` to `newcode`. The `blocksize` is an input-derived, non-constant value. There is no visible bounds check or guard on the path to this `memcpy` that ensures `code->blocksize` does not exceed the allocated size of `newcode` or the valid size of `code`. While `newcode` is allocated with `code->blocksize`, the problem statement implies `blocksize` itself is not guaranteed to be safe/clamped/min'd and could be arbitrarily large or out of bounds for the source `code` structure. Without a check verifying `code->blocksize` against a known safe upper bound for `code` (e.g., the actual memory allocated for `code`), this remains a potential vulnerability."
+   },
+   {
+    "func": "pcre2_code_copy_with_tables_8",
+    "line": 1150,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %21",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1150 copies `code->tables` to `newtables` for `tables_length` bytes. The `newtables` buffer is allocated with `code->memctl.malloc(tables_length + sizeof(PCRE2_SIZE), code->memctl.memory_data)` just before the `memcpy`. This allocation size `tables_length + sizeof(PCRE2_SIZE)` is larger than or equal to the `memcpy` size `tables_length`, thus covering the access. Therefore, there is a sufficient guard for this `memcpy` operation."
+   },
+   {
+    "func": "pcre2_code_copy_with_tables_8",
+    "line": 1160,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1088",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1160 uses `code->tables` as the source and `tables_length` as the size. While `tables_length` is a global variable initialized in `pcre2_extra_data.c`, there's no explicit bounds check or guard on `code->tables` against `tables_length` in the `pcre2_code_copy_with_tables` function or its callers that would cover this specific `memcpy` operation. The `code->tables` pointer is part of the `pcre2_code` structure, which itself is input-derived. Without a specific check ensuring that the allocated size for `code->tables` is at least `tables_length`, a heap buffer overflow could occur if `code->tables` points to memory smaller than `tables_length`."
+   },
+   {
+    "func": "pcre2_compile_8",
+    "line": 9476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 9476 uses `sizeof(pcre2_real_code) - 8` as an offset from `re`, with a size of 8 bytes. The `re` pointer is allocated based on `re_blocksize`. The `re_blocksize` calculation includes `sizeof(pcre2_real_code)` and additional space for compiled pattern data and a names table. There is no explicit check to ensure that `sizeof(pcre2_real_code)` is greater than or equal to 8, which is required for `sizeof(pcre2_real_code) - 8` to be a non-negative, valid offset within `re`. If `sizeof(pcre2_real_code)` were less than 8, this would result in an out-of-bounds write before the start of the `re` buffer. Even if `sizeof(pcre2_real_code)` is greater than or equal to 8, there's no specific check that this write to the end of the `pcre2_real_code` structure does not overlap or overwrite other critical data allocated immediately after it in the `re` buffer, although the intention is to write padding. Given the lack of a explicit bounds check for this specific offset calculation, and the possibility of `sizeof(pcre2_real_code)` being less than 8, I default to true."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8220,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %38",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memmove` operation at line 8220 copies `CU2BYTES((tablecount - i) * cb->name_entry_size)` bytes from `slot` to `slot + cb->name_entry_size`. The destination `slot + cb->name_entry_size` and the size are both dependent on `tablecount`, `i`, and `cb->name_entry_size`. There is no explicit bounds check (e.g., `if (slot + cb->name_entry_size + CU2BYTES((tablecount - i) * cb->name_entry_size) > cb->name_table_end)`) on the `cb->name_table` buffer to ensure that the write does not go out of bounds. The loop condition `i < tablecount` controls `i`, but it does not guarantee that `slot + cb->name_entry_size + CU2BYTES((tablecount - i) * cb->name_entry_size)` remains within the allocated bounds of `cb->name_table`."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8231,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 8231 copies `CU2BYTES(length)` bytes to `slot + IMM2_SIZE`. The `slot` pointer iterates through `cb->name_table` and is incremented by `cb->name_entry_size` in the loop. The `memmove` call also shifts data within the `name_table`. The `length` and `groupno` are user-controlled. There is no explicit bounds check on the `slot` pointer or the destination buffer `cb->name_table` before the `memcpy` operation. Although `tablecount` limits the loop iterations, it does not guarantee that `slot + IMM2_SIZE + CU2BYTES(length)` will always be within the allocated bounds of `cb->name_table` if `length` is sufficiently large or `cb->name_entry_size` is not correctly sized relative to the maximum possible `length`."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8237,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %66",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 8237 uses `CU2BYTES(cb->name_entry_size - length - IMM2_SIZE)` as the size. The `slot` pointer is advanced in the loop `for (i = 0; i < tablecount; i++)`, and then potentially moved by `memmove`. The destination `slot + IMM2_SIZE + length` relies on `slot` pointing to a valid location within `cb->name_table` and having enough space. However, `cb->name_table` is allocated once at the start. The `add_name_to_table` function does not reallocate `cb->name_table` or perform any explicit bounds checks on the `slot` pointer against the total size of `cb->name_table` before the `memset` operation. If `length` is very large or `cb->name_entry_size - length - IMM2_SIZE` becomes negative (or a large positive due to underflow with unsigned types), or if `slot` advances too far, `memset` could write out of bounds. There are no visible `ND_TCHECK` or similar macros, nor any explicit `if` conditions covering the bounds of `cb->name_table` for this `memset`."
+   },
+   {
+    "func": "compile_branch",
+    "line": 5232,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 5232 copies 32 bytes from `cbits + posix_class_maps[posix_class]` to `pbits`. The `posix_class` variable is derived from an input (`*(++pptr)`). While `posix_class` is then multiplied by 3, there's no visible bounds check ensuring that `posix_class_maps[posix_class]` (or `cbits` itself) is accessed within its allocated boundaries. The `cbits` and `posix_class_maps` arrays are global/static and their sizes are not directly checked against the input-derived `posix_class` value before this access. Therefore, a bounds check covering this exact access is missing."
+   },
+   {
+    "func": "compile_branch",
+    "line": 6494,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 3",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 6494 copies `CU2BYTES(1 + LINK_SIZE)` bytes from `previous` to `code`. The `previous` pointer is assigned `code` within a loop where `code` is incremented by `1 + LINK_SIZE`. The value of `replicate` can be up to `repeat_min` or `repeat_min - 1`, both of which are derived from user input. Although there is an integer overflow check for `delta` involving `replicate` and `(1 + LINK_SIZE)`, this check ensures that `*lengthptr` does not overflow. It does not directly ensure that `previous` always points to valid memory for the `memcpy` operation after `code` has been incremented multiple times. Without a explicit bounds check on `previous` or `code` that ensures they remain within allocated buffer boundaries before each `memcpy` call in the loop, we cannot guarantee safety. The provided code does not show such a check."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6161,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet does not contain any bounds check that covers the `memcpy` operation at line 6161 for the `src-ptr` operand with a size of `24`. There are checks related to UTF validity and offset limits, but these do not directly guard the `memcpy` operation for its specific source and size."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6163,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 6163 with a size expression of `i64 24` uses `re->memctl` which is derived from `re->memctl` (a member of the `re` struct). There are no visible bounds checks or macros like ND_TCHECK/ND_TTEST/CHECK_*/GROW/ENSURE that explicitly cover the `re` struct or its `memctl` member to ensure that reading 24 bytes from this location is safe. While the `re` struct itself is likely valid, the problem states that src-ptr is INPUT-DERIVED, and if `re->memctl` can be controlled by input, then the memcpy could read out of bounds. Without an explicit check for this specific read, it's considered an unchecked access."
+   },
+   {
+    "func": "match",
+    "line": 847,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %397",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation copies data from `Fovector` to `ovector + 2`. The size of the copy is `(i - 2) * sizeof(PCRE2_SIZE)`. The value of `i` is determined by `2 * ((top_bracket + 1 > oveccount) ? oveccount : top_bracket + 1)`. This calculation limits `i` to be no more than `2 * oveccount`. The `ovector` is the external buffer provided for capture groups, and `oveccount` is its size. The `Fovector` is an internal buffer within the `F` frame. The code seems to correctly cap the copy size based on the smaller of the available space in the `ovector` and the number of captured groups (`top_bracket + 1`). This prevents `ovector` from being written past its allocated size. Therefore, it appears to be guarded against out-of-bounds writes."
+   },
+   {
+    "func": "pcre2_code_copy_8",
+    "line": 1115,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %21",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation in `pcre2_code_copy` is intended to copy the entire `pcre2_code` structure, including any associated memory allocated alongside it, from `code` to `newcode`. The size of the copy is `code->blocksize`, which is a member of the `pcre2_code` structure itself and is expected to represent the total allocated size for the `code` object. While `code->blocksize` is ultimately derived from an input (the original compiled regex), it's not directly under the control of an attacker in a way that would lead to an arbitrary out-of-bounds read/write during this copy operation. The `blocksize` should correspond to the actual allocated memory for the `code` object, making the `memcpy` a valid full copy within the bounds of the allocated memory for `newcode` (which is allocated with `code->blocksize`). If `code->blocksize` were maliciously manipulated to be larger than the actual allocated memory for `code`, that would be a bug in the code creation/deserialization logic itself, not specifically in this `memcpy`. Assuming a valid `pcre2_code` object as input, this `memcpy` is safe."
+   },
+   {
+    "func": "pcre2_code_copy_with_tables_8",
+    "line": 1150,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %21",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1150 is within the `pcre2_code_copy_with_tables` function. The `size` argument to `memcpy` is `tables_length`. This `tables_length` variable is a global constant defined within the PCRE2 library and is not directly derived from user input. While `code->tables` itself points to data that might indirectly originate from parsed regular expressions, the *size* of the copy is fixed by `tables_length`, which is a library internal constant. The `newtables` buffer is allocated with `tables_length + sizeof(PCRE2_SIZE)`, ensuring it's large enough to hold `tables_length` bytes. Thus, there is no apparent way for an attacker to manipulate `tables_length` to cause an out-of-bounds write."
+   },
+   {
+    "func": "pcre2_code_copy_with_tables_8",
+    "line": 1160,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1088",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1160 (pcre2_code_copy_with_tables) copies `code->tables` to `newtables`. The size of this copy is `tables_length`. The `newtables` buffer is allocated with `tables_length + sizeof(PCRE2_SIZE)`. The `code->tables` pointer is expected to point to a valid block of memory of at least `tables_length` bytes. The `tables_length` variable is an internal global variable in pcre2. It's not directly input-derived in this context. The 'tainted' flag on `src-ptr` (code->tables) likely refers to its origin from the `code` object, which is user-supplied. However, the `code` object is a `pcre2_code` struct, which is an opaque handle returned by other `pcre2` functions after compilation. The `tables` member within this struct is an internal pointer managed by `pcre2`. The `tables_length` value is also an internal, globally known size. If the `code` object itself were maliciously crafted to have a small `tables` buffer but a large `tables_length` (or if `tables_length` were somehow controllable by a malicious input), then it could be an overflow. However, without more information about how `code->tables` and `tables_length` are initialized and if `tables_length` is truly variable based on user input (not just a constant size of internal tables), it's hard to assume a bug. This `memcpy` seems to be copying internal data structures using internally consistent sizes. The `code->tables` is a pointer to the character tables, which are fixed-size look-up tables used by PCRE2. `tables_length` is a constant value defined internally (PCRE2_UCP_OTHER_CASE_CTYPES * 4 + PCRE2_CODE_UNIT_WIDTH + 65536 + 65536) that represents the size of these tables. Therefore, `code->tables` points to a fixed-size internal data structure, and `tables_length` is the known, correct size for it. The `src-ptr` being 'input-derived' means the pointer to the `pcre2_code` object `code` is from the user, but the `tables` member within it and its size `tables_length` are internal to the library and should be consistent."
+   },
+   {
+    "func": "pcre2_compile_8",
+    "line": 9476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is replaced by a `memset` at the specified line number. The `memset` size is a constant `8`. The destination address `(char *)re + sizeof(pcre2_real_code) - 8` is derived from `re`, which is allocated with `re_blocksize`. The `re_blocksize` calculation `sizeof(pcre2_real_code) + CU2BYTES(length + (PCRE2_SIZE)cb.names_found * (PCRE2_SIZE)cb.name_entry_size)` guarantees that `re` is at least `sizeof(pcre2_real_code)` bytes large. Therefore, `sizeof(pcre2_real_code) - 8` is a valid offset within the `re` block, assuming `sizeof(pcre2_real_code)` is at least 8. Since `pcre2_real_code` is a structure, it's highly probable its size is 8 or more, and even if it's less, the `memset` would still be writing within the allocated `re` block, just potentially overlapping the start. This is a deliberate padding operation to zero out potential padding bytes at the end of the structure before subsequent assignments, as explained in the preceding comment. The source operand of the original `memcpy` (if it were a memcpy) is not mentioned, and the current operation is a `memset` with a constant size, so there is no `src-ptr` being read from."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8220,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %38",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memmove` operation's size is calculated as `CU2BYTES((tablecount - i) * cb->name_entry_size)`. The `tablecount` variable is `uint32_t`, `i` is `uint32_t`, and `cb->name_entry_size` is `uint32_t`. All these values are controlled internally by the `compile_block` structure and the compilation process. The `tablecount` represents the number of names already in the table, and `i` is an index iterating up to `tablecount`. Thus, `(tablecount - i)` will always be non-negative and represents a valid portion of the existing table. The `cb->name_entry_size` is also an internally computed size of each entry in the name table. There is no obvious path for external input to manipulate these values to cause an out-of-bounds read or write."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8231,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation's size argument is `CU2BYTES(length)`. The `length` variable is derived from the `name` argument, which is a `PCRE2_SPTR` (pointer to a PCRE2_UCHAR string). The `add_name_to_table` function adds names to a table, and its arguments `name` and `length` are carefully passed from calling functions. Specifically, `length` is the length of the name, not a general user-controlled length. The destination buffer `slot + IMM2_SIZE` is part of `cb->name_table`, which is allocated with sufficient size based on `cb->name_entry_size`. The `memcpy` itself is followed by `memset` to fill the remaining part of the slot, indicating that `cb->name_entry_size` is intended to be the actual size of each entry, and `length` should fit within that. The `cb->name_entry_size` is also controlled by internal logic. Based on the surrounding code, there's no clear indication that a malicious `length` value can bypass the allocated buffer size for `slot`."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8237,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %66",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size expression `i64 %66` corresponds to `CU2BYTES(cb->name_entry_size - length - IMM2_SIZE)`. This `memset` operation is filling the remainder of a name slot with zeroes after copying a name and its group number. The `cb->name_entry_size` is fixed (it's the size of each entry in the name table), `length` is the length of the name being added, and `IMM2_SIZE` is a constant. The target memory address is `slot + IMM2_SIZE + length`. The size being written is exactly the remaining space in the `slot` after the group number and name. This ensures that the `memset` operates within the bounds of the allocated `slot` for the name entry. Therefore, it does not appear to be an out-of-bounds write."
+   },
+   {
+    "func": "compile_branch",
+    "line": 5232,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 5232 copies 32 bytes from `cbits + posix_class_maps[posix_class]` to `pbits`. `pbits` is a local `uint8_t[32]` array, so it can safely hold 32 bytes. The `src-ptr` (`cbits + posix_class_maps[posix_class]`) is derived from `posix_class_maps`, which is a static array of offsets into `cbits`. The `posix_class` variable is an index into `posix_class_maps` and is bounds-checked (implicitly by the switch/if-else logic and explicitly by `posix_class *= 3` indexing `posix_class_maps`). The `cbits` array itself is a static lookup table. Therefore, the source pointer will always point within the valid `cbits` array, and the destination (`pbits`) is a local buffer of sufficient size. This appears to be a controlled access to static data based on a validated index."
+   },
+   {
+    "func": "compile_branch",
+    "line": 6494,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 3",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 6494 copies `CU2BYTES(mclength)` bytes from `lastchar` to `mcbuffer`. `mclength` is determined by `(uint32_t)(code - lastchar)`. The `BACKCHAR(lastchar)` macro ensures that `lastchar` points to the beginning of a UTF character. The `NOT_FIRSTCU(code[-1])` check ensures that `code[-1]` is not the first code unit of a multi-code-unit character. When `NOT_FIRSTCU(code[-1])` is true, it means `code[-1]` is a trailing code unit. `BACKCHAR` will then move `lastchar` backward until it points to the start of the character. The `mclength` will therefore represent the length of the character in code units. `CU2BYTES(mclength)` converts this length to bytes. This ensures that the `memcpy` reads exactly one (potentially multi-byte) character from `lastchar`. The `mcbuffer` is likely large enough to hold the largest possible multi-byte character (e.g., up to 4 bytes for UTF-8). While `code` is an input-derived pointer, `lastchar` is derived from `code` by moving backward, and the `mclength` is carefully calculated to represent the exact length of the character starting at `lastchar`. Therefore, the `memcpy` is designed to copy precisely one character, and the size is controlled by the internal logic, not arbitrary external input, making it unlikely to be an out-of-bounds read."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6161,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet does not contain a memcpy operation at line 6161, or anywhere near it. The lines shown are definition of macros and variables, and conditional checks. Without the actual memcpy operation and its context, it's impossible to determine if the tainted src-ptr operand leads to a real out-of-bounds bug. The description `memcpy at line 6161 (in function pcre2_match_8)` does not match the provided code snippet."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6163,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet does not contain a memcpy call at line 6163, nor does it contain a memcpy call with the operand `src-ptr` and size `i64 24`. The snippet ends before line 6163 based on the line numbers provided. Without the relevant code, it's impossible to determine if a real bug exists. Therefore, I cannot confidently say it's a real bug."
+   }
+  ]
+ },
+ {
+  "id": "783",
+  "project": "pcre2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "pcre2_match_8",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "pcre2_match_8",
+    "line": 6178,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 6178 copies 24 bytes from `mcontext->memctl`. The source pointer `mcontext` is derived from an input parameter and can be `NULL` initially, but it's assigned to `&PRIV(default_match_context)` if `NULL`. However, there is no explicit bounds check or size validation for the `memctl` member of `mcontext` or `PRIV(default_match_context)` before this `memcpy`. The analysis cannot determine if `mcontext->memctl` (or the default context's `memctl` field) is guaranteed to be large enough to hold 24 bytes."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6219,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %238",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 6219 writes to `(char *)(mb->stack_frames) + offsetof(heapframe,ovector)`. The size of this write is `re->top_bracket * 2 * sizeof(PCRE2_SIZE)`. While `mb->frame_vector_size` is calculated based on `START_FRAMES_SIZE` and `frame_size`, and there's a subsequent `mb->match_frames_top` which seems to define the upper bound of `mb->stack_frames`, there is no explicit check that the `memset`'s length (`re->top_bracket * 2 * sizeof(PCRE2_SIZE)`) does not exceed the allocated size for `mb->stack_frames` or specifically the `ovector` within the initial frame. Without a clear bounds check on the `re->top_bracket` value against the available buffer size for the `ovector` portion within `mb->stack_frames`, we assume a potential overflow if `re->top_bracket` is sufficiently large."
+   },
+   {
+    "func": "match",
+    "line": 823,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %358",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 823 copies data from Fovector to ovector. The size of the copy is determined by `(i - 2) * sizeof(PCRE2_SIZE)`, where `i` is derived from `top_bracket + 1` and `oveccount`. While `i` itself has a size check against `oveccount`, there's no explicit bounds check ensuring that `Fovector` (the source buffer) is large enough to accommodate `(i - 2) * sizeof(PCRE2_SIZE)` bytes. Without knowledge of how `Fovector` is allocated and sized in relation to `top_bracket`, it's not possible to guarantee that `Fovector` will always be large enough. Therefore, a potential out-of-bounds read from `Fovector` exists."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6178,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is a definition of a memcpy, but the source and destination pointers, as well as the size, are not visible. The only information given is that the memcpy is at line 6178 in function `pcre2_match_8`, the `src-ptr` is tainted, and the size expression is `i64 24`. Without the actual memcpy call and its arguments in context, it's impossible to determine if the `src-ptr` being tainted actually leads to an out-of-bounds access with a size of 24 bytes. The surrounding code does not shed light on this specific memcpy operation."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6219,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %238",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation is initializing a portion of memory within a `heapframe` structure. The size operand `re->top_bracket * 2 * sizeof(PCRE2_SIZE)` is derived from `re->top_bracket`, which represents the number of capturing parentheses in the regular expression. This value is part of the compiled pattern and is used to calculate the size of the `ovector` field within the `heapframe` structure, which stores capture group offsets. The `offsetof(heapframe,ovector)` correctly points to the start of this vector. The calculation `sizeof(heapframe) + ((re->top_bracket - 1) * 2 * sizeof(PCRE2_SIZE))` for `frame_size` and the subsequent allocation/sizing of `mb->stack_frames` based on `START_FRAMES_SIZE` and `frame_size` suggest that the `mb->stack_frames` buffer is sized to accommodate `re->top_bracket` capture groups. Therefore, the size for `memset` appears to be correctly calculated based on internal, controlled data, and is within the bounds of the allocated `ovector` space within the `heapframe`. This does not appear to be a triggerable out-of-bounds write."
+   },
+   {
+    "func": "match",
+    "line": 823,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %358",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 823 copies data from `Fovector` to `ovector + 2`. The size of the copy is determined by `(i - 2) * sizeof(PCRE2_SIZE)`. The variable `i` is calculated as `2 * ((top_bracket + 1 > oveccount)? oveccount : top_bracket + 1)`. This means `i` is twice the minimum of `(top_bracket + 1)` and `oveccount`. `oveccount` is the size of the `ovector` buffer, and `top_bracket` is the highest-numbered capturing group plus one, representing the size of `Fovector`. Therefore, `i` effectively calculates the smaller of the two `ovector` related sizes, scaled by 2 because `ovector` stores pairs of offsets. The copy operation then copies `(i - 2)` elements. This ensures that the `memcpy` will not read past the end of `Fovector` (because `i` is capped by `top_bracket + 1` which defines `Fovector`'s effective size) and will not write past the end of `ovector` (because `i` is capped by `oveccount` which defines `ovector`'s size). The `+2` offset for `ovector` and `-2` offset for the copy size is because the first two elements of `ovector` (`ovector[0]` and `ovector[1]`) are handled separately before the `memcpy`. This seems to be a carefully guarded operation preventing out-of-bounds access."
+   }
+  ]
+ },
+ {
+  "id": "781",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "match",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "match",
+    "line": 819,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %348",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 819 is bounded by the 'oveccount' and 'top_bracket' variables, which are part of the 'mb' (match_block) structure. The size of the memcpy is `(oveccount - 1) * 2 * sizeof(PCRE2_SIZE)`. This is a known size based on pre-allocated buffers. The destination `ovector` is also a pre-allocated array of `PCRE2_SIZE` type. The code explicitly checks `if (offset >= Foffset_top) Foffset_top = offset + 2;` which manages `Foffset_top` to ensure it stays within bounds. The `ovector` is allocated with a size related to `oveccount`, and the `Fovector` is also managed in `F` (the current frame). The copy operation is from `Fovector` to `ovector+2`, and its size is determined by `oveccount - 1`. The `oveccount` is ultimately derived from `oveccount` parameter to `pcre2_match`, which has a minimum value (2) and is checked for validity earlier in the `pcre2_match` function. Therefore, the access is covered by the `oveccount` variable which ensures the destination buffer `ovector` is large enough, and `Fovector` is also appropriately sized within the `F` frame. The size `(oveccount - 1) * 2 * sizeof(PCRE2_SIZE)` is explicitly calculated and used, implying that the number of elements is known and accounted for."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 6176 is not present in the provided code snippet. The last line is 6175. However, based on the prompt's description of the tainted operand `src-ptr` and size `i64 24`, and the context that this is a sound def-use taint analysis, I am to assume the memcpy operation does exist at the specified line number, which is implicitly asking about an out-of-bounds access. Without the actual memcpy operation and its `src-ptr` in the provided code, it's impossible to identify any specific bounds check that would cover it. The code snippet shows various checks related to UTF validity, offset limits, and JIT support, but none of them appear to be general-purpose memory bounds checks that would cover an arbitrary `src-ptr` for a `24` byte copy. Therefore, defaulting to true as per the instructions."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6217,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %238",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 6217 uses `re->top_bracket * 2 * sizeof(PCRE2_SIZE)` as the size operand. While `re->top_bracket` is part of the compiled regular expression structure and `PCRE2_SIZE` is a fixed size type, the specific value of `re->top_bracket` is derived from user input (the regex pattern). The comment above the memset states 'Write to the ovector within the first frame to mark every capture unset and to avoid uninitialized memory read errors when it is copied to a new frame'. This is a corrective action, not a bounds check. There is no explicit bounds check (like an `if` statement or a macro) that verifies if `re->top_bracket * 2 * sizeof(PCRE2_SIZE)` will write beyond the allocated buffer `mb->stack_frames` before the `memset` operation. The `mb->frame_vector_size` is calculated earlier, but the `memset` targets a specific offset within `mb->stack_frames` without explicitly checking if the calculated size overflows that specific sub-buffer or the overall allocated `mb->stack_frames`."
+   },
+   {
+    "func": "match",
+    "line": 819,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %348",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation's `size` operand `(oveccount - 1) * 2 * sizeof(PCRE2_SIZE)` is derived from `oveccount`. The `dst-ptr` `ovector+2` and `src-ptr` `Fovector` are also used. `oveccount` is an input parameter representing the size of `ovector`. The `memcpy` is designed to copy captured substrings into `ovector`. The expression `(oveccount - 1) * 2 * sizeof(PCRE2_SIZE)` explicitly uses `oveccount` to determine the amount to copy, implying that `oveccount` is intended to be the limiting factor for the copy size into `ovector`. This suggests that the copy size is controlled by the buffer's capacity. Additionally, the line `i = 2 * ((top_bracket + 1 > oveccount)? oveccount : top_bracket + 1);` further indicates that `oveccount` is used to cap the access to `ovector`. If `oveccount` is correctly managed by the caller based on the allocated size of `ovector`, then this `memcpy` should not lead to an out-of-bounds write."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is a declaration section. The memcpy operation is not present in the given code. The variable `src-ptr` is only referenced within comments or conditional compilation blocks related to character widths and lookbehind, which doesn't directly indicate a memcpy operation. Therefore, without the actual memcpy at line 6176, it's impossible to determine if it's an out-of-bounds access. Based on the provided snippet, there is no evident vulnerability."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6217,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %238",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 6217 is initializing a portion of `mb->stack_frames`. The size of the `memset` is `re->top_bracket * 2 * sizeof(PCRE2_SIZE)`. This size is derived from `re->top_bracket`, which represents the number of capturing parentheses in the regular expression, and `sizeof(PCRE2_SIZE)`. The target buffer `mb->stack_frames` is allocated to accommodate `mb->frame_vector_size` which itself is calculated based on `frame_size = sizeof(heapframe) + ((re->top_bracket - 1) * 2 * sizeof(PCRE2_SIZE))`. The `memset` specifically targets the `ovector` field within the first `heapframe` inside `mb->stack_frames`. The `ovector` is defined as `PCRE2_SIZE ovector[1];` but is effectively a flexible array member that holds the capture group offsets. The size `re->top_bracket * 2 * sizeof(PCRE2_SIZE)` corresponds to the space needed for `re->top_bracket` capture groups, each needing two `PCRE2_SIZE` entries (start and end offset). This initialization precisely matches the expected size for the ovector portion of a `heapframe` to mark all captures as unset. Since `re->top_bracket` is a property of the compiled regular expression and `PCRE2_SIZE` is a fixed type size, this calculation is deterministic and should not exceed the allocated space for the `ovector` within the first frame of `mb->stack_frames`. The allocation ensures enough space for `re->top_bracket - 1` additional `PCRE2_SIZE` elements beyond the single `PCRE2_SIZE` declared in the struct `ovector[1]`. Thus, the `memset` correctly initializes the ovector part of the first frame."
+   }
+  ]
+ }
+]

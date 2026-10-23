@@ -1,0 +1,200 @@
+[
+ {
+  "id": "23794",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "miss",
+  "gt_func": "blosclz_compress",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 3,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "get_run_16",
+    "line": 139,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 139 is writing 8 bytes to `&value`. `value` is a local variable on the stack, and its address is not derived from any input. Therefore, this `memset` cannot cause an out-of-bounds write. However, the query states that the `src-ptr` (which is `&value` in `memset(&value, x, 8)`) is INPUT-DERIVED. This contradicts the code. Given the strict instructions, and assuming the taint analysis finding of `src-ptr` being INPUT-DERIVED is correct, then there is no explicit bounds check on `&value` before this `memset`. The `if (ip < (ip_bound - sizeof(int64_t)))` check is for `ip` and `ip_bound`, not for `&value`."
+   },
+   {
+    "func": "get_run_16",
+    "line": 159,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 159 writes to the stack variable `value` which is of type `__m128i`. The size argument `sizeof(__m128i)` evaluates to 16. There is no explicit bounds check or guard that covers the size of this `memset` operation. While `value` is a stack variable and typically safe, the prompt specifically asks about a check that 'covers this exact access', implying a check on the *size* operand if it were a memory destination that could be out-of-bounds. In this case, `value` is not the src-ptr operand of the memory operation, it is the destination. The prompt states the 'src-ptr operand of this memory operation is INPUT-DERIVED'. The `memset` destination is a stack variable. However, the prompt is asking about the src-ptr of the *memset*, which is `value`. The prompt also says 'size expr `i64 16`'. The prompt is specifically about the 'src-ptr operand of this memory operation'. For `memset(&value, x, sizeof(__m128i))`, `&value` is the destination, `x` is the value to set, and `sizeof(__m128i)` is the size. The prompt identifies `src-ptr` as the tainted operand. If `src-ptr` refers to the `value` to be set (`x`), `x` is `ip[-1]`, which is derived from `ip`. This `x` is copied 16 times into `value`. The question is if there is a bounds check on the *access* itself. The access is writing 16 bytes. If the `src-ptr` is `x`, it's a single byte. If `src-ptr` refers to the `&value` (the destination), it's a stack variable and generally safe. Given the instruction to default to true if unsure or no specific guard is visible, and the potential for misinterpretation of 'src-ptr operand of this memory operation' in the context of `memset`, it's safer to default to true if a specific guard on the *size* is not present."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 634,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %127",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 634 is guarded by `if (BLOSCLZ_UNEXPECT_CONDITIONAL(op + len + 3 > op_limit)) { return 0; }` at line 617, which checks if the destination buffer (`op`) can accommodate `len + 3` bytes. This check directly covers the size of the `memset` operation (which is `len + 3`)."
+   },
+   {
+    "func": "wild_copy",
+    "line": 566,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 566 is inside a loop `do { memcpy(d,s,8); d+=8; s+=8; } while (d<e);`. The loop condition `d<e` checks that the destination pointer `d` does not exceed `e`. However, `s` (the source pointer) is advanced by 8 in each iteration, `s+=8`. There is no check that `s` remains within the bounds of its input buffer. The `from` argument to `wild_copy` is `const uint8_t* from`, which is derived from a `match` pointer within `blosclz_decompress`. This `match` pointer can itself be derived from `op - distance`, where `op` is the output pointer and `distance` is a value read from the input buffer. There's no guarantee that `from` (and thus `s`) will always point to valid readable memory for 8 bytes, especially as `d` approaches `e` and `s` could have significantly advanced beyond its initial bounds."
+   },
+   {
+    "func": "get_run_16",
+    "line": 139,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 139 is writing to a local stack variable `value`. The tainted `src-ptr` operand is the address of `value`, which is always a valid stack address. The `size` of 8 bytes is also a valid size for an `int64_t`. This operation itself cannot cause an out-of-bounds write."
+   },
+   {
+    "func": "get_run_16",
+    "line": 159,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` is writing to a stack-allocated variable `value` of type `__m128i`. `sizeof(__m128i)` is 16 bytes. The `memset` is performed with size `sizeof(__m128i)`, which is correct. The `src-ptr` being 'input-derived' for `memset(&value, x, sizeof(__m128i))` refers to the `x` value, which is `ip[-1]`. While `x` itself is derived from input, it is used as the byte to fill `value` with, not as a pointer. There is no out-of-bounds write here."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 634,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %127",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation is guarded by multiple checks. Specifically, `if (BLOSCLZ_UNEXPECT_CONDITIONAL(op + len + 3 > op_limit)) { return 0; }` checks if the `op` pointer plus the `len + 3` bytes to be written would exceed the output buffer limit (`op_limit`). This check directly prevents an out-of-bounds write for the `memset` operation. The `op_limit` is derived from `maxout`, which is an input but is used to establish the boundary. Therefore, the size of the `memset` operation is checked against the allocated output buffer size before execution."
+   },
+   {
+    "func": "wild_copy",
+    "line": 566,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `wild_copy` function copies data from `s` to `d` in chunks of 8 bytes using `memcpy`. The loop condition `d < e` checks if `d` (destination pointer) is within the bounds of `end`. However, there is no corresponding check to ensure that `s` (source pointer) remains within its allocated bounds. The `from` pointer, which `s` is initialized from, is `input-derived` and thus could be controlled by an attacker. If `offset = op - match` (from `copy_match_16`) is a large negative value, or `from` points to an invalid memory location, `s` could read out of bounds. Since `s` is incremented by 8 in each iteration, an attacker could trigger an out-of-bounds read by providing a crafted `from` pointer that points to memory outside the intended buffer. The `memcpy` itself does not have an explicit bounds check for `s`."
+   }
+  ]
+ },
+ {
+  "id": "38313",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "hit",
+  "gt_func": "blosclz_compress",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "blosclz_compress",
+    "line": 473,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %47",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 473 is initializing the `htab` array. The size operand `(1U << hashlog) * sizeof(uint32_t)` depends on `hashlog`. `hashlog` is derived from `hashlog_[clevel]`, where `clevel` is an input. While there's a bounds check for `length` and `maxout`, there is no explicit check to ensure that `(1U << hashlog)` does not exceed the declared size of `htab`, which is `1U << (uint8_t)HASH_LOG`. If `hashlog` somehow becomes greater than `HASH_LOG` (the hardcoded max size of the array), it would lead to an out-of-bounds write. Since `clevel` is an input and `hashlog_[clevel]` is indexed by `clevel`, a malicious `clevel` could potentially lead to `hashlog` being out of bounds for the `htab` array's declared size, or at least larger than `HASH_LOG`, which would then cause an out-of-bounds write in the memset."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 738,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %120",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 738 is preceded by a bounds check `if (BLOSCLZ_UNLIKELY(op + len > op_limit)) { return 0; }` at line 727. This check ensures that the write operation will not exceed the allocated output buffer `op_limit` with the length `len`. The `op` pointer is the destination, `len` is the size, and `op_limit` is the upper bound of the output buffer."
+   },
+   {
+    "func": "wild_copy",
+    "line": 672,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 672 inside the `wild_copy` function copies 8 bytes from `s` to `d`. The `from` pointer (`s`) is derived from the input data, and `d` is derived from the output buffer. The loop condition `d<e` only checks that the destination pointer `d` does not exceed the `end` limit, which corresponds to `op_limit` (the end of the output buffer). There is no check that ensures the source pointer `s` stays within valid bounds of its originating buffer (`input`). The `length` parameter is used to define `ip_limit`, but `wild_copy` operates on `from` which is not necessarily `ip` nor is its boundary checked against `ip_limit`."
+   },
+   {
+    "func": "get_run",
+    "line": 121,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 121 operates on a local variable `value` which is of type `int64_t`. The `memset` fills this 8-byte variable with the byte `x`. The `src-ptr` operand here is the address of `value`, which is a stack variable. `memset` on a stack variable is generally safe regarding memory bounds, as it's writing to its own allocated stack space. However, the analysis focuses on the `src-ptr` operand, which is the address of `value`. While `value` itself is a local variable, the `ip` and `ref` pointers, which are derived from input, are used later in the function. The question states that the `src-ptr` operand is INPUT-DERIVED. If the `src-ptr` refers to the `value` variable, then it's not input-derived directly. If it refers to `ip` or `ref` indirectly via some pointer arithmetic involving `value`, then the context provided doesn't show any explicit bounds check for an 8-byte write into those input-derived pointers at this specific `memset` call. The 'safe because the outer check against ip limit' comment refers to the `while` loop condition `ip < (ip_bound - sizeof(int64_t))`, which protects `ip` and `ref` later, but not `memset(&value, x, 8)` itself. Given the constraints and the explicit 'DEFAULT TO TRUE' if unsure, and the fact that `memset(&value, x, 8)` is not directly on an input-derived pointer but on a local variable, if the `src-ptr` refers to `&value`, then it's not input-derived as per definition. If the prompt implies that the *value* of `x` (which is `ip[-1]`) makes `value` input-derived and thus `&value` is considered 'input-derived' for the purpose of the question, there's still no bounds check covering this `memset` on `&value`."
+   },
+   {
+    "func": "blosclz_compress",
+    "line": 473,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %47",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `(1U << hashlog) * sizeof(uint32_t)` for `memset(htab, 0, ...)` is derived from `hashlog`. `hashlog` is obtained from `hashlog_[clevel]`. The array `hashlog_` is statically initialized, and all its values (`HASH_LOG - 2` to `HASH_LOG`) are within a reasonable range. `HASH_LOG` is a compile-time constant. The `htab` array is declared with a size `1U << (uint8_t)HASH_LOG`, which is a fixed maximum size. The `memset` size `(1U << hashlog)` will always be less than or equal to the actual allocated size of `htab` which is `1U << HASH_LOG`. Therefore, there is no out-of-bounds write."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 738,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 738 is preceded by a bounds check: `if (BLOSCLZ_UNLIKELY(op + len > op_limit)) { return 0; }`. This check ensures that `op + len` does not exceed `op_limit`, which is derived from `output + maxout`. Therefore, the size `len` and the destination pointer `op` are constrained, preventing an out-of-bounds write."
+   },
+   {
+    "func": "wild_copy",
+    "line": 672,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `wild_copy` function performs a `memcpy` with a fixed size of 8 bytes in a loop. The loop condition `d < e` ensures that `d` (the destination pointer) stays within `end` (which is `op_limit` or a value derived from it). However, there is no check for `s` (the source pointer) against `ip_limit` or any other boundary. The `from` argument to `wild_copy` is initialized from `ip` in `blosclz_decompress`, which is an attacker-controlled input. If `from` is close to the end of the input buffer (`ip_limit`), reading 8 bytes from `s` can lead to an out-of-bounds read. The `memcpy` itself does not have an explicit size constraint beyond 8, so if `s` is crafted to point just before `ip_limit`, an OOB read of up to 7 bytes is possible. This is a classic buffer overflow scenario."
+   },
+   {
+    "func": "get_run",
+    "line": 121,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset(&value, x, 8)` call is intended to fill the `int64_t value` variable (which is 8 bytes) with the byte `x`. This operation is always safe because `&value` points to a local variable on the stack, and `8` is its exact size. The `src-ptr` being `&value` and `size expr` being `8` means it's correctly initializing the entire `value` variable. The `value` variable itself is not input-derived; `x` is, but that doesn't make `&value` unsafe. The taint analysis might be flagging `src-ptr` as input-derived because `value` is later compared with `value2`, which is derived from `ref` (an input-derived pointer), but this doesn't imply an OOB write on `value` itself."
+   }
+  ]
+ }
+]

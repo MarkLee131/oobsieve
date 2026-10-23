@@ -1,0 +1,61 @@
+[
+ {
+  "id": "33240",
+  "project": "wasm3",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "miss",
+  "gt_func": "ParseSection_Type",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 474 is guarded by an `if` condition on line 472: `if ((size_t) segmentOffset + segment->size <= io_memory->mallocated->length)`. This check ensures that the destination buffer (`io_memory->mallocated`) has enough space to accommodate the copy from `segment->data` of size `segment->size` at `segmentOffset`. If the condition is false, an error is thrown, preventing the `memcpy` from executing an out-of-bounds write."
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1067 is copying 56 bytes from `i_runtime->error` to `*o_info`. The `i_runtime->error` field is a member of the `IM3Runtime` struct. The `i_runtime` pointer itself is an input to the function `m3_GetErrorInfo`. While the code checks `if (i_runtime)`, this only ensures `i_runtime` is not NULL. It does not ensure that `i_runtime` points to a valid `IM3Runtime` object, or that the `error` field within it is initialized or within accessible bounds. There is no explicit bounds check or size validation on `i_runtime->error` before the `memcpy` operation. Thus, if `i_runtime` is a dangling pointer or points to an invalid memory region, accessing `i_runtime->error` could lead to an out-of-bounds read."
+   },
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation at line 474 is guarded by a conditional check: `if ((size_t) segmentOffset + segment->size <= io_memory->mallocated->length)`. This check ensures that the sum of `segmentOffset` and `segment->size` (which represents the end of the memory region being written to) does not exceed the allocated length of the memory (`io_memory->mallocated->length`). If this condition is not met, the code explicitly throws an error (`_throw (\"data segment overflowing linear memory\");`), preventing an out-of-bounds write. Therefore, the operation is protected against overflow."
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "`i_runtime->error` is a member of `IM3Runtime` and is of type `M3ErrorInfo`. The `memcpy` is effectively `*o_info = i_runtime->error;`. The size 56 (bytes) matches the size of `M3ErrorInfo` which is `sizeof(M3Result) + sizeof(IM3Runtime) + sizeof(IM3Module) + sizeof(IM3Function) + sizeof(const char*) + sizeof(u32) + sizeof(char*)` which is `4+8+8+8+8+4+8 = 48` on a 64-bit system (assuming pointers are 8 bytes). This indicates a direct struct assignment, not a buffer copy where bounds could be an issue. The size `56` indicates some padding in `M3ErrorInfo` (or `char*` is 8 bytes and alignment causes padding) or it could be `sizeof(i_runtime->error)` which is correct. The source `i_runtime->error` is a well-defined structure within `i_runtime`. Thus, `src-ptr` is not out-of-bounds relative to the `i_runtime->error` struct itself. The taint on `src-ptr` likely reflects that `i_runtime` itself could be an input, but dereferencing `i_runtime->error` for `sizeof(M3ErrorInfo)` bytes is a valid operation if `i_runtime` is a valid pointer to an `IM3Runtime` object. There's no indication that `i_runtime` itself is not properly initialized or could point to arbitrary memory in a way that would make `i_runtime->error` invalid."
+   }
+  ]
+ }
+]

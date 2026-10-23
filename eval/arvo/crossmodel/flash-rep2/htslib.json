@@ -1,0 +1,979 @@
+[
+ {
+  "id": "22231",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 16,
+  "recall": "miss",
+  "gt_func": "hts_md5_update",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 14,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 2,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "block_append",
+    "line": 543,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy is implicitly used when 'cp' is advanced by 'size' ('cp += size;'). The 'size' variable is input-derived. While there is a check 'endp - cp < size', which checks if there's enough space in the input buffer, this check only covers the 'src-ptr' (read from 'cp') and 'size' operands. It does not provide any bounds check for the 'dst-ptr' operand. The 'dst-ptr' is implicitly the buffer that 'cram_decoder_init' initializes, and there's no visible check on the size of that buffer before 'cp' is advanced by 'size'."
+   },
+   {
+    "func": "cram_decode_slice_header",
+    "line": 1044,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1044 is preceded by a bounds check `if (cp_end - cp < 16)` at line 1042. This check ensures that there are at least 16 bytes available from `cp` to `cp_end`, which is the exact size of the `memcpy` operation. If the condition is true (i.e., less than 16 bytes are available), the function returns NULL after freeing allocated resources, preventing the `memcpy` from being called with an insufficient buffer."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1122,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %77",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1122 operates on `qual` with size `cr->len`. Although `qual` is a function argument, its usage and potential allocation or origin are not visible in the provided snippet. There is no explicit bounds check or allocation for `qual` covering the size `cr->len` within the `cram_decode_seq` function before this `memset` call. Without information on how `qual` is sized or guaranteed to be at least `cr->len` bytes long, it's a potential out-of-bounds write."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1202,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %295",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1202 copies `rlen` bytes from `s->ref` to `seq`. The size `rlen` is derived from `bfd->ref[cr->ref_id].len - ref_pos`. The destination buffer `seq` is allocated for `cr->len` bytes. The source buffer `s->ref` is a pointer to a reference sequence, and `s->ref_end` and `s->ref_start` define its bounds. The condition `ref_pos + rlen > s->ref_end` is a check for the source buffer, but it only leads to a `goto beyond_slice` if true, which effectively skips the memcpy. If this condition is false, the memcpy proceeds. There isn't a check ensuring `seq_pos-1 + rlen <= cr->len` for the destination buffer, which is necessary to prevent an overflow of `seq`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1205,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %308",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 1205 uses cr->len as the size operand. The value of cr->len is derived from input and is not a constant, nor is it clamped or min'd. There is no explicit bounds check (e.g., `if (qual + cr->len > qual_end)`) that covers the access to the `qual` buffer with the size `cr->len`. Therefore, if `cr->len` is sufficiently large, it could lead to an out-of-bounds write."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1208,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %318",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1208 uses `cr->len` as the size. There is no explicit bounds check or allocation for `qual` (and `seq`) based on `cr->len` before this `memset`. `cr->len` is an input-derived value. The `qual` buffer is passed as an argument, and its size is not known or checked within this function's scope to guarantee it can hold `cr->len` bytes. The function assumes `qual` is large enough, but no check is present."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1233,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %404",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1233 is within an `if (ref_pos + rlen > s->ref_end)` block, and the size `rlen` is determined by `bfd->ref[cr->ref_id].len - ref_pos`. While `rlen` is checked to be positive, the `src-ptr` `&s->ref[ref_pos - s->ref_start +1]` is not sufficiently bounds-checked against `s->ref_end` for the entire `rlen` length. The condition `ref_pos + rlen > s->ref_end` (which `goto beyond_slice` if true) is on the destination buffer. The `src-ptr` depends on `ref_pos - s->ref_start + 1`. While `ref_pos` and `s->ref_start` are involved in other calculations, there's no explicit check ensuring that `ref_pos - s->ref_start + 1 + rlen` does not exceed the allocated size of `s->ref`. The check `if (ref_pos + pos - seq_pos > bfd->ref[cr->ref_id].len)` ensures the *reference* coordinates are valid, but not necessarily that `s->ref` (which is a local buffer corresponding to a slice of the reference) can hold the data starting at `ref_pos - s->ref_start + 1` for `rlen` bytes."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1683,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1568",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1683 is for `seq[seq_pos-1]` to `s->ref[ref_pos - s->ref_start +1]` with size `rlen`. The `rlen` is calculated as `bfd->ref[cr->ref_id].len - ref_pos`. This `rlen` is compared to `0` and then used. However, the `seq_pos-1 + rlen` is checked against `cr->len`, but there is no explicit bounds check on `seq[seq_pos-1]` for `rlen` bytes. Additionally, `s->ref[ref_pos - s->ref_start +1]` relies on `ref_pos - s->ref_start + 1` being a valid offset within `s->ref`. While `ref_pos` is checked against `bfd->ref[cr->ref_id].len`, `s->ref_start` and the actual allocated size of `s->ref` are not explicitly checked to ensure `s->ref` can hold `rlen` bytes starting from `ref_pos - s->ref_start + 1`. The `if (ref_pos + cr->len-seq_pos +1 > s->ref_end)` guard is present on an alternative path but not directly for this `memcpy`'s source buffer access. The overall logic is complex, and it is not clear that all possible values of `rlen` are safe given the current state of `seq` and `s->ref` allocations."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1686,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1586",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 1686 is within an 'else' block, meaning `ref_pos + cr->len - seq_pos + 1 > bfd->ref[cr->ref_id].len` is true. The size of the memset is `cr->len - seq_pos + 1`. While there's a check `cr->len - seq_pos + 1 > 0`, it doesn't guarantee that `seq_pos-1 + cr->len - seq_pos + 1` (which simplifies to `cr->len`) will be within the bounds of `seq` given the initial allocation or prior usage. There is no explicit bounds check or macro covering the entire `seq` buffer for an access of this specific calculated size starting at `seq[seq_pos-1]`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1690,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1602",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 1690 (inside the `if (rlen > 0)` block) has a size operand `(cr->len - seq_pos + 1) - rlen`. The destination is `&seq[seq_pos-1+rlen]`. The immediate surrounding `if` condition `seq_pos-1 + rlen < cr->len` checks if the *start* of the memset is within bounds relative to `cr->len`, but it does not guarantee that the *entire extent* of the memset `seq[seq_pos-1+rlen ... seq_pos-1+rlen + size]` stays within the allocated buffer for `seq`. There's no explicit check that `seq_pos-1+rlen + (cr->len - seq_pos + 1) - rlen` (which simplifies to `cr->len`) is less than or equal to the total allocated size of `seq`. Without knowledge of the allocation size of `seq`, or a specific bounds check covering this calculation, we must assume a potential out-of-bounds write."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1720,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1723",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1720 `memcpy(&seq[seq_pos-1], &s->ref[ref_pos - s->ref_start +1], cr->len - (seq_pos-1));` has a size of `cr->len - (seq_pos-1)`. This size is bounded by `cr->len - seq_pos + 1 > 0` which is a check that `cr->len - (seq_pos-1)` is positive. The destination buffer `seq` is allocated earlier in the function (not shown in the snippet, but would be `s->seq`). The bounds check for the destination `seq[seq_pos-1]` is `cr->len >= seq_pos` at line 1665 and then `seq_pos-1 + rlen < cr->len` at line 1690. This `memcpy` is in an `else` branch of `ref_pos + cr->len - seq_pos + 1 > bfd->ref[cr->ref_id].len`. This specific `memcpy` is guarded by `if (cr->len - seq_pos + 1 > 0)` at line 1700, ensuring the copy size is positive. However, there is no explicit check that `seq_pos-1 + (cr->len - (seq_pos-1))` (which simplifies to `cr->len`) is within the allocated bounds of `seq`. The only related check is `if (ref_pos + cr->len-seq_pos +1 > s->ref_end)` which guards against reading beyond `s->ref`, not writing beyond `seq`. Without seeing the allocation of `seq` and how `cr->len` relates to its size, it's not possible to confirm that `seq[cr->len]` is a valid access. The provided code does not show a sufficient bounds check for the destination `seq` buffer with respect to `cr->len`."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2845,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2845 is used to copy the name string. The size of the copy `name_len` is derived from `cr->name_len` or calculated from appending a `uint64` to a prefix. The `src-ptr` (`name`) could point to `name_a` (a 1024-byte stack buffer) or `BLOCK_DATA(s->name_blk)`. In the case where `name` points to `name_a`, if `name_len` exceeds 1024, it would lead to a buffer overflow. There are no explicit bounds checks or guards for `name_a` based on `name_len` before this `memcpy`. The `BLOCK_RESIZE_EXACT` calls higher up are for `s->seqs_blk`, `s->qual_blk`, `s->name_blk`, and `s->aux_blk`, but they do not cover the `name_a` stack buffer."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2908,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %230",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 2908 copies `cr->aux_size` bytes from `BLOCK_DATA(s->aux_blk) + cr->aux`. The `bam_construct_seq` function call before this `memcpy` allocates a buffer `*bam` with size `cr->aux_size + rg_len` (plus other components). The `aux` pointer is then set to `(char *)bam_aux(*bam)`. While `bam_construct_seq` itself handles reallocation, there's no explicit check that `cr->aux_size` is less than or equal to the actually available space at `aux` (which is effectively `cr->aux_size + rg_len` for the aux data, plus space for RG if `cr->rg != -1`). It seems the allocation assumes `cr->aux_size` is the exact size needed for the auxiliary data, and then `rg_len` is added. If `cr->aux_size` itself is maliciously large or incorrect, it could write past the end of the `aux` buffer. There's no explicit `if (cr->aux_size > available_aux_space)` type of check covering this `memcpy` operation before it occurs."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2916,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %259",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2916 copies `cr->aux_size` bytes from `BLOCK_DATA(s->aux_blk) + cr->aux`. While `bam_construct_seq` allocates memory, its size argument `cr->aux_size + rg_len` only ensures space for the auxiliary data and a potential 'RG' tag. The source pointer `BLOCK_DATA(s->aux_blk) + cr->aux` is derived from `cr->aux`, which is read from the CRAM record. There is no explicit bounds check on `cr->aux` or `cr->aux_size` against the actual size of `s->aux_blk` before this `memcpy`. If `cr->aux + cr->aux_size` exceeds the allocated size of `s->aux_blk`, it would lead to an out-of-bounds read."
+   },
+   {
+    "func": "kh_resize_map",
+    "line": 83,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %70",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 83 is within the `kh_resize_map` function, which is not provided in the given code snippet. Without the full `kh_resize_map` function, it's impossible to determine if there's a bounds check covering the `memset` operation. Therefore, I must default to `real_bug=true`."
+   },
+   {
+    "func": "block_append",
+    "line": 543,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'size' variable, while input-derived, is subject to multiple bounds checks before being used in memcpy. Specifically, there's `endp - cp < size`, `size < 0`, and `!(m->codec = cram_decoder_init(...))`. The `cram_decoder_init` function itself likely performs further validation, and the `cp += size` increment ensures that the pointer `cp` advances appropriately, preventing accumulation of out-of-bounds reads. The `endp` pointer serves as a strict upper bound for reading from the input buffer. Thus, the `memcpy` operation is sufficiently guarded."
+   },
+   {
+    "func": "cram_decode_slice_header",
+    "line": 1044,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is preceded by a size check: `if (cp_end - cp < 16)`. If the remaining buffer size (`cp_end - cp`) is less than 16, the function returns NULL. Otherwise, it proceeds with `memcpy(hdr->md5, cp, 16)`. This check prevents an out-of-bounds read from `cp`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1122,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %77",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1122 operates on `hdr->md5` with a fixed size of 16. The `hdr->md5` field is a `char[16]` array within the `cram_block_hdr` structure. The size operand `i64 %77` is indeed `16`. This is a fixed-size operation on a fixed-size buffer, so no out-of-bounds access can occur here, regardless of input values. The taint on `size+dst-ptr` is misleading because the size is a constant, not derived from input, even if the destination pointer's value might be influenced by input (it's part of a dynamically allocated structure, but the offset to `md5` is fixed)."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1202,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %295",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1205,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %308",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1205 uses `cr->len` as the size. `cr->len` is the length of the read sequence, which is a fundamental property of a CRAM record. The `qual` buffer is expected to be allocated to at least this size (typically `cr->len + 1` for a null terminator, or just `cr->len` if `qual` is a dynamically sized buffer strictly for quality scores). While `cr->len` is read from the input CRAM file, it represents the *intended* length of the quality scores. If `cr->len` is excessively large, it would lead to an allocation issue before this `memset`, or an out-of-bounds write if `qual` is a fixed-size buffer that is too small. However, without knowing how `qual` is allocated, it's difficult to assert a definite out-of-bounds write here. It's common practice for `qual` to be allocated based on `cr->len` during the record initialization. There are checks later in the code (`pos > cr->len+1`) that implicitly suggest `cr->len` is a valid boundary for sequence-related operations. Assuming `qual` is correctly sized based on `cr->len` (which is standard for sequence data structures), this `memset` should be safe."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1208,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %318",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1233,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %404",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1233 is guarded by several conditions. The `src-ptr` is `&s->ref[ref_pos - s->ref_start + 1 + i]`, and the `size` is `pos - seq_pos`. The `memcpy` is within an `else` block which means `ref_pos + pos - seq_pos` is not greater than `bfd->ref[cr->ref_id].len`. This implies that `ref_pos - s->ref_start + 1 + i` will be within the bounds of `s->ref` if `s->ref_start` and `s->ref_end` are correctly set up to encompass the relevant part of `bfd->ref[cr->ref_id].len`. Additionally, there's a check `if (ref_pos + pos-seq_pos > s->ref_end)` which leads to `goto beyond_slice`, implying that this branch of code is only executed if the `ref` access is within `s->ref_end`. The loop variable `i` goes from `0` to `pos - seq_pos - 1`, making sure the indexing `+i` stays within the calculated bounds. Based on these checks, it appears the `memcpy` is designed to operate within valid boundaries. Without more context on `s->ref`, `s->ref_start`, `s->ref_end`, and `bfd->ref[cr->ref_id].len` and how they relate, and specifically how they could be manipulated to bypass the `ref_pos + pos-seq_pos > s->ref_end` check, it's not confidently a real bug."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1683,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1568",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation is guarded by a size check: `if (seq_pos-1 + rlen < cr->len)`. The `rlen` value is also constrained by `bfd->ref[cr->ref_id].len - ref_pos`, which should prevent `rlen` from being excessively large. While `cr->len` is user-controlled, the comparison `seq_pos-1 + rlen < cr->len` ensures that the destination buffer `seq` is not written beyond its bounds relative to `cr->len` (which likely represents the allocated size for `seq`). The source pointer `s->ref` is also constrained by `s->ref_end` further up. The overall logic appears to be carefully handling boundary conditions related to reference sequences and allocated sequence buffers. Therefore, it's not confidently a real bug."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1686,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1586",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation is within an `if` block that checks `cr->len - seq_pos + 1 > 0`. The size operand `cr->len - seq_pos + 1` is also derived from `cr->len` and `seq_pos`. The `seq` buffer's size is presumably related to `cr->len`, and `seq_pos` increments within a loop, but `cr->len` is likely an upper bound. The preceding `memcpy` also uses `rlen` which is capped by `bfd->ref[cr->ref_id].len - ref_pos`. The logic appears to be carefully calculating remaining length to fill with 'N's, suggesting boundary checks are in place. Without knowledge of how `seq` is allocated and the maximum values of `cr->len` and `seq_pos` in relation to `seq`'s capacity, it's difficult to definitively say there's an out-of-bounds write. However, the explicit check for `> 0` before the `memset` and the context of filling the remainder of a sequence suggest this is a controlled operation rather than an arbitrary length write. The `cr->len` value is read from the CRAM record, but it's constrained by the `if` conditions and `seq_pos` which tracks progress within the sequence."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1690,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1602",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size for memset is `(cr->len - seq_pos + 1) - rlen` or `cr->len - seq_pos + 1`. Both `cr->len` and `seq_pos` are internal variables derived from the CRAM file's header or features. `seq_pos` is initialized to 1 and incremented for various features. `cr->len` is read from the CRAM record. The `if` condition `cr->len >= seq_pos` ensures that `cr->len - seq_pos + 1` is at least 1, meaning the size is non-negative. Furthermore, the `rlen` variable is calculated based on `bfd->ref[cr->ref_id].len - ref_pos`. The `if (seq_pos-1 + rlen < cr->len)` guard ensures that `(cr->len - seq_pos + 1) - rlen` is also positive. The destination `&seq[seq_pos-1+rlen]` or `&seq[seq_pos-1]` is a pointer into the `seq` buffer. The code appears to be carefully calculating the memset size and destination within the bounds of `cr->len`, which defines the expected length of the sequence. The `cr->len` itself is bounded by `kseq_max_len`, but the main check here is that the internal arithmetic doesn't lead to an out-of-bounds write based on `cr->len`. Without knowing the allocation size of `seq`, it's hard to be absolutely certain, but the logic itself seems to guard against negative or excessively large sizes relative to `cr->len`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1720,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1723",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1720 is guarded by several conditions. The size argument `rlen` is derived from `bfd->ref[cr->ref_id].len - ref_pos`. This `rlen` is checked to be `> 0` before the `memcpy`. Also, the `memcpy` is further guarded by `if (seq_pos-1 + rlen < cr->len)`. The `dst-ptr` `&seq[seq_pos-1]` and `src-ptr` `&s->ref[ref_pos - s->ref_start +1]` also seem to be bounded by the respective lengths of `seq` and `s->ref`. Specifically, `seq` is allocated with size `cr->len`, and `s->ref` is known to be `s->ref_end - s->ref_start`. The `whinged` static variable and the `hts_log_warning` indicate that this is an expected 'malformed cram file' scenario where the reference position goes outside the boundary, and the code handles this by either copying the available reference sequence or filling with 'N's. The `rlen` calculation and subsequent checks appear to limit the copy to within valid bounds of both source and destination buffers, preventing an out-of-bounds write or read in this specific `memcpy` operation."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2845,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet for `cram_to_bam` does not contain any `memcpy` calls. The description mentions `memcpy at line 2845`, but line 2845 in the provided code is `BLOCK_RESIZE_EXACT(s->qual_blk, BLOCK_SIZE(s->qual_blk)+1);`, which is a call to a macro, not `memcpy`. Without the specific `memcpy` call and its operands, it's impossible to determine if a real bug exists. The `size expr i64 %37` is also not visible in the provided context for any relevant memory operation. The current code shows operations on `BLOCK_RESIZE_EXACT` which internally might use memcpy, but the specific line number and arguments are missing for the reported `memcpy`."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2908,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %230",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size of the memcpy operation, `cr->aux_size`, is derived from the input `cram_record *cr`. However, this `aux_size` is also used in the preceding `bam_construct_seq` call to allocate memory for the BAM record, specifically for the auxiliary data. The `bam_construct_seq` function will reallocate `*bam` if the provided size is insufficient. The `memcpy` then copies `cr->aux_size` bytes into the buffer allocated by `bam_construct_seq`. This design pattern suggests that the allocation is explicitly sized to accommodate `cr->aux_size`, thus preventing an out-of-bounds write. There's an additional `rg_len` added to the allocation size in `bam_construct_seq`, indicating that the auxiliary data might also include the RG tag. The final `memcpy` for auxiliary strings only copies `cr->aux_size` and then the RG tag is added separately. This implies that the memory is carefully managed based on the expected auxiliary data size."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2916,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %259",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 2916 copies `cr->aux_size` bytes from `BLOCK_DATA(s->aux_blk) + cr->aux` to `aux`. The `cr->aux_size` value is derived from input and there's no explicit bounds check to ensure that `cr->aux` + `cr->aux_size` does not exceed the allocated size of `s->aux_blk`. If `cr->aux_size` is maliciously crafted to be larger than the remaining buffer space in `s->aux_blk` from the offset `cr->aux`, it would lead to an out-of-bounds read. Similarly, `aux` is a pointer to memory allocated by `bam_construct_seq` with a size of `cr->aux_size + rg_len`. While the allocation size is related to `cr->aux_size`, there's no explicit check that `cr->aux_size` itself isn't excessive, potentially leading to an out-of-bounds write if `cr->aux_size` is very large and `bam_construct_seq` doesn't guard against such large values or if `aux` is not correctly aligned for the write after other auxiliary data (though this seems less likely given `aux` starts at `bam_aux(*bam)`). The primary concern is the read from `s->aux_blk` using the input-derived `cr->aux` and `cr->aux_size` without sufficient validation against the actual allocated size of `s->aux_blk`."
+   },
+   {
+    "func": "kh_resize_map",
+    "line": 83,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %70",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The size operand of `memset` at line 83 is tainted by `%70`, which is derived from `blk_size`. The value of `blk_size` is read directly from input using `safe_itf8_get`. While there are checks for `blk_size < 0` and `endp - cp < blk_size`, these only prevent a negative size or a read beyond the end of the current input buffer (`endp`). They do not sufficiently constrain `blk_size` to prevent an arbitrarily large value. An attacker could provide a large `blk_size` that leads to an out-of-bounds write via `memset` if the destination pointer points to a small, fixed-size buffer."
+   }
+  ]
+ },
+ {
+  "id": "20694",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 16,
+  "recall": "miss",
+  "gt_func": "hts_md5_update",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 14,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "block_append",
+    "line": 542,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation is implied by `cp += size;` where `cp` is being advanced by `size` bytes. The size `i64 %2` is tainted. While there is a check `endp - cp < size`, this check only ensures that `cp` plus `size` does not go *past* `endp`. It does not guarantee that `cp` is a valid source pointer for `size` bytes, nor does it guarantee that the destination pointer (which is not explicitly shown but would be `cp` for a subsequent read or `b->data` for a write) has enough space. The `memcpy` itself is not directly visible but rather inferred by the `cp += size` which effectively 'consumes' `size` bytes from the input buffer. Without an explicit bounds check for the destination buffer for the `memcpy` (if one exists), or an explicit check for the source buffer that `cp` points to a valid start for `size` bytes, it is a potential bug."
+   },
+   {
+    "func": "cram_decode_slice_header",
+    "line": 1038,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The code explicitly checks `if (cp_end - cp < 16)` before the `memcpy` operation. `cp_end` is `cp + b->uncomp_size`, so `cp_end - cp` represents the remaining bytes in the buffer. This check ensures that there are at least 16 bytes available at `cp` before copying 16 bytes to `hdr->md5`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1116,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %77",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1116 is operating on `qual` with a size of `cr->len`. The `cr->len` value is read from `cram_record *cr` which is an input parameter. There is no visible bounds check ensuring that `qual` is sufficiently large to hold `cr->len` bytes. The `qual` buffer itself is also an input parameter. Therefore, without a check on `qual`'s capacity relative to `cr->len`, this is a potential buffer overflow."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1196,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %295",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1196 is inside an `if` block checking `ref_pos + pos - seq_pos > bfd->ref[cr->ref_id].len`. If this condition is true, the `memcpy` is performed. The `memcpy` itself copies `rlen` bytes. `rlen` is calculated as `bfd->ref[cr->ref_id].len - ref_pos`. The `memcpy` uses `&seq[seq_pos-1]` as the destination and `&s->ref[ref_pos - s->ref_start +1]` as the source. While there's a check `if (ref_pos + rlen > s->ref_end)` which `goto beyond_slice`, this only checks the source buffer `s->ref`. There is no bounds check on the destination buffer `seq` for the size `rlen`. The size `rlen` can be larger than `cr->len - (seq_pos-1)`, leading to a potential overflow of `seq`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1199,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %308",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset(qual, 255, cr->len)` operation uses `cr->len` as the size. While `cr->len` is a field of `cram_record` and seems to indicate the length of the read, there is no explicit bounds check on the `qual` buffer (which is passed as a `char *`) to ensure it is large enough to hold `cr->len` bytes. The `qual` pointer itself is an argument to the function `cram_decode_seq` and its origin and allocated size are not visible within this scope, nor is there any check that `cr->len` does not exceed the capacity of `qual`. Therefore, it's possible for `cr->len` to be larger than the allocated size of `qual`, leading to a buffer overflow."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1202,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %318",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1202 uses `cr->len` as the size. While `cr->len` is likely derived from the CRAM file and intended to be the read length, there is no explicit bounds check visible in the provided code snippet that ensures `qual` is allocated to at least `cr->len` bytes. The function signature takes `char *qual`, but its allocation size is not apparent or checked here. Without such a check, if `cr->len` is larger than the actual allocated size of `qual`, it could lead to an out-of-bounds write."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1227,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %404",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1227 uses `&s->ref[ref_pos - s->ref_start + 1]` as the source pointer. While there's a check `if (ref_pos + pos - seq_pos > bfd->ref[cr->ref_id].len)` earlier, this check only ensures that the *end* of the intended copy is within `bfd->ref[cr->ref_id].len`. It does not explicitly check if `ref_pos - s->ref_start + 1` (the start of the source buffer) is a valid index within `s->ref`. The value `s->ref_start` is not fully constrained to prevent `ref_pos - s->ref_start + 1` from becoming negative or exceeding the bounds of `s->ref`'s allocated memory. There's also `if (ref_pos + rlen > s->ref_end)` which guards `s->ref` but only for the case when `rlen > 0`. If `rlen <= 0`, this specific memcpy is not guarded by that check. Without a clear and sufficient guard for the base address of `s->ref` access, I default to `real_bug=true`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1677,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1568",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There are multiple conditional `memcpy` and `memset` operations within this block, but none of them provides a clear, universally covering bounds check for the specific memcpy at line 1677. The code checks `if (seq_pos-1 + rlen < cr->len)` and `if ((cr->len - seq_pos + 1) - rlen > 0)` and `if (cr->len - seq_pos + 1 > 0)`, which are checks on the destination array `seq` but not necessarily a complete guard against all possible tainted inputs for `i64 %1568` derived from `cr->len - seq_pos + 1`. The `s->ref` pointer is also involved in the source, and its bounds are not explicitly checked for this `memcpy` operation."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1680,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1586",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 1680 has a size `(cr->len - seq_pos + 1) - rlen` which is derived from `cr->len`, `seq_pos`, and `rlen`. The destination `&seq[seq_pos-1+rlen]` is also derived from these. While there are several checks involving `cr->len`, `seq_pos`, and `ref_pos`, none of them explicitly bounds check the `seq` array with the specific size and offset used in this `memset`. Specifically, the condition `seq_pos-1 + rlen < cr->len` only checks a lower bound for `cr->len` against the starting position of the `memcpy`, not the buffer capacity for the `memset`. The `if (cr->len - seq_pos + 1 > 0)` check only ensures a positive size, not that the write is within bounds of the `seq` array. There is no clear guard for the `seq` buffer with respect to the `memset` operation."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1602",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1684 uses `cr->len - seq_pos + 1` as the size operand. While there is a check `cr->len - seq_pos + 1 > 0` immediately preceding it, this only ensures the size is positive. There is no explicit bounds check (like `if (seq_pos-1 + (cr->len - seq_pos + 1) > seq_capacity)`) that covers the destination `seq[seq_pos-1]` against the allocated size of `seq`. The variable `cr->len` is input-derived and `seq_pos` can also be influenced by input. Without a clear upper bound check on `seq_pos` or `cr->len` relative to the `seq` buffer's capacity, an overflow is possible."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1714,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1723",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1714 is within an 'if' block `if (cr->len - seq_pos + 1 > 0)` and an outer 'if' block `if (seq_pos-1 + rlen < cr->len)`. The size operand is `rlen`. The destination pointer is `&seq[seq_pos-1]` and the source pointer is `&s->ref[ref_pos - s->ref_start +1]`. While `rlen` is calculated as `bfd->ref[cr->ref_id].len - ref_pos`, which seems to check against `bfd->ref[cr->ref_id].len`, it's not clear that `seq_pos-1 + rlen` (the upper bound of the destination buffer access) or `ref_pos - s->ref_start + 1 + rlen` (the upper bound of the source buffer access) are adequately bounded against `seq` and `s->ref` buffer sizes, respectively, especially given the `seq_pos-1 + rlen < cr->len` check. The outer check `ref_pos + cr->len - seq_pos + 1 > bfd->ref[cr->ref_id].len` only handles a specific overflow scenario for `bfd->ref[cr->ref_id].len` related to `ref_pos` and `cr->len - seq_pos + 1`, which is then used to compute `rlen`, but it doesn't directly guard the `memcpy` for the `seq` buffer. There is no explicit guard that checks `seq_pos-1 + rlen` against the allocated size of `seq` or `ref_pos - s->ref_start + 1 + rlen` against the allocated size of `s->ref` (adjusted for `s->ref_start`)."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2820,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2820 uses `fd->prefix` as the source, and its size `name_len` is derived from `strlen(fd->prefix)`. There is no bounds check visible on the path leading to this `memcpy` that ensures `fd->prefix` is a valid, null-terminated string, or that `name_len` (the length of `fd->prefix`) plus subsequent appended data will not exceed the `name_a` buffer size (1024 bytes). While `name_a` is a fixed-size buffer, the logic populating it is complex and involves appending multiple parts, making it hard to prove safety without an explicit check. Specifically, the size is calculated by `name_len = strlen(fd->prefix);` and `memcpy(name, fd->prefix, name_len);`. If `fd->prefix` is not null-terminated or points to invalid memory, `strlen` could read out of bounds, and then `memcpy` could read out of bounds. There is no `ND_TCHECK` or similar macro covering this operation."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2883,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %230",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2883 copies `cr->aux_size` bytes from `BLOCK_DATA(s->aux_blk) + cr->aux` to `aux`. The `aux` pointer is obtained from `bam_aux(*bam)`, and the `bam_construct_seq` function allocates space for the BAM record. While `bam_construct_seq` takes `cr->aux_size + rg_len` as a size parameter, and `aux` is positioned within this allocated space, there is no explicit bounds check (e.g., `if (cr->aux_size > remaining_buffer_space)`) immediately preceding the `memcpy` to ensure that `cr->aux_size` does not exceed the buffer available at `aux`. The only relevant allocation happens inside `bam_construct_seq`, and this `memcpy` is not directly guarded by a check against the actual buffer limits for `aux`."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2891,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %259",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2891 copies `cr->aux_size` bytes from `BLOCK_DATA(s->aux_blk) + cr->aux` to `aux`. The `aux` pointer is obtained from `bam_aux(*bam)`, which points into a buffer allocated by `bam_construct_seq`. The size passed to `bam_construct_seq` for auxiliary data is `cr->aux_size + rg_len`. While this `cr->aux_size` value is used in `bam_construct_seq` to determine the total allocation size, there is no explicit bounds check (e.g., `if (cr->aux_size > allocated_space_for_aux)`) immediately before this `memcpy` that would prevent an overflow if `cr->aux_size` were to somehow exceed the allocated buffer size. The `bam_construct_seq` function itself might handle reallocations, but the prompt states we cannot re-question the input-derived nature of the size and its lack of clamping/min/allocate-to-fit behavior. Therefore, without a visible explicit bounds check for this specific `memcpy` operation against the actual buffer pointed to by `aux`, it's considered a potential bug."
+   },
+   {
+    "func": "kh_resize_map",
+    "line": 83,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 83 is within the `kh_resize_map` function, which is not provided in the given code snippet. Therefore, I cannot identify any bounds checks that might cover the `memset` operation for the `size+dst-ptr` operand. Without the function's definition, it's impossible to determine if a sufficient guard exists. Thus, the default `real_bug=true` is applied."
+   },
+   {
+    "func": "block_append",
+    "line": 542,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'size' variable, which determines the memcpy size, is derived from input via safe_itf8_get. However, there are multiple checks guarding the subsequent use of 'size'. Specifically, there's a check `endp - cp < size` before the memcpy (or rather, before the call to `cram_decoder_init` which uses `cp` and `size`). This check ensures that the 'size' value does not exceed the remaining buffer boundary, thus preventing an out-of-bounds read from the 'cp' pointer. The 'dst-ptr' (which would be within the `cram_decoder_init` function call) is also implicitly protected by the allocation of the `cram_map` struct and the subsequent `m->codec` assignment, which is handled by `cram_decoder_init` and would fail if an invalid size were provided. Therefore, the code looks guarded."
+   },
+   {
+    "func": "cram_decode_slice_header",
+    "line": 1038,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1038 copies 16 bytes from `cp` into `hdr->md5`. The source pointer `cp` is checked against `cp_end` via `cp_end - cp < 16`. If the remaining data is less than 16 bytes, the function returns NULL. This explicitly guards against reading past `cp_end`. Therefore, it's not a real bug."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1116,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %77",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 1116 in `cram_decode_seq` is `memset(qual, 255, cr->len);`. The `qual` buffer is allocated by the caller (`cram_decode_slice`) based on `cr->len`, as seen in `seq_qual = malloc(rec->len + 1);` and `qual = seq_qual + rec->len;`. The size operand `cr->len` is then used to initialize the `qual` buffer. This suggests that `qual` is a valid buffer of size `cr->len`. The `cr->len` itself is read from the CRAM file and stored in a `cram_record` structure, but it is implicitly bounded by the remaining size of the allocated memory for the record sequence. The `qual` buffer is explicitly allocated to `rec->len + 1`, and the `memset` fills `rec->len` bytes. This indicates careful memory handling. Although `cr->len` is input-derived, it is used to allocate the buffer `qual`, making the `memset` operation safe within the bounds of this allocation."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1196,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %295",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand `i64 %295` for `memcpy` is derived from `rlen` or `(pos - seq_pos) - rlen`. The surrounding code includes checks that prevent `rlen` from being negative (`rlen > 0`), and `pos - seq_pos` is also checked against `cr->len+1`. The `memcpy` itself is guarded by `if (ref_pos + rlen > s->ref_end) goto beyond_slice;` and `if (ref_pos + pos - seq_pos > bfd->ref[cr->ref_id].len)`. These checks, along with the `memset` call for the remaining part if `rlen` is smaller, suggest an attempt to handle boundary conditions. While the calculations are complex, the existing guards make it less likely to be a straightforward out-of-bounds write."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1199,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %308",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1199 is `memset(qual, 255, cr->len);`. The `cr->len` is the length of the read, which is expected to be a valid size. The `qual` buffer is allocated to hold quality scores corresponding to the read length. While `cr->len` is derived from input, the buffer `qual` should be sized accordingly upstream. Assuming `qual` is correctly sized based on `cr->len`, this `memset` itself is not an out-of-bounds write. The context suggests `cr->len` is a read property, and `qual` is a buffer intended to store quality scores for that read. If `qual` is not properly allocated, the vulnerability would be in the allocation, not directly in this `memset."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1202,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %318",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation is `memset(qual, 255, cr->len)`. The `cr->len` value is the length of the read. The `qual` buffer is allocated as part of the `cram_record` structure, and it is expected to be able to hold `cr->len` bytes. Assuming `cr->len` accurately reflects the read length and `qual` is appropriately sized for that length (which is standard practice for CRAM/BAM libraries), this `memset` should be within bounds. The code elsewhere checks `pos > cr->len + 1` for sequence positions, implying `cr->len` is considered a maximum length. Without information on how `qual` is allocated relative to `cr->len`, I will assume `qual` is correctly sized based on `cr->len` as is standard in `htslib`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1227,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %404",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1227 is inside an `if` block that checks `ref_pos + rlen > s->ref_end`. If this condition is true, the code jumps to `beyond_slice`, which handles the out-of-bounds scenario for `s->ref`. This implies that `s->ref` has been allocated for a certain range `[s->ref_start, s->ref_end]`, and the `memcpy` is guarded to ensure it doesn't access `s->ref` outside this range. The `rlen` variable is also calculated to be `bfd->ref[cr->ref_id].len - ref_pos`, meaning `ref_pos + rlen` will always be within `bfd->ref[cr->ref_id].len`. The `memcpy` itself uses `&s->ref[ref_pos - s->ref_start + 1]` as `src-ptr` and `rlen` as size. The `ref_pos - s->ref_start + 1` ensures that the `src-ptr` is relative to `s->ref_start`. If `ref_pos + rlen > s->ref_end` then the code branches to `beyond_slice` thus avoiding the `memcpy` in this case. The code appears to be careful about bounds checking for `s->ref`."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1677,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1568",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1677 has `size` derived from `rlen`, which is calculated as `bfd->ref[cr->ref_id].len - ref_pos`. This calculation is done within a conditional block that checks `ref_pos + cr->len - seq_pos + 1 > bfd->ref[cr->ref_id].len`. This check ensures `rlen` will not be negative. The destination `seq` is indexed by `seq_pos-1`. The size of the `memcpy` is `rlen`, and the condition `seq_pos-1 + rlen < cr->len` further guards the copy to ensure it doesn't write beyond the allocated `seq` buffer, which is sized by `cr->len`. This seems to be a careful attempt to handle out-of-bounds reference positions by truncating the copy and then filling the rest with 'N's. Therefore, it is unlikely to be an out-of-bounds write."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1680,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1586",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1680 is guarded by `cr->len - seq_pos + 1 > 0`. The size operand `(cr->len - seq_pos + 1) - rlen` (first `memset`) and `cr->len - seq_pos + 1` (second `memset`) is derived from `cr->len` and `seq_pos`. The `seq` buffer is allocated based on `cr->len` earlier in the `cram_decode_seq` function (line 1528 `seq = CALLOC(char, cr->len + 1);`). The `seq_pos` variable is incremented and controlled internally. While `cr->len` is read from the CRAM file header, the condition `cr->len >= seq_pos` checks for a valid length relative to the sequence position. The subsequent conditions and calculations seem to ensure that the `memset` operations are performed within the bounds of `seq`, specifically up to `cr->len`. The `if` branches handle cases where `ref_pos` exceeds `bfd->ref[cr->ref_id].len`, adjusting the fill length `rlen` or filling the entire remaining sequence with 'N's. The crucial part is that `seq` is allocated for `cr->len + 1` characters. The `memset` destination is `&seq[seq_pos-1]` or `&seq[seq_pos-1+rlen]`. The maximum index written to would be `seq_pos - 1 + (cr->len - seq_pos + 1) - 1` or `seq_pos - 1 + rlen + (cr->len - seq_pos + 1) - rlen - 1` which both simplify to `cr->len - 1`. This is within the allocated `cr->len + 1` buffer (indices 0 to `cr->len`). Therefore, an out-of-bounds write is not apparent here."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1602",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size for memset is calculated as `(cr->len - seq_pos + 1) - rlen` or `cr->len - seq_pos + 1`. Both `cr->len` and `seq_pos` are internal variables derived from parsing the CRAM file and used to determine the sequence length and current position. `cr->len` represents the total length of the CRAM read, and `seq_pos` tracks the current position within the sequence. `rlen` is also carefully calculated. The `if` conditions `(cr->len - seq_pos + 1) - rlen > 0` and `cr->len - seq_pos + 1 > 0` ensure that the size is always positive before the `memset` call. Although `cr->len` can be controlled by input, `seq_pos` is incremented during processing, and `rlen` is constrained by `bfd->ref[cr->ref_id].len`, which is a known reference length. The `memset` destination `&seq[seq_pos-1+rlen]` or `&seq[seq_pos-1]` is also within the bounds of `seq` because the prior `memcpy` and `memset` operations, as well as the overall logic, seem to handle the `seq` buffer carefully, considering `cr->len` as its maximum extent. Without more context on how `seq` is allocated and its maximum size in relation to `cr->len`, it's difficult to definitively say there's an out-of-bounds write. However, the calculation of the size seems to be self-consistent with the internal state and aims to fill the remainder of the sequence. It's likely that `seq` is allocated to at least `cr->len` length."
+   },
+   {
+    "func": "cram_decode_seq",
+    "line": 1714,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1723",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size argument for memcpy, `rlen`, is calculated as `bfd->ref[cr->ref_id].len - ref_pos`. This ensures `rlen` is the remaining length of the reference sequence from `ref_pos`. The destination buffer is `seq[seq_pos-1]`, and the source is `s->ref[ref_pos - s->ref_start +1]`. The condition `if (seq_pos-1 + rlen < cr->len)` indicates a check against `cr->len`, but this comparison is not directly about `seq` or `s->ref` buffer sizes. The `rlen` itself is bounded by the reference length, preventing an out-of-bounds read from `s->ref`. The destination `seq` is managed by `s->seq` and `s->seq_len`, which are dynamically allocated earlier in the `cram_decode_seq` function (not shown in the provided snippet but assumed as part of the `s` struct). The value of `cr->len` is used to determine the overall length of the sequence being processed. `seq_pos` increments through this sequence. The memcpy destination `&seq[seq_pos-1]` and size `rlen` are within the bounds of `cr->len` because `seq_pos-1 + rlen` is compared against `cr->len`. If `seq_pos-1 + rlen` is less than `cr->len`, the memcpy copies `rlen` bytes. If it's not, it implies that the `rlen` copy would extend beyond `cr->len` or `seq_pos-1+rlen` is already equal to or greater than `cr->len`, meaning `cr->len - (seq_pos-1)` is the remaining length, and the next `memset` handles the rest. Overall, the logic appears to carefully handle the bounds with respect to `cr->len` and `bfd->ref[cr->ref_id].len`."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2820,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `size` for `memcpy` at line 2820 is derived from `name_len`, which is calculated based on `cr->name_len` or dynamically generated with `append_uint64`. In the branch where `name_a` is used, the buffer `name_a` has a fixed size of 1024. The `name_len` is capped by this fixed size, and the `append_uint64` function increments a pointer within `name_a`, ensuring it does not write beyond its bounds. The `memcpy` itself copies `name_len` bytes into `name`, which is either `name_a` (1024 bytes) or `BLOCK_DATA(s->name_blk) + cr->name`. In the latter case, `cr->name_len` is used directly. This `cr->name_len` is a field within `cram_record` which is read from the CRAM file. However, before this `memcpy` call, there's a check `if (cr->name_len)` and if true, `name_len` is set to `cr->name_len` and `name` points into `s->name_blk`. The size of this block is managed by the CRAM parser. If the `cr->name_len` value were maliciously crafted, it could potentially lead to an out-of-bounds read from `s->name_blk`. However, the prompt only provides the `memcpy` line itself and its immediate context. The block allocation and population is upstream from this. Looking at the `BLOCK_RESIZE_EXACT` calls just before the `block_err` label in the `cram_to_bam` function, these seem to be shrinking the blocks to their exact used size. The `BLOCK_SIZE(s->name_blk)` would be the currently used size. If `cr->name` + `cr->name_len` exceeds `BLOCK_SIZE(s->name_blk)`, it would be an out-of-bounds read. This is a possibility given `cr->name_len` is input-derived. However, without seeing how `s->name_blk` is populated and how `cr->name` and `cr->name_len` are parsed and validated, it's difficult to be certain this is a *triggerable* bug from the given snippet. The problem description states: \"only answer real_bug=true if you are confident it is a real vulnerability; if the code looks guarded or careful, answer false.\" The `BLOCK_RESIZE_EXACT` calls to shrink the blocks suggest that the code *is* being careful about block sizes. It is more likely that `BLOCK_SIZE(s->name_blk)` correctly reflects the valid range of data, and `cr->name` and `cr->name_len` are supposed to be within that range. If `cr->name_len` can be manipulated to be larger than the actual data available in `s->name_blk`, this would be an issue. But the shrinking of blocks before this `memcpy` is not necessarily the final word on the size of the block. The `BLOCK_SIZE` macro is key here. Assuming `BLOCK_SIZE` refers to the *valid data size* within the block, then a malicious `cr->name_len` could still cause a read beyond this valid data. However, the function `cram_to_bam` converts `cram_record` to `bam_seq_t`. The `cram_record` itself is derived from `cram_slice` which in turn is from `cram_container`. The parsing logic for CRAM records typically includes length checks. Without seeing the parsing of `cr->name_len` and `cr->name`, it's hard to be certain of an OOB read. Given the context of `cram_to_bam` (conversion), `cr->name_len` being an out-of-bounds read from `s->name_blk` would imply a bug in the *parsing* of the CRAM file itself, not necessarily in this `memcpy`. The `memcpy` itself copies whatever `name_len` is. If `name_len` is itself correct according to what was populated into `s->name_blk`, there's no bug here. The input-derived nature of `name_len` is not enough to conclude a bug without knowing the bounds of the source buffer (`s->name_blk`)."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2883,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %230",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 2883 copies `cr->aux_size` bytes from `s->aux_blk` to `aux`. The `aux` pointer is obtained by `bam_aux(*bam)`. The size of the `bam` buffer is allocated by `bam_construct_seq` with `cr->aux_size + rg_len` as a component of its total size calculation. Before the `memcpy`, `aux` is initialized to `bam_aux(*bam)`. The subsequent `memcpy` then copies `cr->aux_size` bytes into this `aux` buffer. This looks like the allocation is correctly accounting for the auxiliary data size. Therefore, there doesn't appear to be an out-of-bounds write."
+   },
+   {
+    "func": "cram_to_bam",
+    "line": 2891,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %259",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size for the memcpy is `cr->aux_size`. The destination buffer for memcpy is `aux`, which is initialized from `bam_aux(*bam)`. The `bam_construct_seq` function, which creates/resizes the `*bam` buffer, takes `cr->aux_size + rg_len` as a parameter to allocate space for auxiliary data. This indicates that `cr->aux_size` is taken into account when allocating the buffer, making an overflow due to `cr->aux_size` unlikely. Therefore, it appears the buffer is appropriately sized for `cr->aux_size` bytes."
+   },
+   {
+    "func": "kh_resize_map",
+    "line": 83,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is too short to determine the vulnerability. The `memset` call at line 83 is not visible in the given context. The `cram_decode_TD` function, which is the last function in the snippet, does not contain a `memset` call. Without the relevant code, it's impossible to assess if the tainted `size+dst-ptr` operand leads to an out-of-bounds write."
+   }
+  ]
+ },
+ {
+  "id": "65383",
+  "project": "htslib",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 16,
+  "recall": "hit",
+  "gt_func": "process_one_read",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 13,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "process_one_read",
+    "line": 3717,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %907",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 3717 is covered by the `BLOCK_GROW` macro on line 3715, which ensures `s->qual_blk` has enough space for `cr->len` bytes. The `memcpy` itself copies `cr->len` bytes from `bam_qual(b)` to `cp`, which points to the end of the `s->qual_blk` after `BLOCK_GROW` has potentially reallocated it."
+   },
+   {
+    "func": "block_append",
+    "line": 247,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 247, within the `BLOCK_APPEND` macro, copies `BLOCK_SIZE(h->TD_blk)` bytes from `BLOCK_DATA(h->TD_blk)` to `map`. The size `BLOCK_SIZE(h->TD_blk)` is identified as input-derived and not constant. While there's a call to `fd->vv.varint_put32_blk(map, BLOCK_SIZE(h->TD_blk))` right before the `BLOCK_APPEND` that might be involved in allocating or sizing `map`, there's no explicit bounds check (like an `if (size > capacity)` or a `GROW`/`ENSURE` macro) that directly guarantees `map` has sufficient capacity to accommodate `BLOCK_SIZE(h->TD_blk)` bytes. Therefore, it's unclear if the destination buffer (`map`) is sufficiently sized for the input-derived length, leading to a potential buffer overflow."
+   },
+   {
+    "func": "cram_encode_slice_header",
+    "line": 554,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 554 copies 16 bytes from `s->hdr->md5`. The `src-ptr` `s->hdr->md5` is not directly allocated within this function. However, `s->hdr` is a `cram_slice_header` structure. The `cram_slice_header` structure contains a `char md5[16];` field. This means `s->hdr->md5` is an array of exactly 16 characters. Therefore, copying 16 bytes from `s->hdr->md5` is always within its declared bounds, and no explicit bounds check is needed on the path to cover this access, as it's inherently safe due to the fixed size of the `md5` array within the struct."
+   },
+   {
+    "func": "kh_resize_map",
+    "line": 83,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %70",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 83 is part of `KHASH_MAP_INIT_STR(m_s2u64, uint64_t)` and refers to `kh_resize_map`. The size `i64 %70` is derived from input. There are no explicit bounds checks (like `if (off+n > cap)`) or bounds macros visible in the provided code snippet that would cover this specific `memset` operation. Without seeing the definition of `kh_resize_map` and how its size is calculated and potentially guarded, we must assume no such check exists in the visible context."
+   },
+   {
+    "func": "kh_resize_map",
+    "line": 83,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 83 is within `kh_resize_map`. The `src-ptr` is `h->aux`, which is copied from `h->keys`. The size is a constant `8`. However, there are no visible bounds checks or guards on the size of `h->aux` (or `h->keys`) relative to the copy length before this operation. The `h` structure is passed in from `cram_encode_compression_header`, which itself does not perform checks on `h->aux` or `h->keys` before calling `kh_resize_map`. Without a clear check covering the 8-byte read from `h->aux` (or `h->keys`), a heap buffer overflow is possible if `h->aux` is too small."
+   },
+   {
+    "func": "kh_resize_m_s2u64",
+    "line": 54,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %68",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet is incomplete and does not contain the `kh_resize_m_s2u64` function where the `memset` at line 54 is reported to occur. Without the full function definition, it is impossible to determine if there is a bounds check that covers the `memset` operation. Therefore, I default to true as per the instructions."
+   },
+   {
+    "func": "extend_ref",
+    "line": 1539,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1539 is for `*hist`. The `size` operand is `(new_end-old_end)*sizeof(**hist)`. The `dst-ptr` operand is `&(*hist)[old_end]`. The `new_end` and `old_end` variables are derived from `pos`, `ref_start`, and `*ref_end`. Prior to the `memset`, there's a bounds check at line 1526: `if (new_end - ref_start > UINT_MAX/sizeof(**hist)/2) return -2;`. This check ensures that `(new_end - ref_start)` does not exceed `UINT_MAX/sizeof(**hist)/2`.  Since `sizeof(**hist)` is `sizeof(uint32_t[5])`, this implies `new_end - ref_start` is bounded.  The `old_end` variable is `*ref_end ? *ref_end : ref_start`, which is also related to `ref_start` and `new_end`. The memory allocation for `*hist` happens at line 1533: `uint32_t (*tmp5)[5] = realloc(**hist, (new_end - ref_start)*sizeof(**hist));`. The `memset` then initializes `(new_end-old_end)*sizeof(**hist)` bytes starting from `&(*hist)[old_end]`. Since `old_end` and `new_end` are adjusted by `ref_start` before being used for indexing into `*hist` (i.e., `old_end -= ref_start; new_end -= ref_start;`), and the `realloc` size is `(new_end - ref_start)*sizeof(**hist)`, the `memset`'s `size` is `(new_end - old_end)` * `sizeof(**hist)`, and `new_end` is the upper bound of the allocation, and `old_end` is a value between `0` and `new_end`. Thus, the `memset` is covered by the realloc and the earlier bounds check on `new_end - ref_start`."
+   },
+   {
+    "func": "extend_ref",
+    "line": 1540,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %60",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1540 operates on `&(*ref)[old_end]` with a size of `new_end-old_end`. The value `new_end` is calculated as `ref_start + 1000 + (pos-ref_start)*1.5`, and `old_end` is either `*ref_end` or `ref_start`. While `new_end` and `old_end` are adjusted by subtracting `ref_start` before being used in `memset`, the crucial part is the `realloc` call for `*ref`. The `realloc` is done with `new_end-ref_start+1` as the size. The `memset` then writes `new_end-old_end` bytes starting from `&(*ref)[old_end]`. The largest index accessed by the `memset` is `old_end + (new_end - old_end) - 1`, which simplifies to `new_end - 1` (after adjustment for `ref_start`). The size of the allocated buffer is `new_end - ref_start + 1`. The `memset` writes `new_end - old_end` bytes. If `old_end` is 0 (i.e. `ref_start`), it writes `new_end` bytes. The largest index written to is `new_end - 1`. The allocated size is `new_end - ref_start + 1`. If `ref_start` is 0, then the allocated size is `new_end + 1` and the largest index written to is `new_end - 1`, which is within bounds. However, if `ref_start` is not 0, then `new_end - ref_start + 1` is the allocated size. The `memset` writes up to index `new_end - 1` (relative to the start of the `realloc`ed memory). If `ref_start > 1`, then `new_end - 1` can be greater than `new_end - ref_start + 1 - 1`, leading to an out-of-bounds write. There is no explicit bounds check (like an `if (old_end + new_end - old_end > new_end - ref_start + 1)` or similar) that covers this specific `memset` operation to ensure it remains within the `realloc`ed buffer for `*ref` considering the potential non-zero `ref_start`."
+   },
+   {
+    "func": "cram_add_to_ref",
+    "line": 1682,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %87",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` operation at line 1682 uses `len` as the size argument. `len` is derived from `bam_cigar_oplen(cigar[i])`, which is an input-derived value. The `extend_ref` call just before the `memset` ensures that `(*ref)` is large enough to hold `iref + ref_start + len` elements. However, `memset` uses `&(*ref)[iref]` as the destination and `len` as the size. The `extend_ref` call does not explicitly guarantee that `iref + len` will not exceed the current allocated size of `(*ref)` in a way that directly covers the `memset`'s range. While `extend_ref` might reallocate and grow the buffer, the `memset` itself doesn't have a direct, explicit bounds check covering its exact `iref` to `iref + len - 1` range within the (possibly reallocated) `*ref` buffer. The `extend_ref` check `iref+ref_start + len` is on the 'absolute' reference position, not directly `iref` within the potentially reallocated `*ref` array, making it difficult to confidently say it covers the `memset`'s relative address. Without a more explicit check or a guarantee that `extend_ref` always makes `*ref` large enough for `iref + len` directly, `real_bug` defaults to true."
+   },
+   {
+    "func": "nibble2base",
+    "line": 95,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code snippet provided does not contain the `memcpy` at line 95. Therefore, it's impossible to verify if there's a bounds check covering the access. Without the relevant code, the default answer is `true`."
+   },
+   {
+    "func": "kputuw",
+    "line": 351,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet does not contain a memcpy call at line 351, nor any visible bounds checks (like `if (off+n > cap)`) that would cover a memcpy with `i64 2` bytes on an input-derived source pointer. The code primarily consists of calls to `fd->vv.varint_put32_blk`, `BLOCK_APPEND`, and `h->codecs[DS_...]->store`, none of which are explicitly shown to perform a bounds check for the `src-ptr` of an assumed `memcpy` at line 351."
+   },
+   {
+    "func": "kputsn",
+    "line": 239,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 239 is implied by `BLOCK_APPEND(map, BLOCK_DATA(h->TD_blk), BLOCK_SIZE(h->TD_blk));`. While the code checks `fd->vv.varint_put32_blk(map, BLOCK_SIZE(h->TD_blk)) <= 0`, this check only verifies the success of writing the size to `map`, not the bounds of the subsequent `BLOCK_APPEND` operation itself. There is no explicit bounds check or allocation for `map` that covers the size `BLOCK_SIZE(h->TD_blk)` before the `BLOCK_APPEND` call. The size `BLOCK_SIZE(h->TD_blk)` is derived from `h->TD_blk`, which is not necessarily a constant or clamped value. Therefore, a heap buffer overflow is possible if `BLOCK_SIZE(h->TD_blk)` is larger than the available capacity in `map`."
+   },
+   {
+    "func": "cram_add_feature",
+    "line": 2565,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation is implicitly part of the assignment `s->features[s->nfeatures++] = *f;`. This copies a `cram_feature` struct. The `s->features` array is reallocated with `s->afeatures*sizeof(*s->features)`. While `s->afeatures` is doubled when `s->nfeatures >= s->afeatures`, the reallocation happens *before* `s->nfeatures` is incremented and used as an index. This ensures that `s->nfeatures` will always be a valid index within the reallocated `s->features` array for the assignment. Therefore, the destination buffer `s->features` is correctly sized to receive the new feature. However, the analysis is flagging the 'src-ptr' of the memcpy as tainted. The source `*f` comes directly from the function argument `f`, which is a `cram_feature`. There's no visible bounds check on the `f` argument itself or the data within it. If `f` were to contain arbitrary data that could cause issues when accessed as a `cram_feature` (e.g., if `f` was a pointer to a smaller buffer), that would be a src-ptr bug. The static analysis flagged src-ptr and the size `i64 16`, which is `sizeof(cram_feature)`. Without additional context on how `f` is populated or where it comes from, and given the default-to-true rule for uncertainty, there's no visible guard covering the source pointer `f` to ensure it is valid and points to at least 16 bytes."
+   },
+   {
+    "func": "kh_resize_m_tagmap",
+    "line": 394,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %68",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet is completely unrelated to the `kh_resize_m_tagmap` function or a `memset` operation. It consists of a series of `if` statements calling a `store` method on `h->codecs` array elements. There is no `memset` operation visible, nor any bounds checks that would cover a `memset` on an input-derived size. Without the context of the `memset` call itself and any preceding bounds checks for its specific destination and size, I must default to `real_bug=true`."
+   },
+   {
+    "func": "kh_resize_m_metrics",
+    "line": 308,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %68",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet is not for the `kh_resize_m_metrics` function, nor does it contain a `memset` at line 308. It appears to be part of a CRAM file encoding/decoding logic. Without the correct code for the specified function and line, it's impossible to determine if a bounds check exists for the `memset` operation. Therefore, defaulting to true."
+   },
+   {
+    "func": "kh_resize_m_s2i",
+    "line": 168,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %68",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` operation at line 168 is within the `kh_resize_m_s2i` function. There is no visible bounds check or guard (like ND_TCHECK/ND_TTEST/CHECK_*/GROW/ENSURE macros, or a plain `if (off+n > cap)` check) in the provided code snippet that explicitly covers the size and destination pointer for this specific `memset` operation. Since the size operand is input-derived and not constant, a missing check indicates a potential heap overflow vulnerability."
+   },
+   {
+    "func": "process_one_read",
+    "line": 3717,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %907",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation's `size` is `cr->len`. This value is used to `BLOCK_GROW` `s->qual_blk` immediately before the `memcpy`. This ensures that `s->qual_blk` has sufficient space to accommodate `cr->len` bytes. The source buffer `from` is `(char *)&bam_qual(b)[0]`, and `bam_qual(b)` is documented as providing quality scores, which should be associated with the length of the read `b->l_qseq` (which should be `cr->len`). While `cr->len` is derived from input, the allocation and copy size are consistent, preventing an out-of-bounds write to the destination. An out-of-bounds read from `bam_qual(b)` could occur if `cr->len` is larger than the actual length of the `bam_qual` data, but the context implies `cr->len` should match the sequence length, which is checked earlier (`if (cr->len && spos != cr->len)`)."
+   },
+   {
+    "func": "block_append",
+    "line": 247,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand `i64 %2` in `BLOCK_APPEND(map, key, 2)` (which expands to `memcpy`) is derived from the constant `2`. The source `key` is `kh_key(pmap, k)`, which points to a string literal of length 2 (e.g., \"UI\", \"MI\", \"SM\", \"TD\", \"AP\", \"QO\", \"RR\"). Thus, copying 2 bytes from a 2-byte string literal is safe. Similarly, other `BLOCK_APPEND` calls have fixed sizes (e.g., 5 for `smat`) or sizes derived from `BLOCK_SIZE` of another block (`h->TD_blk`), which is also controlled internally. The `key` values are fixed strings defined within the code, not user-controlled input."
+   },
+   {
+    "func": "cram_encode_slice_header",
+    "line": 554,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 554 copies 16 bytes from `s->hdr->md5` to `cp`. The destination buffer `buf` is allocated with a size of `22+16+5*(8+s->hdr->num_blocks)`. The `cp` pointer is incremented by various `fd->vv.varint_put*` calls, which write data into the buffer, and then by the `memcpy` itself. The crucial part is the `assert(cp-buf <= 22+16+5*(8+s->hdr->num_blocks));` immediately after the `memcpy`. This assert checks that `cp` has not gone out of bounds relative to `buf`. While an assert can be disabled in release builds, the `varint_put*` functions also return the number of bytes written, effectively moving `cp` by the correct amount. Therefore, `cp` should always point within the allocated buffer `buf`. The `s->hdr->md5` field is likely a fixed-size array (e.g., `unsigned char md5[16];`), so copying 16 bytes from it is safe as long as `s->hdr->md5` itself is valid. Assuming `s->hdr` is a valid pointer and `s->hdr->md5` is a valid 16-byte array, the `memcpy` is within bounds of the `buf` buffer due to the size calculation and `cp` tracking."
+   },
+   {
+    "func": "kh_resize_map",
+    "line": 83,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %70",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` is at line 83 within `kh_resize_map`. This function is part of `klib/khash.h`, which is a well-tested and widely used hash table implementation. The `size` operand `i64 %70` is calculated from `new_n_buckets`, which is a multiple of `n_buckets`. The relevant `memset` operations within `kh_resize_map` are used to initialize arrays to zeros. These operations are typically safe and proportional to the allocated memory. Without seeing the `kh_resize_map` function itself, it's hard to be absolutely certain, but given its common usage, it's highly unlikely to have a fundamental out-of-bounds bug here. The taint analysis might flag it because `new_n_buckets` could ultimately be derived from user input (e.g., controlling the number of elements in a hash map), but the resizing logic in khash.h generally ensures `new_n_buckets` is within reasonable bounds and the allocated memory size is correctly calculated based on it. Therefore, this is likely a false positive, assuming the khash implementation is correct."
+   },
+   {
+    "func": "kh_resize_map",
+    "line": 83,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is a memcpy at line 83 within the `kh_resize_map` function, with a size of 8 bytes. This function is likely part of the klib/khash library, which is a common and generally robust hash table implementation. The `src-ptr` operand is flagged as input-derived. However, without the full context of `kh_resize_map` and how the `src-ptr` is derived and used in relation to the hash table's internal memory management (which typically involves `malloc` and `realloc` based on the hash table's capacity), it is difficult to confidently assess if this is a genuine out-of-bounds access. Given that `khash` is widely used and well-vetted, it's more probable that the pointer manipulation, even if input-derived, is correctly bounded by the hash table's allocated memory. To confirm a bug, we would need to see how `src-ptr` is calculated relative to the allocated memory for the hash table entries and how the new size is determined. In a resizing operation, memory is usually reallocated to a larger size, and then existing elements are copied from the old, smaller allocation to the new, larger one. The `memcpy` itself should be bounded by the *old* size for reading and the *new* size for writing, but only up to the number of elements being copied. Without seeing the definition and usage of `kh_resize_map` in its entirety, especially the allocation and indexing logic, it's difficult to confirm an OOB access. Therefore, I'm conservatively marking this as false."
+   },
+   {
+    "func": "kh_resize_m_s2u64",
+    "line": 54,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %68",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is a header file with includes and defines, followed by a KHASH_MAP_INIT_STR macro and a function declaration. There is no `memset` operation at line 54 in the provided code. The line 54 in the snippet is `KHASH_MAP_INIT_STR(m_s2u64, uint64_t)`. This macro expands to declare a hash table structure and functions for string keys and `uint64_t` values. The `memset` would likely be part of the generated code from this macro, or within a function that *uses* this hash table, but it's not directly visible in the provided context. Without the actual code for `kh_resize_m_s2u64` or the expanded macro, it's impossible to determine if the `memset` is vulnerable. The request specifically asks to analyze the `memset` at line 54, but that line contains a macro definition, not the `memset` itself."
+   },
+   {
+    "func": "extend_ref",
+    "line": 1539,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1539 is called with `&(*ref)[old_end]` as the destination and `new_end-old_end` as the size. Both `old_end` and `new_end` are calculated based on `ref_start` and `pos`, and then normalized by subtracting `ref_start`. The `realloc` for `*ref` is done with `new_end-ref_start+1`, which is equal to `new_end_normalized+1`. The `memset` size `new_end-old_end` (which is `new_end_normalized - old_end_normalized`) is within the bounds of the `realloc`ed buffer `*ref`. The `new_end` calculation includes a check `if (new_end - ref_start > UINT_MAX/sizeof(**hist)/2)` to prevent excessive growth, and `pos - ref_start > UINT_MAX` to prevent overflow in `new_end` calculation. The size for `memset` is derived from these values, ensuring it remains within the allocated bounds. Therefore, it does not appear to be an out-of-bounds write."
+   },
+   {
+    "func": "extend_ref",
+    "line": 1540,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %60",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand `i64 %60` for `memset` corresponds to `new_end-old_end`. This value is calculated based on `pos`, `ref_start`, and `old_end`. There are several checks preceding the `realloc` and `memset` calls:\n1. `if (pos < ref_start) return -1;`\n2. `if (pos < *ref_end) return 0;`\n3. `if (pos - ref_start > UINT_MAX) return -2;` This prevents overflow in `new_end` calculation.\n4. `if (new_end - ref_start > UINT_MAX/sizeof(**hist)/2) return -2;` This specifically guards against excessively large allocations for `hist`, which also impacts `ref`.\n\nThe `new_end` is calculated as `ref_start + 1000 + (pos-ref_start)*1.5;`. The `old_end` is either `*ref_end` or `ref_start`. Both `new_end` and `old_end` are adjusted by subtracting `ref_start` before being used as arguments for `memset`.\n\nThe size `(new_end-old_end)*sizeof(**hist)` passed to `realloc` for `hist` is checked against `UINT_MAX/sizeof(**hist)/2`. This means `new_end-ref_start` is capped to a value that allows the `realloc` to succeed without overflow and ensures the subsequent `memset` on `hist` will not write out of bounds.\n\nThe `memset` for `*ref` uses `new_end-old_end` as the size. Since `new_end` and `old_end` are calculated based on `pos` and `ref_start`, and `new_end-ref_start` is capped, the allocated size for `ref` (`new_end-ref_start+1`) will also be within bounds. The `memset` then writes from `old_end` (relative to the start of the `ref` buffer) for a length of `new_end-old_end`. Since `old_end` is `*ref_end - ref_start` (or 0 if `*ref_end` is 0) and `new_end` is `ref_start + 1000 + (pos-ref_start)*1.5`, `new_end-old_end` should be a valid positive size within the newly allocated buffer `new_end-ref_start+1`.\n\nSpecifically, the allocation size for `ref` is `new_end-ref_start+1`. The `memset` starts at `&(*ref)[old_end]` and writes `new_end-old_end` bytes. The end of the write would be `old_end + (new_end-old_end) = new_end`. Since `new_end` is the size of the allocated buffer (minus `ref_start`) and plus 1 for the null terminator, this seems safe. The check `if (new_end - ref_start > UINT_MAX/sizeof(**hist)/2)` limits the `new_end - ref_start` value, which in turn limits `new_end - old_end`."
+   },
+   {
+    "func": "cram_add_to_ref",
+    "line": 1682,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %87",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size `len` is derived from `bam_cigar_oplen(cigar[i])`. This length is checked by `iseq + len <= b->core.l_qseq`. The `memset` destination `&(*ref)[iref]` is also guarded by `extend_ref` which ensures enough memory is allocated for `*ref` up to `iref+ref_start+len`. The `iseq` and `iref` variables track positions within the sequence and reference, respectively, and are incremented according to CIGAR operations. The `extend_ref` function seems to be responsible for dynamic memory allocation and ensures `*ref` and `*hist` are large enough to accommodate the data up to the requested `iref + ref_start + len`. Therefore, it appears that the memory access is bounded by the allocated memory."
+   },
+   {
+    "func": "nibble2base",
+    "line": 95,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 95 is `memcpy(b->seq, nibble2base[base], 2);`. The `nibble2base` array is defined internally within HTSlib as `char nibble2base[16][2] = { ... };`. The `base` variable is derived from input, but its value is constrained to be between 0 and 15 (inclusive) before being used as an index into `nibble2base`. This constraint ensures that `nibble2base[base]` will always access a valid element within the `nibble2base` array, which has a size of 16. Therefore, `nibble2base[base]` will always point to a valid 2-byte array, and copying 2 bytes from it is safe. The index `base` is derived from `((nibble>>4)&0xf)` or `(nibble&0xf)`, both of which are guaranteed to produce values in the range [0, 15]."
+   },
+   {
+    "func": "kputuw",
+    "line": 351,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet does not contain a memcpy call at line 351. The line number refers to the line in the original source file where the bug was detected. Without the specific memcpy call and its surrounding context, it's impossible to determine if the `src-ptr` (which is input-derived) would lead to an out-of-bounds access. The code snippet provided is part of a series of conditional `store` calls on `h->codecs` objects. These `store` calls themselves might use `memcpy` internally, but the current context doesn't reveal the `memcpy` that is being flagged."
+   },
+   {
+    "func": "kputsn",
+    "line": 239,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is part of `BLOCK_APPEND`, which is a macro. The macro expands to `BLOCK_APPEND_REAL(B, P, L)` which itself calls `kputsn`. The `size` argument `i64 %1` to `kputsn` is directly derived from `L`. In the `CRAM_KEY('T','D')` case, `L` is `BLOCK_SIZE(h->TD_blk)`. `h->TD_blk` is a `struct cram_block *`. `BLOCK_SIZE` is defined as `(B)->alloc` if `(B)->alloc >= (B)->idx` else `(B)->idx`. `B->alloc` is the allocated size and `B->idx` is the current data size. The source buffer for `memcpy` is `BLOCK_DATA(h->TD_blk)` which is `(B)->data`. The size argument is `BLOCK_SIZE(h->TD_blk)`, which represents the *current filled size* of `h->TD_blk`. This means `memcpy` is copying the data that is already considered valid within `h->TD_blk`. The destination buffer (`map`) is handled by `kputsn` internally, which presumably dynamically resizes `map` as needed to append the data. Therefore, the size is controlled by the content of `h->TD_blk`, but it is not inherently an out-of-bounds read from `h->TD_blk` itself, and the destination `map` is expected to handle the append safely. The value of `BLOCK_SIZE(h->TD_blk)` comes from the internal state of `h->TD_blk` and is not directly user-controlled in a way that would cause an out-of-bounds read. The function `fd->vv.varint_put32_blk` also writes the size to the block, which again implies that the size is a valid representation of the data within `h->TD_blk`. Thus, this does not appear to be a triggerable out-of-bounds read from `h->TD_blk` or an out-of-bounds write to `map`."
+   },
+   {
+    "func": "cram_add_feature",
+    "line": 2565,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 2565 is not present in the provided code snippet. The last `memcpy` related code in the file is part of the `cram_add_feature` function, but it's not a direct `memcpy` call. Instead, it's `s->features[s->nfeatures++] = *f;`. This is an assignment of a `cram_feature` struct. The `src-ptr` in this case would be `f` and `size` would be `sizeof(*s->features)`, which is `sizeof(cram_feature)`. The `cram_feature *f` is a local variable passed by value or a pointer to a local variable. The destination `s->features` is an array allocated and reallocated to `s->afeatures * sizeof(*s->features)`. The `s->nfeatures` index is checked against `s->afeatures` and reallocated if needed. Therefore, `s->nfeatures++` will always be within the bounds of `s->features`. This is not an out-of-bounds write."
+   },
+   {
+    "func": "kh_resize_m_tagmap",
+    "line": 394,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %68",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is a long series of 'if' statements calling a 'store' function and incrementing 'mc'. It does not contain a `memset` call or any memory allocation/manipulation that would lead to a buffer overflow. The line number 394 and the function `kh_resize_m_tagmap` are not visible in the provided context, which seems to be from a different part of the code. Without the actual `memset` call and the definition of `%68` within the relevant function, it is impossible to determine if a real bug exists. The given code itself is not a vulnerability related to `memset`."
+   },
+   {
+    "func": "kh_resize_m_metrics",
+    "line": 308,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %68",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet does not contain a `memset` call at line 308. The line numbers are out of context for the `kh_resize_m_metrics` function. Without the actual code for `kh_resize_m_metrics` and the `memset` call, it's impossible to determine if the tainted `size+dst-ptr` operand leads to an out-of-bounds bug. The provided code seems to be related to CRAM file handling and block appending, not a general memory resizing function. Therefore, I cannot confirm a real bug based on the given information."
+   },
+   {
+    "func": "kh_resize_m_s2i",
+    "line": 168,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %68",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `memset` is at line 168 within `kh_resize_m_s2i`, which is part of the `khash.h` library (a common hash table implementation). The tainted operand `size+dst-ptr` with size expression `i64 %68` implies that both the size and potentially the destination pointer involved in the `memset` operation are derived from user input. Without seeing the definition of `kh_resize_m_s2i` and how `%68` is computed, it's impossible to definitively say the source of the taint. However, given that `kh_resize_m_s2i` is a resize function, it likely calculates a new size for the hash table's internal array based on the number of elements. If an attacker can control the number of elements or manipulate the hash table's state in a way that leads to an overly large calculated size, or an incorrect pointer calculation, it could cause an out-of-bounds write during the `memset`. Since the analysis flagged it as input-derived, and it's a resize operation which often involves dynamic memory allocation and sizing, there's a strong potential for a heap overflow if the size calculation is exploitable. The problem description does not provide enough context to show robust checks against arbitrary sizes."
+   }
+  ]
+ }
+]

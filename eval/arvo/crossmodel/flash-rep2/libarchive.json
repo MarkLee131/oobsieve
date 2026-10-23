@@ -1,0 +1,359 @@
+[
+ {
+  "id": "14331",
+  "project": "libarchive",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "miss",
+  "gt_func": "parse_file_extra_owner",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1163,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1163 copies `hash_size` bytes from `p` to `&rar->file.blake2sp`. The `hash_size` is `sizeof(rar->file.blake2sp)`, which is 32. The `p` pointer comes from `read_ahead(a, hash_size, &p)`. The `read_ahead` function itself performs a bounds check based on `hash_size`. If `read_ahead` returns true, it implies that at least `hash_size` bytes are available starting from `p`. However, the original prompt states that the src-ptr operand of the memcpy is INPUT-DERIVED and is NOT a constant, NOT clamped/min'd, and NOT an allocate-to-fit size. The prompt also explicitly instructs to default to true if unsure or no specific sufficient guard is visible. While `read_ahead` provides some assurance of data availability, the prompt's strong assertion about `src-ptr` being INPUT-DERIVED and not constrained suggests that the `read_ahead` check might not be sufficient to cover ALL possible scenarios leading to an out-of-bounds read if the source data itself is maliciously crafted or unexpectedly short, especially since `hash_size` is a fixed value and not derived from the input directly before this point. Without further context on how `read_ahead` interacts with potentially malicious input streams beyond just checking for *availability* of bytes, it's safer to assume a real bug based on the strict rules and default-to-true instruction for input-derived pointers not explicitly clamped/min'd by a visible, sufficient guard."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2352,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 2352 copies `sizeof(struct compressed_block_header)` bytes from `p` to `hdr`. The `src-ptr` is `p`, and `sizeof(struct compressed_block_header)` is not 2. The tainted operand is `src-ptr`, size `i64 2`. The provided code snippet does not include any bounds check that covers the specific access of 2 bytes at `p` before this memcpy operation. The check `bf_byte_count(hdr) > 2` occurs *after* the memcpy, and thus cannot prevent an overflow during the `memcpy` itself. The request specifically mentions `size expr i64 2` which is inconsistent with `sizeof(struct compressed_block_header)` at line 2352, but even if the size was 2, there is no pre-memcpy check on `p`."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2104,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2104 copies `sizeof(decode_pos_clone)` (which is 64 bytes) from `table->decode_pos`. The `table->decode_pos` array is declared as `uint32_t decode_pos[16];`. Therefore, `sizeof(table->decode_pos)` is `16 * sizeof(uint32_t) = 16 * 4 = 64` bytes. While `sizeof(decode_pos_clone)` is indeed 64, this doesn't guarantee `table->decode_pos` is also 64 bytes. In fact, `decode_pos_clone` is declared as `uint32_t decode_pos_clone[rar5_countof(table->decode_pos)]`. `rar5_countof` is a macro, if it resolves to 16, then `decode_pos_clone` has 16 elements, so its size is 64. So the size matches the source. However, `table->decode_pos` comes from `struct decode_table` which is defined elsewhere. If `table->decode_pos` were smaller than 16 elements, this could be an overflow. The prompt doesn't provide the definition of `struct decode_table`, and `rar5_countof` is not defined here. Without this information, it's impossible to confirm the size of `table->decode_pos`. Given the instruction to default to `true` if unsure, and the fact that `table->decode_pos` is an input-derived operand (part of `struct decode_table* table`), there's no explicit bounds check on `table->decode_pos` in the visible code that would cover the `memcpy` of 64 bytes."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 501,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `circular_memcpy` function at line 501 contains a `memcpy` operation. The `size` operand `(size_t) (end - start)` is derived from `end` and `start`, which are `int64_t` input parameters. While there is an `if` condition checking `(start & mask) > (end & mask)`, this check primarily determines how the copy is split (if at all) for a circular buffer, and does not provide a general upper bound check against the size of `window` or `dst`. There is no explicit bounds check (e.g., `if (start < 0 || end < 0 || end - start > buffer_size)`) visible on the path reaching this `memcpy` that would guarantee `(end - start)` is within the allocated bounds of `window` or `dst` when `(start & mask) <= (end & mask)`."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %27",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 504 (inside the `circular_memcpy` function) uses `start & mask` as an offset into `window` and `(size_t)(end - start)` as the size. While `start` and `end` are `int64_t`, `mask` is an `int`. There's no explicit bounds check (like `if (start & mask) + (end - start) > window_size`) on `window` to ensure `start & mask` plus the length `(end - start)` does not exceed the allocated size of `window`. Given that `start`, `end`, and `mask` are input-derived and `window` is likely a buffer with a fixed size, an attacker could potentially manipulate these values to cause an out-of-bounds read from `window`."
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1163,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1163 copies `hash_size` bytes from `p` to `&rar->file.blake2sp`. The `hash_size` is explicitly defined as `sizeof(rar->file.blake2sp)`, which is a fixed size (32 bytes). The `src-ptr` `p` is obtained from `read_ahead(a, hash_size, &p)`, which ensures that `p` points to a buffer of at least `hash_size` bytes. Therefore, the source buffer is guaranteed to be large enough for the `memcpy` operation. The `hash_type` is read from input, but if it's not `BLAKE2sp`, the function returns `ARCHIVE_FATAL` before the `memcpy` is reached. So, the `memcpy` only executes when `hash_type == BLAKE2sp`, and `hash_size` is fixed and known."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2352,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy is copying `sizeof(struct compressed_block_header)` bytes from `p` to `hdr`. The `src-ptr` (`p`) is input-derived, but `memcpy`'s third argument is a fixed size (`sizeof(...)`). The vulnerability would occur if `p` points to memory that is smaller than `sizeof(struct compressed_block_header)`. However, there's a preceding check `bf_byte_count(hdr) > 2` which limits the block size. While the `bf_byte_count` is derived from `hdr` (which is itself derived from `p`), the `memcpy` itself is a fixed size based on the structure. The code doesn't directly use the `block_size` for this specific memcpy. For an out-of-bounds read to occur, the `p` pointer would have to be crafted to point to an area where `sizeof(struct compressed_block_header)` bytes are not available, which isn't directly controlled by the tainted `src-ptr` in terms of its size. The subsequent `switch` statement uses `p[2]` and further offsets, which could be an issue if `p` is very short, but the `memcpy` itself is not dependent on the `block_size` as the size argument for `memcpy` is fixed."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2104,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for the `memcpy` at line 2104 is `table->decode_pos`. The destination is `decode_pos_clone`, which is declared as `uint32_t decode_pos_clone[rar5_countof(table->decode_pos)]`. `rar5_countof` is a macro that likely calculates the number of elements in an array. This means `decode_pos_clone` is the same size as `table->decode_pos`. The `memcpy` copies `sizeof(decode_pos_clone)` bytes, which is the exact size of both the source and destination buffers. Therefore, there is no out-of-bounds access. The `table->decode_pos` array itself is part of `struct decode_table`, and its size is determined by `rar5_max_table_elements` which is a constant, ensuring it's a fixed-size buffer within the structure. The `table` argument is passed by pointer, but the allocation and sizing of the `decode_table` struct are assumed to be handled correctly by the caller."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 501,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted size expression `i64 %16` is `(size_t) (end - start)`. The `circular_memcpy` function has two `memcpy` calls. The first branch `if((start & mask) > (end & mask))` handles wrapping around the circular buffer. In this branch, `len1` and `len2` are calculated based on `mask` and the start/end positions, ensuring that `len1` represents the length from `start & mask` to the end of the buffer, and `len2` represents the length from the beginning of the buffer to `end & mask`. These lengths are used in the `memcpy` calls. In the `else` branch, when no wrap-around occurs, the size is simply `(end - start)`. The `start` and `end` parameters are `int64_t` types, and `mask` is an `int`. The code correctly calculates the lengths for the two `memcpy` operations. Although `start`, `end`, and `mask` are input-derived, the logic within `circular_memcpy` appears to correctly constrain the `size` arguments to `memcpy` based on the circular buffer's mechanics, thus preventing an out-of-bounds write to `window` (source buffer). The `dst` buffer is also controlled by the caller of `circular_memcpy`, and an out-of-bounds write to `dst` would depend on the allocation of `dst` itself, which is not shown here. The size of the `window` buffer is determined by `rar->cstate.window_buf`, which is likely controlled during archive processing but the `circular_memcpy` function itself, given the `start`, `end`, and `mask` logic, appears to stay within the logical bounds of a circular buffer. Assuming `mask` is correctly derived from the buffer's capacity (e.g., `capacity - 1`), the calculations `start & mask` and `end & mask` will always yield valid indices within the circular buffer's allocated memory. The `len1` and `len2` calculations also seem sound for handling the wrap-around. Therefore, it is not immediately apparent that this `memcpy` would write out of bounds of the `window` buffer."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %27",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 504 is within the `circular_memcpy` function. This function is designed to handle circular buffers, where `mask` is likely `capacity - 1`. The `start` and `end` parameters are `int64_t` which can be input-derived. However, the size argument for `memcpy` is calculated as `(size_t) (end - start)`. The crucial aspect here is the surrounding `if` condition: `if((start & mask) > (end & mask))`. This condition indicates that the code specifically handles cases where the 'logical' end wraps around the circular buffer. In the `else` branch (where the `memcpy` in question is located), it means that `start & mask` is less than or equal to `end & mask`, implying a contiguous block in the circular buffer. The size calculation `(end - start)` is then applied to this contiguous block. If `start` and `end` are controlled by an attacker, the `end - start` could theoretically be very large. However, the `start` and `end` values are almost certainly offsets within the `window` buffer. The `circular_memcpy` function uses `start & mask` and `end & mask` to calculate actual positions. If `start` and `end` are offsets within the `window` (which is likely `rar->cstate.window_buf`), then `mask` is likely related to the size of that buffer. The `memcpy` also uses `&window[start & mask]`, so `start & mask` is correctly bounded within the `window` buffer's actual allocated size. The 'taint' on `size` is `i64 %27`, which is `end - start`. If `start` and `end` are indeed indices/offsets within a buffer of size `mask + 1`, then `end - start` would also be bounded by `mask + 1`. The caller of `circular_memcpy` is not shown here, but given the name and logic, it's highly probable that `start` and `end` are internal indices within a bounded buffer and `mask` ensures operations stay within the buffer's bounds. Without further context of how `circular_memcpy` is called and how `start`, `end`, and `mask` are derived, it is difficult to definitively say there's a bug. However, the logic appears to correctly handle circular buffer boundaries using the `mask`. The `end - start` value, while `int64_t`, is cast to `size_t`, which could lead to truncation if `end - start` is extremely large and negative, but the context of `start & mask` being less than or equal to `end & mask` makes this unlikely to be a problem. If `start` and `end` are correctly managed by the calling code to represent valid ranges within the circular buffer bounded by `mask`, then the `memcpy` size `(end - start)` would also be bounded by `mask + 1`. The key is that `mask` is an `int` and typically represents `capacity - 1`. If `mask` is properly constrained to the actual allocated buffer size, then `end - start` should not exceed this size, thus preventing an out-of-bounds write. The logic `start & mask` and `end & mask` ensures the offsets are within the allocated `window` buffer. If `end - start` is positive and bounded by the buffer size, this is safe."
+   }
+  ]
+ },
+ {
+  "id": "14574",
+  "project": "libarchive",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "circular_memcpy",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %12",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `circular_memcpy` function itself contains no bounds checks on its `window` or `dst` parameters. The `offset` parameter is directly used to calculate `start` and `end` positions, which then index `window`. There is no check to ensure `offset`, `offset + 4` or any calculated `len1`/`len2` are within the bounds of `rar->cstate.window_buf` or `linear_buf` before the `memcpy` calls."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 507,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 507 is inside `circular_memcpy`. The `size` operand `(size_t) (end - start)` is derived from `end` and `start`, which are `int64_t` parameters to `circular_memcpy`. These parameters are themselves derived from `offset` in the caller `read_filter_data`, which is an `uint32_t`. While `linear_buf` is a fixed-size buffer of 4 bytes, `(end - start)` can theoretically exceed this size, and there is no explicit bounds check (like `if ((end - start) > sizeof(linear_buf))`) within `circular_memcpy` or `read_filter_data` that specifically covers the size of the `memcpy` relative to `dst`'s capacity. The `(start & mask) > (end & mask)` check handles wrap-around, but not total length safety for the destination `dst`."
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1176 copies `hash_size` bytes from `p` to `rar->file.blake2sp`. The `hash_size` is calculated as `sizeof(rar->file.blake2sp)`, which is 32. Immediately before the `memcpy`, there's a call to `read_ahead(a, hash_size, &p)`. This `read_ahead` function is expected to ensure that `hash_size` bytes are available at `p`. If `read_ahead` fails, it returns `ARCHIVE_EOF`, and the function returns early. Therefore, `read_ahead` acts as a bounds check covering the `memcpy` operation."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2495,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 2495 copies `sizeof(struct compressed_block_header)` bytes from `p` to `hdr`. There is no explicit bounds check on `p` before this memcpy. The `p` pointer is an input-derived value. Therefore, it's possible for an attacker to craft input that causes an out-of-bounds read from `p`."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2233,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 2233 copies `sizeof(decode_pos_clone)` (which is `64` bytes) from `table->decode_pos` to `decode_pos_clone`. While `decode_pos_clone` is correctly sized (`uint32_t decode_pos_clone[rar5_countof(table->decode_pos)];`), the `table->decode_pos` array within the `decode_table` struct is declared as `uint32_t decode_pos[17];` (assuming `rar5_countof` resolves to `17` or greater, which is typical for such tables). The `size` variable in `create_decode_tables` function takes `int size` as an argument. The loop `for(i = 1; i < 16; i++)` populates `table->decode_pos[i]`. The `memcpy` uses `sizeof(decode_pos_clone)` which should match the size of `table->decode_pos`. If `rar5_countof(table->decode_pos)` is less than 17, this could be an issue. However, given that `table->decode_pos` is likely sized to accommodate indices up to 16, and the loop goes up to `i < 16`, copying 64 bytes (16 * 4 bytes if uint32_t) should be safe assuming `decode_pos` has at least 16 elements. The issue is that `rar5_countof(table->decode_pos)` is not explicitly defined in the provided snippet. If `rar5_countof(table->decode_pos)` evaluates to 16, then `decode_pos_clone` is of size 16 * 4 = 64 bytes, and `table->decode_pos` will be accessed up to index 15. The loop `for(i = 1; i < 16; i++)` initializes `table->decode_pos` up to index 15. Therefore, the `memcpy` for 64 bytes, reading `table->decode_pos[0]` to `table->decode_pos[15]`, would be covered if `table->decode_pos` is at least 16 elements long. However, the problem statement says `src-ptr is INPUT-DERIVED`. Without a clear size check for `table->decode_pos` relative to `64` bytes (or `rar5_countof(table->decode_pos)`), and considering the possibility of `table->decode_pos` being smaller than 16 `uint32_t` elements due to `INPUT-DERIVED` data influencing `decode_table`'s structure or the `bit_length` array that populates `lc`, it's safer to assume a potential out-of-bounds read. No explicit bounds check (like `if (64 > sizeof(table->decode_pos))`) is visible before the `memcpy` to cover the `src-ptr` (which is `table->decode_pos`) accessing 64 bytes."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `circular_memcpy` function uses `(size_t) (end - start)` as the size for `memcpy` when `(start & mask) <= (end & mask)`. While `end - start` is indeed derived from input, the `circular_memcpy` function itself is used in `read_filter_data` and `write_filter_data`. In `read_filter_data`, `circular_memcpy` is called with `offset` and `offset + 4`. The size becomes `(offset + 4) - offset = 4`, which is a constant and small value. The destination buffer `linear_buf` has a size of 4, perfectly matching the copy size. Therefore, there is no out-of-bounds write to `dst` in this specific call site. While the `window_buf` is part of `rar->cstate`, which is user-controlled, the `start & mask` ensures that the read from `window_buf` stays within the bounds of `window_mask + 1` (the size of the circular buffer). The taint on `size+src-ptr+dst-ptr` for the `memcpy` instruction at line 504 is due to `end - start` and `start & mask`. However, in the context of `read_filter_data`, `end - start` becomes a constant 4, and `start & mask` operates on `offset` which is an input, but the result is used as an index into `rar->cstate.window_buf` after being masked with `rar->cstate.window_mask`. This `window_mask` is derived from `window_size` which is likely controlled by the RAR archive itself. As long as `window_size` is a valid power of 2, the masking operation ensures that `start & mask` will be a valid index within `window_buf`. The prompt asks to be conservative, and given the specific use case in `read_filter_data` where the size is fixed and small, and the indexing into `window_buf` is masked, it's not a confident 'real_bug'."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 507,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand `i64 %20` in `circular_memcpy` is derived from `(size_t) (end - start)`. The `dst` argument is `linear_buf`, which is a stack-allocated buffer of size 4 (`uint8_t linear_buf[4];`). The call to `circular_memcpy` passes `offset` and `offset + 4` for `start` and `end` respectively. In the `else` branch (which is taken if `(start & mask) <= (end & mask)`), the size argument for `memcpy` becomes `(size_t) ((offset + 4) - offset)`, which simplifies to `(size_t) 4`. This size matches the size of `linear_buf`, so there is no out-of-bounds write to `dst` (linear_buf). The `src-ptr` and `dst-ptr` arguments for `memcpy` are also checked. `dst` is `linear_buf`, which is fine. The `src` argument `&window[start & mask]` (i.e., `&rar->cstate.window_buf[offset & rar->cstate.window_mask]`) could potentially be out-of-bounds if `offset & rar->cstate.window_mask` is an invalid index for `rar->cstate.window_buf`. However, the question specifically asks about the `size+src-ptr+dst-ptr` operand of the memory operation, and the analysis flagged `size+src-ptr+dst-ptr` as tainted, where the specific expression for `size` was `i64 %20`. The size calculated is `4`, which perfectly fits `linear_buf`. While there might be other issues (e.g., if `rar->cstate.window_buf` is itself a controlled buffer and `offset` allows reading out of its bounds), the specific `memcpy` operation as flagged with the given `size` expression does not appear to be an OOB write to `dst`."
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for `memcpy` is `p`, which is returned by `read_ahead(a, hash_size, &p)`. The `read_ahead` function ensures that `p` points to a valid buffer of at least `hash_size` bytes. The `hash_size` variable is `sizeof(rar->file.blake2sp)`, which is a fixed size (32 bytes). Therefore, the `memcpy` operation copies a fixed size (32 bytes) from a buffer that is guaranteed to have at least 32 bytes available. This prevents an out-of-bounds read. The `value_len` is consumed earlier in the function, and is unrelated to the `memcpy` being flagged."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2495,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation copies `sizeof(struct compressed_block_header)` bytes from `p` to `hdr`. The `src-ptr` `p` is an input-derived pointer. However, this is part of a standard parsing routine where `p` is expected to point to valid input data. The size of the copy is fixed and determined by the size of the `compressed_block_header` structure. There's no indication that `sizeof(struct compressed_block_header)` itself is input-derived or variable in a way that would lead to an overflow. The critical check for `bf_byte_count(hdr) > 2` (which implicitly relies on the header being read) happens immediately after, and other checks like `ARCHIVE_EOF` indicate that the code expects valid data and will return an error otherwise. The `src-ptr` being 'input-derived' is normal for parsing functions; the crucial part is whether the access length can exceed the available buffer. Without more context on how `p` is allocated or bounds-checked *before* this function call, and given the fixed size copy, it's not confidently a triggerable out-of-bounds bug here."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2233,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2233 copies `sizeof(decode_pos_clone)` bytes from `table->decode_pos`. The `src-ptr` operand `table->decode_pos` is derived from `table` which is a `struct decode_table*`. The size of the copy is `sizeof(decode_pos_clone)`, which is `rar5_countof(table->decode_pos) * sizeof(uint32_t)`. The `bit_length` array, an input to the function, is used to populate `lc` which then influences `table->decode_pos` and `table->decode_len`. An attacker controlling `bit_length` could potentially cause `table->decode_pos` to be written out of bounds during the loop where `table->decode_pos[i]` is updated, leading to an undersized array for `decode_pos_clone`. If `rar5_countof(table->decode_pos)` is larger than the actual allocated size of `table->decode_pos` due to manipulated `bit_length` values, the `memcpy` could read out of bounds. The `rar5_countof` macro is likely a `countof` implementation that returns the size of the array. If `table->decode_pos` is a VLA or its size is dynamically determined based on external input, and `rar5_countof` reports a static size, a mismatch could occur. Without knowing the definition of `rar5_countof` and the `decode_table` struct, and how its fields are allocated, it's difficult to be 100% certain, but the chain of input-derived data (`bit_length`) affecting array indices and sizes, followed by a `memcpy` using `sizeof` on a local clone, suggests a potential vulnerability. If `table->decode_pos` is a fixed-size array, `sizeof(decode_pos_clone)` would be `sizeof(table->decode_pos)`, making the `memcpy` safe *unless* the preceding loop writes past the end of `table->decode_pos`. However, the prompt specifically flags `src-ptr` as input-derived, meaning `table->decode_pos` itself can be manipulated. If `table->decode_pos` has a variable size based on input, and `sizeof(decode_pos_clone)` (which is `rar5_countof(table->decode_pos) * sizeof(uint32_t)`) is a fixed value, there's a clear vulnerability if the actual size of `table->decode_pos` can be made smaller than the `rar5_countof` value."
+   }
+  ]
+ },
+ {
+  "id": "13435",
+  "project": "libarchive",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "circular_memcpy",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 504 (in `circular_memcpy`) uses `window[start & mask]` as the source and `(size_t) (end - start)` as the size. While `start` and `end` are `int64_t`, and `mask` is `int`, there's no explicit bounds check on `start & mask` to ensure it's within the bounds of `window`, nor on `(end - start)` to ensure it doesn't cause an out-of-bounds read from `window` when combined with the `start & mask` offset. The function `circular_memcpy` itself does not perform any checks on the `start`, `end`, or `mask` parameters against the actual size of the `window` buffer. Without knowledge of the caller ensuring these bounds, this is a potential out-of-bounds read."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 507,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %27",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 507 has a size operand `(size_t) (end - start)` which is derived from `start` and `end`. These are `int64_t` arguments to `circular_memcpy`. The function itself only contains an `if` statement checking the relationship between `(start & mask)` and `(end & mask)`. There is no explicit bounds check (e.g., `if (start < 0 || end < 0 || end - start > capacity)`) on `start` or `end` or the resulting size `end - start` relative to the `window` buffer's capacity. Therefore, it's possible for `end - start` to be an extremely large number or for `start & mask` to be an out-of-bounds offset within `window`, leading to an out-of-bounds memory access."
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1166,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1166 copies `hash_size` bytes from `p` to `&rar->file.blake2sp`. The `hash_size` is calculated as `sizeof(rar->file.blake2sp)`, which is a constant (32 bytes based on the definition of `struct rar5_file_header` in `archive_read_support_format_rar5.h`). Immediately before the `memcpy`, there's a call to `read_ahead(a, hash_size, &p)`. This `read_ahead` function is responsible for ensuring that at least `hash_size` bytes are available at `p` in the input buffer. If `read_ahead` returns false (indicating not enough data), the function returns `ARCHIVE_EOF`, preventing the `memcpy` from being reached. Therefore, the `read_ahead` call acts as a bounds check covering the `memcpy` operation."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2364 copies `sizeof(struct compressed_block_header)` bytes from `p` to `hdr`. The `src-ptr` (`p`) is input-derived. There is no explicit bounds check on `p` before this `memcpy` that ensures `p` has enough bytes for the copy. The subsequent `if (bf_byte_count(hdr) > 2)` check and the `switch` statement on `bf_byte_count(hdr)` operate on the *copied* header, not on the input buffer `p` itself, and do not guard against an out-of-bounds read during the `memcpy`. Specifically, `bf_byte_count(hdr)` is derived from the copied data and does not relate to the initial buffer size of `p`."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2116,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2116 copies `64` bytes from `table->decode_pos` to `decode_pos_clone`. The `decode_pos_clone` array is declared as `uint32_t decode_pos_clone[rar5_countof(table->decode_pos)]`. The `rar5_countof` macro is likely a sizeof/sizeof equivalent, meaning `decode_pos_clone` has the same size as `table->decode_pos`. However, there is no explicit bounds check on `table->decode_pos` to ensure it can hold at least 64 bytes (16 `uint32_t` elements) before this `memcpy` operation. If `table->decode_pos` is smaller than 64 bytes, this `memcpy` could lead to an out-of-bounds read."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted size expression `i64 %16` refers to `(size_t) (end - start)`. The function `circular_memcpy` is designed to handle circular buffers, hence the `mask` parameter. The two `memcpy` calls within the `if` block, `memcpy(dst, &window[start & mask], len1)` and `memcpy(dst + len1, window, len2)`, use `len1` and `len2` which are calculated based on `mask` and the masked `start` and `end` values. These lengths appear to be correctly calculated to fit within the `window` buffer and `dst` buffer, considering the circular nature. The `else` block uses `memcpy(dst, &window[start & mask], (size_t) (end - start))`. The `start` and `end` values are `int64_t`. The calculation `end - start` gives the total length of data to copy. The `start & mask` ensures the offset into `window` is within its bounds if `mask` defines the capacity. The problem would arise if `end - start` is greater than the available buffer space in `dst` or if `window` is smaller than expected. However, the `circular_memcpy` function is a utility that assumes `dst` is large enough to hold `end - start` bytes and `window` is a circular buffer of size `mask + 1`. Without knowing the caller's context and how `start`, `end`, `dst`, and `window` are derived and validated, it's hard to definitively say there's an OOB. The `mask` parameter is typically `d->cap_mask` which is derived from `d->capacity - 1`. If `start` and `end` are controlled by an attacker and `end - start` can exceed the actual capacity of `dst`, it could be an OOB write. However, the current code snippet alone doesn't show how `start` and `end` are derived from user input or how they relate to the sizes of `dst` and `window`. The function itself seems to correctly handle the circular buffer logic. The `size` operand `(size_t) (end - start)` is derived from `int64_t start` and `int64_t end`. If `end - start` is a large positive value controlled by attacker input, it could lead to an OOB. However, the `circular_memcpy` function is an internal utility, and its callers are responsible for ensuring `start`, `end`, `dst`, and `window` are valid. Without more context on where `circular_memcpy` is called and how its parameters are controlled, it's difficult to confirm a bug. Given the conservative approach, we cannot be confident this is a real bug based on the provided snippet. The internal logic of `circular_memcpy` appears sound for its intended purpose."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 507,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %27",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `circular_memcpy` function uses `mask` to wrap around `start` and `end` indices within a circular buffer. The `size` operand of the `memcpy` in question is `(size_t)(end - start)`. The code explicitly checks `(start & mask) > (end & mask)` to handle wrap-around cases. If `start & mask` is not greater than `end & mask`, it means the copy is contiguous and within the bounds implied by `mask` (which represents `capacity - 1`). The size `end - start` represents the length of the segment. As long as `start` and `end` are derived from valid operations on the circular buffer and `mask` correctly represents its capacity, this operation should be safe. Without further context on how `start`, `end`, and `mask` are controlled by external input, and given the explicit circular buffer handling logic, it's not confidently a real bug."
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1166,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1166 copies `hash_size` bytes from `p` to `&rar->file.blake2sp`. The `hash_size` is determined by `sizeof(rar->file.blake2sp)`, which is a fixed size (32 bytes). The `src-ptr` `p` is obtained from `read_ahead(a, hash_size, &p)`. This `read_ahead` call ensures that at least `hash_size` bytes are available at `p` before the `memcpy` is executed. If `read_ahead` fails to provide `hash_size` bytes, it returns `false`, leading to an `ARCHIVE_EOF` return, preventing the `memcpy` from being called with an undersized buffer. Thus, the `src-ptr` is guaranteed to point to a buffer of at least `hash_size` bytes, making the `memcpy` safe from out-of-bounds reads."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation copies `sizeof(struct compressed_block_header)` bytes from `p` to `hdr`. The `src-ptr` `p` is an input-derived pointer, but it's an argument to the function. The size of the copy is fixed and determined by the `compressed_block_header` structure. There is no information provided to suggest that `p` itself could be an invalid pointer or that `sizeof(struct compressed_block_header)` would cause an out-of-bounds read from `p`. The bug description refers to line 2364, which corresponds to this memcpy. The subsequent checks in the function (e.g., `bf_byte_count(hdr) > 2`) are *after* the memcpy and relate to the *contents* of `hdr`, not the `memcpy` itself. Without further context on how `p` is obtained or its valid range, it's not possible to definitively say `p` is out-of-bounds, especially since it's a `const uint8_t*` parameter. Assuming the caller passes a valid pointer `p` of sufficient size, this `memcpy` itself is not an out-of-bounds access."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2116,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 2116 copies `sizeof(decode_pos_clone)` bytes from `table->decode_pos` to `decode_pos_clone`. The `decode_pos_clone` array is declared as `uint32_t decode_pos_clone[rar5_countof(table->decode_pos)];`. The `rar5_countof` macro is likely a `countof` or `ARRAY_SIZE` equivalent, returning the number of elements in the array `table->decode_pos`. Therefore, `sizeof(decode_pos_clone)` will be equal to `sizeof(table->decode_pos)`, making the copy within bounds for both source and destination. The `src-ptr` `table->decode_pos` is a member of `struct decode_table` and its size is determined at compile time based on the `rar5_max_huffman_len` constant. There is no obvious way for `table->decode_pos` to be smaller than `decode_pos_clone`'s size, which is derived from it. The size `i64 64` suggests `rar5_max_huffman_len` is 16 (16 * sizeof(uint32_t) = 64)."
+   }
+  ]
+ }
+]

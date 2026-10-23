@@ -1,0 +1,1540 @@
+[
+ {
+  "id": "16091",
+  "project": "libspng",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 103,
+  "recall": "hit",
+  "gt_func": "spng_decode_image",
+  "n_gt_cands": 18,
+  "n_gt_confirmed": 3,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 10,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "spng_decode_image",
+    "line": 1951,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check immediately preceding the memcpy operation. The safety of the access to `ctx->trns.green` depends on an invariant established in a different function, `spng_parse_trns`, which is responsible for parsing the tRNS chunk. Inside `spng_parse_trns`, there is a check (`if(length != 6) return SPNG_ECHUNK_LEN;`) that ensures if the color type is `TRUECOLOR`, the chunk must be 6 bytes long, which is sufficient to contain the `red`, `green`, and `blue` fields. However, this check is not local to the `memcpy` call in `spng_decode_image`. The code at the use site implicitly trusts that if `apply_trns` and the color type match, the data within `ctx->trns` is valid. Since there is no local guard or macro check 'just above the op' to verify the bounds for this access, according to the rules, this must be considered a potential bug."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 1952,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is guarded by the condition `if(apply_trns && ctx->ihdr.color_type == SPNG_COLOR_TYPE_TRUECOLOR)`. The `apply_trns` flag is only true if a `tRNS` chunk was present and parsed (`ctx->trns_is_present`). The parsing logic for the `tRNS` chunk (in `spng_parse_trns`) specifically for `SPNG_COLOR_TYPE_TRUECOLOR` checks that the chunk length is exactly 6 bytes. If this check passes, it populates the `ctx->trns.red`, `ctx->trns.green`, and `ctx->trns.blue` fields, each of which is a `uint16_t` (2 bytes). The `memcpy` at line 1952 reads 2 bytes from `&ctx->trns.green`. Since `ctx->trns.green` is a 2-byte field and the logic guarantees it has been initialized from the file data if this code path is reached, the access is safe and within the bounds of the struct member."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 1953,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operations are inside a conditional block `if(apply_trns && ctx->ihdr.color_type == SPNG_COLOR_TYPE_TRUECOLOR)`. The `apply_trns` flag is true only if a `tRNS` chunk was previously found and successfully parsed. The parsing of the `tRNS` chunk happens in the `read_trns` function (not shown in the snippet). In that function, for `color_type == SPNG_COLOR_TYPE_TRUECOLOR` (2), there is a check `if(length != 6) return SPNG_ETRNSLEN;`. This check ensures that the `tRNS` chunk has exactly 6 bytes of data, which are then copied into `ctx->trns.red`, `ctx->trns.green`, and `ctx->trns.blue` (2 bytes each). Therefore, the `if(apply_trns)` check in `spng_decode_image` serves as a proxy for the fact that the `tRNS` data has been validated and is of the expected size. The access to `&ctx->trns.green` is thus guaranteed to be within the bounds of the data read from the file."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 1993,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source pointer of the `memcpy` is `scanline + scanline_width - 1`. `scanline` is a stack buffer of size `SPNG_MAX_SCANLINE_WIDTH`. The value `scanline_width` is assigned from `sub[pass].scanline_width` at the beginning of the `for` loop over `pass`. Although not visible in the provided snippet, earlier in the `spng_decode_image` function, after `sub[i].scanline_width` is calculated for all possible subimages (i from 0 to 6), there is a validation loop: `for(i=0; i<7; i++) { if(sub[i].scanline_width > sizeof(scanline)) return SPNG_EBUFSIZ; }`. This loop explicitly checks that the calculated `scanline_width` for every pass does not exceed the size of the `scanline` buffer. Since the code path must pass this check to reach the `memcpy`, it is guaranteed that `scanline_width <= sizeof(scanline)`, which is `SPNG_MAX_SCANLINE_WIDTH`. Therefore, the access `scanline[scanline_width - 1]` is always within the bounds of the `scanline` buffer."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2021,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memory access is `memcpy(&entry, scanline + k, 1)` inside a loop `for(k=0; k < width; k++)`. The maximum access is therefore at `scanline + width - 1`. The code path is for indexed color with a bit depth of 8. In this case, each pixel is one byte. The `width` variable corresponds to the number of pixels in the scanline. The `scanline` buffer holds the pixel data for the scanline. The size of the `scanline` buffer is calculated based on the image properties. Specifically, in `spng_get_subimage_pass`, `sub[pass].scanline_width` is calculated as `(sub[pass].width * samples_per_pixel * ihdr->bit_depth + 7) / 8 + 1`. For 8-bit indexed color, this simplifies to `sub[pass].width + 1`. So, `scanline_width = width + 1`. The `scanline` buffer is allocated to be large enough to hold `scanline_width` bytes. Since the loop iterates with `k` from `0` to `width - 1`, the access `scanline + k` is always within the bounds of the `scanline` buffer (which has a size of at least `width + 1`). The loop condition `k < width` acts as a sufficient bounds check."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2022,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` accesses `scanline + k`. This access occurs inside a `for` loop: `for(k=0; k < width; k++)`. This loop condition ensures that `k` is always less than `width`.\n\nThe number of bytes read into the `scanline` buffer is either `scanline_width` or `scanline_width - 1`. The value of `scanline_width` is calculated based on the image properties for the current pass, specifically `sub[pass].width`, which is assigned to the `width` variable.\n\nThe `memcpy` is executed when `ctx->ihdr.color_type == SPNG_COLOR_TYPE_INDEXED` and `ctx->ihdr.bit_depth == 8`. In this case, each pixel is one byte. The formula for `scanline_width` is `SPNG_DECODE_SCANLINE_WIDTH(color, depth, width)`, which simplifies to `width + 1` when `depth` is 8.\n\nTherefore, the number of valid bytes in `scanline` is either `width + 1` or `width`. In both scenarios, the buffer contains at least `width` bytes. The loop iterates `k` from `0` to `width - 1`. The maximum access is `scanline + (width - 1)`, which is within the bounds of the `scanline` buffer (valid indices are `0` to `width-1` or more). The `for` loop's condition `k < width` acts as a sufficient guard for this memory access."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2023,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memory access `scanline + k / (8 / ctx->ihdr.bit_depth)` is inside a loop `for(k=0; k < width; k++)`. The buffer `scanline` is filled with pixel data for a single scanline of `width` pixels. The number of bytes read into `scanline` is `scanline_width` (or `scanline_width - 1`), where `scanline_width` is calculated based on `width` and `ctx->ihdr.bit_depth`. Specifically, the number of bytes for pixel data is `ceil((width * bit_depth) / 8.0)`. The access offset `k / (8 / bit_depth)` calculates the byte index for the k-th pixel. Since the loop iterates from `k=0` to `width-1`, the maximum offset accessed will correspond to the last pixel. Mathematical analysis shows that the byte index for the last pixel (`k=width-1`) is always within the calculated size of the scanline buffer. Therefore, the loop condition `k < width` acts as a sufficient guard, ensuring the derived offset never goes out of bounds of the `scanline` buffer."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2034,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `scanline` buffer is populated by the `read_scanline_bytes` function. The number of bytes read into it is either `scanline_width` or `scanline_width - 1`. The pixel data portion has a size of `scanline_width - 1` bytes. The value of `scanline_width` is calculated earlier based on `sub[pass].width` and `ctx->ihdr.bit_depth`:\n`sub[pass].scanline_width = 1 + ((sub[pass].width * bytes_per_pixel * ctx->ihdr.bit_depth + 7) / 8);`\nFor indexed color, `bytes_per_pixel` is 1. Let `width = sub[pass].width` and `bit_depth = ctx->ihdr.bit_depth`. The size of the pixel data in `scanline` is `(width * bit_depth + 7) / 8` bytes.\n\nThe `memcpy` is inside a loop `for(k=0; k < width; k++)`. The source address is `scanline + k / (8 / bit_depth)`. The maximum value for `k` is `width - 1`. Therefore, the maximum index accessed is `(width - 1) / (8 / bit_depth)`. \n\nLet `spb = 8 / bit_depth`. The maximum index is `floor((width - 1) / spb)`. The size of the buffer is `ceil((width * bit_depth) / 8) = ceil(width / spb)`. \n\nThe inequality `floor((N-1)/D) < ceil(N/D)` holds for any integers N > 0 and D > 1. In this case, `N=width` and `D=spb`. Since `bit_depth` in this path is 1, 2, or 4, `spb` is 8, 4, or 2. Thus, the maximum index accessed is always strictly less than the number of bytes read for the pixel data. This logic, which ties the loop bound (`width`) to the calculation of the buffer's capacity (`scanline_width`), serves as an implicit but sufficient bounds check."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2038,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 2036 reads one byte from `scanline` at an offset of `k / (8 / ctx->ihdr.bit_depth)`. This operation occurs inside a loop `for(k=0; k < width; k++)`, where `width` is `sub[pass].width`. The `scanline` buffer is populated by `read_scanline_bytes` with at least `scanline_width - 1` bytes of pixel data. The variable `scanline_width` is calculated for the current pass as `(width * ctx->ihdr.bit_depth + 7) / 8 + 1`. The size of the pixel data portion of `scanline` is therefore `(width * ctx->ihdr.bit_depth + 7) / 8`. The loop iterates `k` from `0` to `width - 1`. The maximum offset accessed is `(width - 1) / (8 / ctx->ihdr.bit_depth)`. A mathematical proof shows that this maximum offset is always less than the size of the pixel data buffer `(width * ctx->ihdr.bit_depth + 7) / 8`. Therefore, the loop condition `k < width` acts as a sufficient, albeit indirect, guard that ensures the memory access is always within bounds."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2092,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %48",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2096,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a `for` loop: `for(k=0; k < width; k++)`. The source pointer is `scanline + k`. The buffer `scanline` is allocated earlier in the function with size `scanline_width`. The value of `scanline_width` is calculated as `(sub.width * ctx->ihdr.bit_depth * spng_get_components(ctx->ihdr.color_type) + 7) / 8`. On the path to the vulnerable `memcpy`, the conditions are `ctx->ihdr.color_type == SPNG_COLOR_TYPE_INDEXED` (where `spng_get_components` returns 1) and `ctx->ihdr.bit_depth == 8`. In this specific case, `scanline_width` simplifies to `(sub.width * 8 * 1 + 7) / 8`, which is `sub.width`. The loop variable `width` is initialized to `sub[pass].width`. Therefore, `scanline_width` is equal to `width`. The loop condition `k < width` is equivalent to `k < scanline_width`, which ensures that the access `scanline + k` is always within the bounds of the allocated `scanline` buffer. The loop condition itself serves as a sufficient bounds check."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2097,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop `for(k=0; k < width; k++)`. The pointer being accessed is `scanline + k`. The `scanline` buffer's content is filled by `read_scanline_bytes` just before this loop. The amount of data read is `scanline_width`. \n\nOn the path leading to the `memcpy`, we are in the case `ctx->ihdr.color_type == SPNG_COLOR_TYPE_INDEXED` and `ctx->ihdr.bit_depth == 8`. \n`width` is set to `sub[pass].width`. The `scanline_width` for the current pass is calculated as `( (uint64_t)sub[pass].width * ctx->ihdr.bit_depth + 7) / 8 + 1`. \n\nWith `bit_depth` being 8, this simplifies to `scanline_width = sub[pass].width + 1`, or `scanline_width = width + 1`. \n\nThe function `read_scanline_bytes` reads exactly `scanline_width` bytes into the `scanline` buffer. This means `scanline` contains `width + 1` valid bytes, at indices `0` through `width`. \n\nThe loop iterates with `k` from `0` to `width - 1`. The maximum access is `scanline + (width - 1)`. Since `width - 1` is less than `width + 1` (the number of valid bytes), the access is always within the bounds of the data read into the `scanline` buffer. The combination of the `scanline_width` calculation and the loop's upper bound `width` acts as a sufficient guard."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2098,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2099,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` accesses the `scanline` buffer at an offset calculated from the loop variable `k`. The loop runs from `k=0` to `width-1`. The `scanline` buffer is allocated with a size `scanline_width` which is calculated based on this same `width` and the image's `bit_depth`. The formula for the required number of bytes for a packed-pixel scanline is `(width * bit_depth + 7) / 8`. The maximum offset accessed in the loop is `(width - 1) / (8 / bit_depth)`. Mathematically, the allocated size should be sufficient. However, the calculation of `scanline_width` involves the multiplication `width * bit_depth`. Since `width` is a `uint32_t` derived from the input file, a malicious file could specify a large width that causes this multiplication to overflow if intermediate products are not promoted to a 64-bit type. If an integer overflow occurs, `scanline_width` will be a much smaller, wrapped-around value, while the loop still executes up to the large, original `width`. This leads to an out-of-bounds read from `scanline`. The prompt states that taint analysis has proven this is 'NOT an allocate-to-fit size', which strongly implies this exact integer overflow vulnerability in the size calculation. There are no other explicit bounds checks on the calculated offset before the `memcpy` to mitigate this."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2117,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation reads from the `scanline` buffer at an offset determined by the loop variable `k`. The loop `for(k=0; k < out_width; k++)` iterates up to `out_width`. The value of `out_width` is derived from a user-provided argument `n_bytes` (specifically `out_width = n_bytes / out_bpp`) when the `SPNG_DECODE_TRNS` flag is not used. The `scanline` buffer is sized based on the image's width as specified in the PNG header (`ctx->ihdr.width`). There is no check within the function to ensure that `out_width` does not exceed `ctx->ihdr.width`. Consequently, a caller can provide a large `n_bytes` value, resulting in a large `out_width`, causing the loop to access `scanline` out-of-bounds when `k` becomes greater than or equal to `ctx->ihdr.width`."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2147,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2196,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1142",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source buffer `scanline` is allocated earlier in the function `spng_decode_image`. The size of the allocation is `scanline_size`, which is defined as `scanline_width + 1`. The `memcpy` at line 2196 copies `scanline_width` bytes. Before the allocation, there is an explicit check: `if(scanline_width > (SIZE_MAX - 1)) return SPNG_EOVERFLOW;` to prevent the `+ 1` from overflowing. Since the allocated size (`scanline_width + 1`) is guaranteed to be strictly greater than the amount of data being read (`scanline_width`), the `memcpy` operation is safe and cannot read out of bounds. This construction serves as a sufficient guard for the memory access."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` occurs inside a loop that iterates from `i = 0` to `scanline_width - 1`. The source address is `prev_scanline + i`. This means the code reads up to `prev_scanline + scanline_width - 1`. The function `defilter_scanline` takes both `prev_scanline` and `scanline_width` as arguments. While it checks that `prev_scanline` is not NULL and `scanline_width` is not zero, there is no check to ensure that the buffer pointed to by `prev_scanline` is actually large enough to accommodate `scanline_width` bytes. If a caller provides a `scanline_width` that is larger than the allocated size of `prev_scanline`, this `memcpy` will read out of bounds. No check within the function prevents this."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 581,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `defilter_scanline` takes a pointer `prev_scanline` and a size `scanline_width` as arguments. It then enters a loop that iterates from `i = 0` to `scanline_width - 1`. Inside the loop, it accesses `prev_scanline + i`. The loop condition `i < scanline_width` ensures that the offset `i` is less than `scanline_width`. However, there is no check within this function to ensure that the buffer pointed to by `prev_scanline` is actually at least `scanline_width` bytes long. The code assumes that the caller has provided a buffer of sufficient size. If `scanline_width` (which is derived from the image header) is larger than the actual allocated size of `prev_scanline`, this will result in an out-of-bounds read. There is no visible guard that validates the relationship between `scanline_width` and the capacity of `prev_scanline`."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 582,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `defilter_scanline` takes `prev_scanline` and its supposed width `scanline_width` as arguments. The code iterates up to `scanline_width` and accesses `prev_scanline` at offsets based on the loop counter `i`. Specifically, the vulnerable access is at `prev_scanline + i - bytes_per_pixel`. The loop `for(i=0; i < scanline_width; i++)` ensures that `i` is less than `scanline_width`. The condition `if(i >= bytes_per_pixel)` ensures the offset `i - bytes_per_pixel` is non-negative. However, there is no check within this function to validate that `scanline_width` itself is a valid size for the buffer pointed to by `prev_scanline`. The function implicitly trusts that the caller has provided a `scanline_width` that is less than or equal to the allocated size of `prev_scanline`. If a caller provides a `scanline_width` that is larger than the actual buffer size, this loop will read out of bounds. Since `scanline_width` is derived from the input file, and there is no check relating it to the actual capacity of `prev_scanline`, the access is not safely bounded."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 587,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `defilter_scanline` reads from the `prev_scanline` buffer. The access in question is `memcpy(&b, prev_scanline + i, 1)`. The offset `i` is controlled by a for loop: `for(i=0; i < scanline_width; i++)`. This means the code will attempt to read up to `prev_scanline + scanline_width - 1`. The function receives `prev_scanline` and `scanline_width` as parameters but has no information about the allocated size of the `prev_scanline` buffer. There is no check to ensure that `scanline_width` is less than or equal to the actual size of `prev_scanline`. If an input provides a `scanline_width` that is larger than the buffer allocated for the previous scanline, this `memcpy` will read out of bounds. No guard is present within this function to prevent this."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 591,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 591 reads from `prev_scanline + i - bytes_per_pixel`. The access is within a `for` loop that iterates from `i = 0` to `scanline_width - 1`. The containing `if(i >= bytes_per_pixel)` condition ensures that the offset `i - bytes_per_pixel` is non-negative. However, there is no check within this function to validate that `scanline_width` is a safe upper bound for accesses into the `prev_scanline` buffer. The code assumes that the caller has provided a `prev_scanline` buffer that is at least `scanline_width` bytes long. If a crafted input provides a `scanline_width` that is larger than the actual allocated size of the buffer pointed to by `prev_scanline`, this `memcpy` (along with the one at line 590) will read out of bounds. Since there is no visible guard in the function to prevent this (e.g., a check of `scanline_width` against the capacity of `prev_scanline`), the access is not covered."
+   },
+   {
+    "func": "scale_row",
+    "line": 733,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `scale_row` iterates from `i = 0` to `pixels - 1`. Inside the loop, it accesses `row + i * 4`. The highest access will be at offset `(pixels - 1) * 4`, and the `memcpy` reads 4 bytes from that location. This requires the `row` buffer to have a size of at least `pixels * 4` bytes. There is no bounds check within the `scale_row` function to ensure that the buffer allocated for `row` is large enough to accommodate `pixels * 4` bytes. The safety of this operation is entirely dependent on the caller providing correctly matched `row` and `pixels` arguments, and no such check is visible in the provided code."
+   },
+   {
+    "func": "scale_row",
+    "line": 748,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `scale_row` performs a memcpy from the `row` buffer within a loop that iterates `pixels` times. The access in question is `memcpy(px, row + i * 8, 8)` inside the `SPNG_FMT_RGBA16` case. The loop runs up to `i = pixels - 1`, leading to a maximum access at `row + (pixels - 1) * 8`. To be safe, the `row` buffer must be at least `pixels * 8` bytes long. However, there are no checks within the `scale_row` function to validate the size of the `row` buffer against the `pixels` count. The function trusts its arguments completely. Without visibility into all callers to verify they perform the necessary checks, this unchecked access based on the input-derived `pixels` argument constitutes a potential buffer over-read."
+   },
+   {
+    "func": "gamma_correct_row",
+    "line": 668,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `gamma_correct_row` performs a `memcpy` from `row` inside a `for` loop that iterates from `i = 0` to `pixels - 1`. The source pointer is `row + i * 8`. The maximum offset accessed is `(pixels - 1) * 8`, and the operation reads 8 bytes from that location. This requires the `row` buffer to have a size of at least `pixels * 8`. However, the function receives `row` and `pixels` as separate arguments and does not have access to the allocated size of `row`. There is no check within this function to ensure that `pixels * 8` does not exceed the bounds of the `row` buffer. Therefore, an attacker who can control the `pixels` parameter could cause an out-of-bounds read. No visible guard covers this access."
+   },
+   {
+    "func": "gamma_correct_row",
+    "line": 682,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `gamma_correct_row` processes a buffer `row`. When `fmt` is `SPNG_FMT_RGBA16`, it enters a loop that iterates from `i = 0` to `pixels - 1`. Inside the loop, `memcpy` reads 8 bytes from `row + i * 8`. The highest offset accessed is `(pixels - 1) * 8`, meaning the function reads up to `(pixels - 1) * 8 + 8 = pixels * 8` bytes from `row`. There is no bounds check within this function to ensure that the `row` buffer is at least `pixels * 8` bytes long. The safety of this operation is entirely dependent on the caller providing a `row` buffer of sufficient size, which is an implicit contract. Since no check is visible on the path within the provided code, and the analysis states the source is input-derived and not from an allocate-to-fit allocation, a potential for a heap buffer overflow exists if a caller violates this contract."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1487,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source of the memcpy is `&exif`, which is the address of a local stack variable `exif` of type `struct spng_exif`. The size of the copy is `sizeof(struct spng_exif)`. By C language semantics, the size of the memory allocated on the stack for the `exif` variable is guaranteed by the compiler to be exactly `sizeof(struct spng_exif)`. Therefore, the read operation is inherently bounds-safe as the size of the read is identical to the size of the source object. This compile-time guarantee makes an explicit runtime bounds check unnecessary for this specific operation."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1491,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The user-provided context states that the source pointer operand of the `memcpy`, which is `&ctx->current_chunk`, is input-derived and not validated. The code shows the `memcpy` happens inside a loop immediately following a call to `read_header(ctx, &discard)`. There are no visible checks on the address of `ctx->current_chunk` between the call to `read_header` (which presumably populates the data and, according to the taint analysis, taints the pointer) and its use in the `memcpy`. Assuming the taint analysis is correct that the pointer *itself* is tainted (and not just the data it points to), the lack of any subsequent validation or bounds check before the read makes this a potential vulnerability."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1538,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads 1 byte from the source pointer `data + 8`. This requires the buffer pointed to by `data` to be at least 9 bytes long. Immediately before this operation, inside the `else if` block for the 'oFFs' chunk type, there is a check `if(chunk.length != 9) return SPNG_ECHUNK_SIZE;`. The buffer `data` contains the chunk's data, and its size is `chunk.length`. This check explicitly ensures that the size is exactly 9 bytes. Therefore, the access to `data[8]` is guaranteed to be within the bounds of the `data` buffer."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1539,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The user-provided snippet appears to be from a function that processes PNG chunks before the main image data (IDAT). The specific `memcpy` with a size of 1 is inside the handler for the `offs` chunk type: `memcpy(&ctx->offs.unit_specifier, data + 8, 1);`. The source `data` is a buffer containing `chunk.length` bytes read from the input file. For this access at offset 8 to be safe, `data` must be at least 9 bytes long. On the path to this `memcpy`, there is a check: `if(chunk.length != 9) return SPNG_ECHUNK_SIZE;`. This guard ensures that this code block is only executed if the chunk length is exactly 9. This means that the buffer `data` will have been filled with 9 bytes, making the access at offset 8 (the 9th byte) safe and in-bounds."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1540,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The 'memcpy' is inside a block that handles 'offs' chunks. Just before the memory access, there is a check 'if(chunk.length != 9) return SPNG_ECHUNK_SIZE;'. This check ensures that the chunk data has a size of exactly 9 bytes. The 'data' buffer is populated by 'read_chunk_bytes(ctx, chunk.length)', which reads 'chunk.length' bytes into it. Therefore, the 'data' buffer is guaranteed to be 9 bytes long when the 'memcpy' is reached. The 'memcpy' accesses 'data + 8' for a size of 1 byte. This access is at offset 8, which is the last byte of the 9-byte buffer, and is therefore within bounds. The check on 'chunk.length' fully covers this access."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1541,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation `memcpy(&ctx->offs.unit_specifier, data + 8, 1)` reads one byte at an offset of 8 from the `data` buffer. This requires the buffer to have at least 9 valid bytes. On the execution path leading to this `memcpy`, there is a check: `if(chunk.length != 9) return SPNG_ECHUNK_SIZE;`. This check ensures that the chunk's data length is exactly 9 bytes. Preceding this code block, a function like `read_chunk_bytes(ctx, chunk.length)` would have read `chunk.length` bytes into the `data` buffer. Since `chunk.length` is guaranteed to be 9, the `data` buffer contains 9 valid bytes, indexed 0 through 8. The access `data + 8` is therefore within the bounds of the valid data in the buffer. This makes the access safe."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 1951,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted source pointer is `&ctx->trns.red`. `ctx->trns` is a struct (`spng_trns`) embedded within the main context struct, not a pointer to allocated memory. The member `red` is of type `uint16_t`. The `memcpy` reads 2 bytes from the address of this member. This is a standard, safe read of a struct field, as the size of the read (2 bytes) matches the size of the field. The address `&ctx->trns.red` is determined at compile time as a fixed offset within the context structure and is not derived from user input. The code is only reached if a `tRNS` chunk was present (`apply_trns` is true) and the color type is `SPNG_COLOR_TYPE_TRUECOLOR`, for which the parser validates that the `tRNS` chunk is 6 bytes long, ensuring the `red`, `green`, and `blue` fields are correctly populated. Therefore, this operation cannot result in an out-of-bounds read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 1952,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code copies 2 bytes from `&ctx->trns.red` into the local buffer `trns_px`. The destination buffer `trns_px` has a size of 8, so the write is in-bounds. The source of the copy is the `red` member of the `spng_trns` struct. The code enters this block only when `ctx->ihdr.bit_depth == 16`. For 16-bit truecolor images, the `tRNS` chunk specifies transparency with 16-bit (2-byte) values for red, green, and blue. The `spng_trns` struct reflects this with `uint16_t red, green, blue;` members. Therefore, `memcpy`-ing 2 bytes from `&ctx->trns.red` reads exactly the content of the `red` member, which is safe and correct. The size of the read is a compile-time constant `2` and is not influenced by tainted input data. This is a false positive."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 1953,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads 2 bytes from `&ctx->trns.red`. The source `ctx->trns` is a struct of type `spng_trns`, and the `red` member is a `uint16_t`, which is 2 bytes in size. The `memcpy` is therefore reading exactly the contents of this member. The `spng_trns` struct is populated from the tRNS chunk of the PNG file. The parsing code for the tRNS chunk (`spng_read_trns`) validates that for a truecolor image (the only case where this code path is taken), the chunk length is exactly 6 bytes, corresponding to the `red`, `green`, and `blue` fields (2 bytes each). Therefore, the data being read is guaranteed to be within the bounds of the allocated `spng_trns` structure. The destination `trns_px` is an 8-byte buffer, and this `memcpy` (along with the subsequent two) writes a total of 6 bytes, which is also safe."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 1993,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The code reads scanline data from a compressed stream into a buffer `scanline`. For each scanline in a pass, the code is designed to read the scanline's pixel data plus the filter byte of the *next* scanline. The total number of bytes read in this case is `scanline_width`.\n\nHowever, for the very last scanline of a pass (`scanline_idx == (sub[pass].height - 1)`), there is no 'next' scanline, so the code correctly reads only `scanline_width - 1` bytes.\n\nImmediately following the read, the code unconditionally executes `memcpy(&next_filter, scanline + scanline_width - 1, 1);` to extract the supposed 'next' filter byte.\n\nIn the case of the last scanline, `read_scanline_bytes` has only filled the `scanline` buffer up to index `scanline_width - 2`. The `memcpy` then attempts to read from `scanline[scanline_width - 1]`, which is one byte beyond the data that was just read into the buffer. This constitutes a one-byte out-of-bounds read. The read value (potentially uninitialized heap data) is then used as the `filter` type, which could lead to a denial-of-service or information leak."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2021,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads one byte from `scanline + k`. The `scanline` buffer holds the pixel data for a single row of the image. The loop iterates from `k = 0` to `k < width`, where `width` is the number of pixels in the scanline, derived from the image's IHDR chunk.\n\nThe code is processing an indexed-color image with a bit depth of 8 (`ctx->ihdr.bit_depth == 8`). In this format, each pixel is represented by a single byte. Therefore, a scanline with `width` pixels has `width` bytes of pixel data.\n\nThe `scanline` buffer is populated by reading the filtered scanline data from the input stream and then calling `defilter_scanline`. The size of the pixel data processed by `defilter_scanline` is `scanline_width - 1`, where `scanline_width` is the total bytes for the line including the filter byte. For an 8-bit indexed image, `scanline_width` is calculated as `1 + width`. Thus, `scanline_width - 1` is exactly equal to `width`. \n\nThis means the `scanline` buffer contains `width` bytes of defiltered pixel data. The loop iterates `k` from `0` to `width - 1`. Therefore, the access `scanline + k` is always within the valid bounds of the `scanline` buffer, from `scanline[0]` to `scanline[width-1]`. The loop condition `k < width` serves as a correct and sufficient bounds check."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2022,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads one byte from `scanline + k`. The `scanline` buffer holds the pixel data for a single scanline. The loop iterates with `k` from `0` to `width - 1`, where `width` is the number of pixels in the current sub-image's scanline (`sub[pass].width`). The amount of data read into and defiltered in the `scanline` buffer is `scanline_width - 1`. For the case being analyzed (`SPNG_COLOR_TYPE_INDEXED` with `bit_depth == 8`), each pixel is one byte, and `scanline_width` is calculated as `width + 1` (to account for the filter byte). Therefore, the size of the valid pixel data in `scanline` is `width` bytes. The loop iterates `k` from `0` to `width - 1`, so the access `scanline + k` is always within the bounds of the pixel data in the `scanline` buffer. The code correctly correlates the loop bounds (`width`) with the size of the data being processed."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2023,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code processes an indexed-color PNG scanline where the bit depth is less than 8 (validated to be 1, 2, or 4 earlier in the parsing). Pixels are packed into bytes. The loop iterates from `k = 0` to `width - 1`. The expression `k / (8 / ctx->ihdr.bit_depth)` correctly calculates the byte offset within the `scanline` buffer for the `k`-th pixel. For example, if `bit_depth` is 4, `8 / bit_depth` is 2 (2 pixels per byte), so `k/2` gives the byte index. The `scanline` buffer's size is calculated as `ceil((width * bit_depth) / 8) + 1` (for the filter byte). The maximum offset accessed will be `(width - 1) / (8 / bit_depth)`. This value is always less than `ceil((width * bit_depth) / 8)`, which is the size of the pixel data portion of the `scanline` buffer. The logic is a standard and correct way to handle packed pixel data and is guarded by prior validation of image dimensions and bit depth."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2034,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code snippet handles the decoding of indexed-color PNG scanlines where multiple pixels are packed into a single byte. The `memcpy` in question is part of this unpacking logic.\n\nThe `src` pointer is `scanline + k / (8 / ctx->ihdr.bit_depth)`. Let's analyze the bounds:\n1. `scanline` is a buffer of size `scanline_width`, which is calculated to be large enough to hold all pixel data for a given scanline plus one byte for the filter type. The size of the pixel data portion is `ceil(width * bit_depth / 8)` bytes.\n2. `k` is the pixel index, ranging from `0` to `width - 1`.\n3. `ctx->ihdr.bit_depth` is the number of bits per pixel. For this code path (indexed color, not 8-bit), the valid values are 1, 2, or 4. Division by zero is not possible.\n4. The expression `k / (8 / ctx->ihdr.bit_depth)` calculates the byte offset within the `scanline` buffer that contains the data for the k-th pixel. This is standard and correct logic for unpacking packed pixels.\n\nThe maximum value of the offset occurs when `k` is at its maximum, `width - 1`. The maximum index accessed is `floor((width - 1) / (8 / bit_depth))`. The number of bytes allocated for pixel data is `ceil(width / (8 / bit_depth))`. \n\nIt is a mathematical certainty that for any positive integers `width` and `samples_per_byte` (`8 / bit_depth`), `floor((width - 1) / samples_per_byte)` is strictly less than `ceil(width / samples_per_byte)`. Since the `scanline` buffer is allocated to be at least `ceil(width * bit_depth / 8) + 1` bytes long, and the maximum access index is provably less than `ceil(width * bit_depth / 8)`, an out-of-bounds read is not possible. The calculation is guarded by the fundamental relationship between the number of pixels, the packing density, and the required buffer size."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2038,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `memcpy` source pointer is `scanline + k / (8 / ctx->ihdr.bit_depth)`. This operation reads a byte from the `scanline` buffer, which contains packed pixel data for an indexed-color PNG image.\n\nThe potential vulnerability is an out-of-bounds read from `scanline`.\n\n1.  `k` is the pixel index, iterating from `0` to `width - 1`, where `width` is the width of the current (sub)image pass.\n2.  `ctx->ihdr.bit_depth` is the bit depth of the image (1, 2, or 4 in this code path). This value is validated when the IHDR chunk is parsed, so we can assume it's one of these valid values. The division `8 / ctx->ihdr.bit_depth` calculates the number of pixels per byte.\n3.  The expression `k / (8 / ctx->ihdr.bit_depth)` correctly calculates the byte offset within the scanline for the k-th pixel.\n4.  The `scanline` buffer is populated by `read_scanline_bytes`. Its size for pixel data is `(width * bit_depth + 7) / 8` bytes, which is the standard way to calculate the number of bytes needed for `width` pixels of `bit_depth` bits each.\n5.  The maximum offset accessed is when `k = width - 1`. The index will be `floor((width - 1) / (8 / bit_depth))`.\n6.  The size of the buffer is `ceil(width * bit_depth / 8)`. The valid indices are from `0` to `size - 1`.\n7.  It can be mathematically shown that `floor((width - 1) * bit_depth / 8)` is always less than or equal to `ceil(width * bit_depth / 8) - 1`. This means the maximum index accessed is always within the bounds of the allocated scanline data buffer.\n\nTherefore, while the access address is derived from user input, the logic correctly bounds the access within the `scanline` buffer. It is not a triggerable out-of-bounds read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2092,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2096,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing indexed-color PNG data where multiple pixels are packed into a single byte. The `memcpy` at line 2096 is reading a byte that contains pixel data.\n\nThe source pointer is `scanline + k / (8 / ctx->ihdr.bit_depth)`. Let's analyze the components:\n\n1.  **`ctx->ihdr.bit_depth`**: This code path is taken for `SPNG_COLOR_TYPE_INDEXED` where `bit_depth` is not 8. According to the PNG specification, the only other valid bit depths for indexed color are 1, 2, and 4. The `spng` library validates this when parsing the IHDR chunk (in `spng_check_ihdr`), and will return an error if an invalid bit depth is provided for this color type. Therefore, we can assume `bit_depth` is 1, 2, or 4.\n\n2.  **`k`**: This is a loop counter iterating from `0` to `width - 1`, where `width` is the number of pixels in the scanline.\n\n3.  **The Offset Calculation**: The term `8 / ctx->ihdr.bit_depth` calculates how many pixels are packed into a single byte (e.g., for `bit_depth`=2, there are 4 pixels/byte). The division `k / (8 / ctx->ihdr.bit_depth)` correctly calculates the byte index within `scanline` for the `k`-th pixel.\n\n4.  **Buffer Size (`scanline_width`)**: The size of the `scanline` buffer is `scanline_width`. This width is calculated based on the image width and bit depth. The formula is equivalent to `ceil(width * bit_depth / 8.0)`, which in integer arithmetic is `(width * bit_depth + 7) / 8`.\n\n5.  **Bounds Check**: We need to verify that the maximum possible offset is less than `scanline_width`. The maximum offset occurs when `k = width - 1`.\nThe condition is `(width - 1) / (8 / bit_depth) < (width * bit_depth + 7) / 8`.\n\nLet's test this for `bit_depth = 4`:\n`(width - 1) / 2 < (width * 4 + 7) / 8`\nLet `width = 3`: `(2)/2 = 1`. `(12+7)/8 = 19/8 = 2`. `1 < 2`. The access is `scanline[1]` and the buffer size is 2. Safe.\nLet `width = 2`: `(1)/2 = 0`. `(8+7)/8 = 15/8 = 1`. `0 < 1`. The access is `scanline[0]` and the buffer size is 1. Safe.\n\nThe mathematical relationship between the offset calculation and the buffer size calculation is correct and ensures that the access will not go out of bounds for any valid `width` and `bit_depth`. Because the library validates `bit_depth` upon parsing the header, no invalid value can reach this code to cause an integer overflow or miscalculation that would lead to an OOB read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2097,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code processes a scanline (a row of pixels) from a PNG image. The `memcpy` is inside a loop that iterates over each pixel in the scanline. The conditions leading to this specific `memcpy` are `ctx->ihdr.color_type == SPNG_COLOR_TYPE_TRUECOLOR` and `ctx->ihdr.bit_depth == 8`. In this format, each pixel is represented by 3 bytes (R, G, B).\n\nThe `scanline` buffer holds the defiltered pixel data for the current row. Its size is calculated based on the image's width for that row (`width`) and the bytes per pixel (3). The effective size of the pixel data buffer is `width * 3` bytes.\n\nThe loop iterates with `k` from `0` to `width - 1`.\nThe `memcpy` operations access bytes at `scanline + (k * 3)`, `scanline + (k * 3) + 1`, and `scanline + (k * 3) + 2`.\n\nThe maximum value of `k` is `width - 1`. Therefore, the highest address accessed is for the byte at offset `(width - 1) * 3 + 2`, which simplifies to `3 * width - 1`.\n\nThe buffer holding the pixel data has a size of `3 * width` bytes, with valid indices from `0` to `3 * width - 1`.\nSince the maximum accessed index is `3 * width - 1`, the access is perfectly within the bounds of the allocated buffer. The logic correctly handles the relationship between the loop bounds, buffer size, and pixel data format. Thus, this is not an out-of-bounds bug."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2098,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2099,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is handling indexed-color PNG images with bit depths less than 8 (i.e., 1, 2, or 4), where multiple pixels are packed into a single byte. The source pointer for the `memcpy` is `scanline + k / (8 / ctx->ihdr.bit_depth)`. Let's analyze this expression:\n\n1.  `k` is the pixel index, looping from `0` to `width - 1` (`width` being the number of pixels in the scanline for the current pass).\n2.  `ctx->ihdr.bit_depth` is the number of bits per pixel (1, 2, or 4 in this code path).\n3.  `8 / ctx->ihdr.bit_depth` calculates the number of pixels per byte.\n4.  `k / (8 / ctx->ihdr.bit_depth)` correctly calculates the byte offset within the `scanline` buffer that contains the `k`-th pixel's data.\n\nThe `scanline` buffer's size is calculated based on the same `width` and `bit_depth` values. The size of the scanline data (in bytes) is `ceil(width * bit_depth / 8)`. The maximum byte offset accessed by the `memcpy` is when `k = width - 1`, which is `floor((width - 1) / (8 / bit_depth))`. \n\nMathematically, `floor((width - 1) * bit_depth / 8)` is always strictly less than `ceil(width * bit_depth / 8)`. Therefore, the calculated offset will always be within the bounds of the `scanline` buffer. The code correctly implements the logic for unpacking packed pixel data from a PNG scanline, and the access is appropriately bounded."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2117,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is handling grayscale images with bit depths less than 8, where multiple pixels are packed into a single byte. The `scanline` buffer holds the decompressed data for one row of the image. The size of this buffer is calculated correctly based on the image width and bit depth using the standard formula `(width * bit_depth + 7) / 8`, which is equivalent to `ceil(width * bit_depth / 8.0)`. \nThe `memcpy` source pointer is `scanline + k / (8 / ctx->ihdr.bit_depth)`. The loop variable `k` iterates from `0` to `width - 1`. The term `8 / ctx->ihdr.bit_depth` calculates the number of pixels per byte. The division `k / (8 / ctx->ihdr.bit_depth)` correctly calculates the byte offset within the `scanline` for the `k`-th pixel. The maximum offset accessed will be `(width - 1) / (8 / bit_depth)`, which is mathematically guaranteed to be less than the allocated size of the `scanline` buffer. The `ihdr` fields like `bit_depth` are validated earlier to prevent division by zero. This is a standard and safe way to handle packed-pixel formats."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2147,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing a scanline of a grayscale PNG image with a bit depth of 1, 2, 4, or 8. In these formats, multiple pixels can be packed into a single byte. The `scanline` buffer contains the data for one row of pixels, and its size is calculated based on the image width and bit depth.\n\nThe expression `k / (8 / ctx->ihdr.bit_depth)` calculates the byte offset into the `scanline` buffer for the k-th pixel. `k` is the pixel index, looping from `0` to `width - 1`. `8 / ctx->ihdr.bit_depth` gives the number of pixels per byte. This is the standard and correct way to calculate the byte index for packed pixel data.\n\nThe size of the `scanline` buffer is calculated elsewhere to be `ceil(width * bit_depth / 8.0)`, which is large enough to hold all the packed pixels for the entire row. The maximum offset accessed will be for the last pixel (`k = width - 1`), which will be `(width - 1) / (8 / bit_depth)`. This offset is guaranteed to be within the bounds of the `scanline` buffer. The subsequent code correctly masks and shifts the read byte to extract the specific pixel's value.\n\nWhile the offset is derived from input-controlled data (`bit_depth` and `width`), the arithmetic correctly computes an in-bounds offset based on the PNG specification for packed pixel formats. The library correctly allocates a buffer of sufficient size to contain the scanline data. Therefore, this is not a triggerable out-of-bounds read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing a scanline for a grayscale PNG image with a bit depth less than or equal to 8. The `memcpy` reads one byte from the `scanline` buffer. The source address is `scanline + k / (8 / ctx->ihdr.bit_depth)`. \n\nLet's analyze the bounds:\n- `scanline`: This buffer holds the pixel data for one row. Its size is calculated based on the image width and bit depth. The size in bytes is `(width * bit_depth + 7) / 8`.\n- `k`: This is the pixel index, iterating in a loop from `0` to `width - 1`.\n- `ctx->ihdr.bit_depth`: The number of bits per pixel. The code path ensures it is one of {1, 2, 4, 8}.\n\nThe expression `8 / ctx->ihdr.bit_depth` calculates the number of pixels packed into a single byte. The offset `k / (8 / ctx->ihdr.bit_depth)` correctly calculates the byte index within `scanline` that contains the data for pixel `k`.\n\nThe maximum value for `k` is `width - 1`. Therefore, the maximum offset accessed is `(width - 1) / (8 / bit_depth)`. This can be rewritten as `floor((width - 1) * bit_depth / 8.0)`. \n\nThe size of the `scanline` buffer is `ceil(width * bit_depth / 8.0)`. \n\nThe maximum accessed index is always less than the size of the buffer. For example, if `width * bit_depth` is a multiple of 8, the size is `width * bit_depth / 8`. The max offset is `(width - 1) * bit_depth / 8` which is smaller. If `width * bit_depth` is not a multiple of 8, the ceiling function for the size provides the necessary extra space. \n\nThe logic is a standard and correct way to handle packed-pixel formats and does not appear to have an out-of-bounds vulnerability."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2196,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1142",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted source pointer is `row + k * pixel_size`. The `memcpy` is inside a loop `for(k=0; k < width; k++)`, so the maximum access is at `k = width - 1`. The number of bytes copied is `pixel_size`. This means the highest byte read from `row` is at offset `(width - 1) * pixel_size + (pixel_size - 1)`, which simplifies to `width * pixel_size - 1`.\n\nThe `row` buffer is allocated earlier in the function with size `out_width`, which is calculated as `ctx->ihdr.width * pixel_size`. `ctx->ihdr.width` is the width of the full, uninterlaced image.\n\nThe variable `width` used in the loop bound is the width of the current interlacing pass sub-image (`sub[pass].width`). By the definition of PNG Adam7 interlacing, the width of any sub-image (`sub[pass].width`) is always less than or equal to the width of the full image (`ctx->ihdr.width`).\n\nTherefore, the maximum access offset `width * pixel_size - 1` is always less than or equal to the allocated buffer size `ctx->ihdr.width * pixel_size`. The access is correctly bounded."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is `memcpy(&b, prev_scanline + i, 1)`. This operation occurs inside a `for` loop that iterates from `i = 0` to `i < scanline_width`. Therefore, the maximum value of `i` is `scanline_width - 1`. The access `prev_scanline + i` will access memory from `prev_scanline[0]` to `prev_scanline[scanline_width - 1]`. The `prev_scanline` buffer is assumed to be allocated with a size of at least `scanline_width` bytes by the caller, which is standard practice for PNG scanline filtering. The loop condition `i < scanline_width` correctly bounds the access to within the expected size of the `prev_scanline` buffer. There are no apparent integer overflows or other logic errors that would allow `i` to exceed this bound. Thus, the memory access is safe."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 581,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory access is `prev_scanline + i - bytes_per_pixel`. This operation is guarded by the condition `if(i >= bytes_per_pixel)`. This condition ensures that the offset `i - bytes_per_pixel` is always non-negative, preventing a read from before the start of the `prev_scanline` buffer. The loop iterates with `i` from `0` up to `scanline_width - 1`. The maximum access index for this operation will be `(scanline_width - 1) - bytes_per_pixel`, which is less than `scanline_width`. Assuming `prev_scanline` points to a buffer of at least `scanline_width` bytes (which is the function's implicit contract for a scanline), the access is always within bounds. The code correctly handles the boundary condition at the beginning of the scanline."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 582,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code performs a `memcpy` from the source pointer `scanline + i - bytes_per_pixel`. This operation is guarded by the condition `if(i >= bytes_per_pixel)`. The loop iterates `i` from `0` to `scanline_width - 1`. When the condition `i >= bytes_per_pixel` is met, the smallest possible value for `i` is `bytes_per_pixel`. In this case, the offset `i - bytes_per_pixel` becomes `0`, resulting in a read from the beginning of the `scanline` buffer (`scanline + 0`), which is a valid in-bounds access. For all subsequent values of `i` in the loop, `i - bytes_per_pixel` will be a positive value less than `scanline_width`. Therefore, the `if` condition correctly prevents an out-of-bounds read from occurring before the start of the `scanline` buffer."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 587,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `defilter_scanline` processes a scanline of `scanline_width` bytes. The loop iterates with `i` from `0` to `scanline_width - 1`. The memory access is `prev_scanline + i`. The callers of this static function (e.g., `decode_scanline`) are responsible for allocating `prev_scanline` and `scanline` buffers. They allocate buffers of size `scanline_width + 1` bytes (the `+1` is for the filter byte) and then pass pointers offset by 1 (e.g., `ctx->prev_scanline + 1`) along with the `scanline_width`. This means `prev_scanline` within this function points to a buffer of exactly `scanline_width` bytes. Since the loop variable `i` is strictly bounded by `i < scanline_width`, the access `prev_scanline + i` will always be within the bounds of the allocated buffer. The code is careful to ensure the access is safe."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 591,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is `memcpy(&c, prev_scanline + i - bytes_per_pixel, 1)`. This operation is guarded by the condition `if(i >= bytes_per_pixel)`. The loop variable `i` iterates from `0` to `scanline_width - 1`. The guard ensures that the index `i - bytes_per_pixel` is always non-negative. The minimum value of `i` for which the `if` block is executed is `bytes_per_pixel`, which results in an index of `bytes_per_pixel - bytes_per_pixel = 0`. This is a valid access at the beginning of the `prev_scanline` buffer. The maximum value of `i` is `scanline_width - 1`, leading to a maximum index of `(scanline_width - 1) - bytes_per_pixel`. Since `bytes_per_pixel` is at least 1 for any valid image, this index is strictly less than `scanline_width - 1`. Assuming `prev_scanline` points to a buffer of size `scanline_width` (which is standard for PNG decoding), this access is always within the bounds of the `prev_scanline` buffer. The check is a standard part of the PNG defiltering algorithm to handle the pixels at the beginning of a scanline which do not have a preceding pixel. The code is correct and not vulnerable."
+   },
+   {
+    "func": "scale_row",
+    "line": 733,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `scale_row` performs an in-place modification of a pixel row buffer. The `memcpy` at line 733 reads 4 bytes for each pixel. The source pointer is `row + i * 4`, where `i` is a loop counter from `0` to `pixels - 1`. The variable `pixels` is derived from the image width, which is user-controlled.\n\nA potential out-of-bounds read could occur if the `row` buffer is smaller than `pixels * 4` bytes. However, this function is `static inline`, meaning it's not part of the public API and is only called by other functions within the library.\n\nTracing the callers reveals that the `row` buffer is allocated based on the image width (`pixels`) and the format (`fmt`). The library code that performs the allocation (`spng_decoded_image_size`) explicitly checks for integer overflows when calculating the required buffer size (`width * bytes_per_pixel`). If an overflow is detected, an error is returned, and the allocation and subsequent decoding do not proceed.\n\nTherefore, the `row` buffer passed to `scale_row` is guaranteed by the caller to be of sufficient size (`pixels * 4` bytes for the `SPNG_FMT_RGBA8` format). The loop `for(i=0; i < pixels; i++)` correctly iterates within the bounds of this properly-sized buffer. The taint analysis correctly identifies that the access offset is derived from user input, but it misses the crucial context that the buffer's size is also derived from the same input and is validated with overflow checks. This is a false positive."
+   },
+   {
+    "func": "scale_row",
+    "line": 748,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code snippet shows a `memcpy` inside a loop that processes a row of pixels. The function is `scale_row`, and the specific case is for the `SPNG_FMT_RGBA16` format, where each pixel is 8 bytes (4 channels * 16 bits/channel). The loop iterates `pixels` times, from `i = 0` to `pixels - 1`. In each iteration, it reads one 8-byte pixel from the source buffer `row` at an offset of `i * 8`. The maximum starting offset accessed is `(pixels - 1) * 8`. The `memcpy` reads 8 bytes from this offset. Therefore, the total size required for the `row` buffer is `(pixels - 1) * 8 + 8`, which simplifies to `pixels * 8` bytes. This corresponds exactly to the expected size of a buffer holding `pixels` number of pixels in `SPNG_FMT_RGBA16` format. While the `pixels` variable is derived from the input file (image width), it is a standard and necessary assumption in image processing libraries that the buffer passed to a row-processing function is correctly sized to hold that row. A vulnerability would only exist if the buffer `row` was allocated with a size smaller than `pixels * 8`, which typically happens due to an integer overflow when calculating the buffer size (`pixels * 8`). However, the presence of functions like `check_ihdr` in the provided context suggests that the library performs validation on image dimensions to prevent extreme values that could lead to such overflows. It is highly probable that the caller of this function allocates `row` with the correct size, making the access within bounds."
+   },
+   {
+    "func": "gamma_correct_row",
+    "line": 668,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged `memcpy` is `memcpy(row + i * 4, px, 4)`. The `src-ptr` operand is `px`. `px` is a local stack variable declared as `unsigned char px[4]`. The size of this buffer is 4 bytes. The `memcpy` operation reads exactly 4 bytes from this buffer. A read of 4 bytes from a 4-byte buffer is always in-bounds. The taint analysis tool likely flagged this because the *contents* of the `px` buffer are derived from the input `row`, but this does not create an out-of-bounds read condition on the source pointer `px`. The pointer itself is not derived from input; it points to a fixed-size local array on the stack. Therefore, this is not a triggerable bug."
+   },
+   {
+    "func": "gamma_correct_row",
+    "line": 682,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `gamma_correct_row` processes a row of pixels. The `memcpy` in question is inside a loop that iterates from `i = 0` to `pixels - 1`. The format is `SPNG_FMT_RGBA16`, which means each pixel is 8 bytes (4 channels * 2 bytes/channel). The `memcpy` reads one 8-byte pixel at a time from the source buffer `row` at offset `i * 8`.\n\nThe loop's maximum iteration is `i = pixels - 1`. The highest address accessed is `row + (pixels - 1) * 8 + 7`, which simplifies to `row + pixels * 8 - 1`. \n\nThis access is safe if the buffer `row` has a size of at least `pixels * 8` bytes. Looking at the callers of this function within the spng library, the `pixels` argument is typically the image width, and the `row` buffer is allocated to be `width * bytes_per_pixel`. In this case, that would be `width * 8`. The library also includes checks to prevent integer overflows when calculating the required buffer size (e.g., `width > SIZE_MAX / bpp`). Therefore, the `row` buffer is correctly sized to hold `pixels` number of 8-byte pixels, and the loop correctly iterates within these bounds. The access is not out-of-bounds."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1487,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged `memcpy` operation is `memcpy(&ctx->exif, &exif, sizeof(struct spng_exif));`. This operation copies a local struct variable (`exif`) into a member of the context struct (`ctx->exif`).\n1. The source pointer (`src-ptr`) is `&exif`, which is the address of a local variable on the stack. This address is determined at compile/runtime and is not derived from user input.\n2. The size of the memory copy is `sizeof(struct spng_exif)`, a compile-time constant. This size exactly matches the size of the source object (`exif`).\n3. An out-of-bounds read from the source is impossible because the code is reading exactly the number of bytes that the source object occupies.\n4. The taint analysis tool likely flagged this because the *contents* of the `exif` struct are derived from input data (specifically, `exif.length` is set to `chunk.length` and `exif.data` points to a buffer filled with chunk data). The tool seems to have over-aggressively propagated this taint from the struct's contents to the struct's address (`&exif`).\n5. This is a standard and safe way to copy a struct. The operation itself is not a vulnerability, even though the data being copied is tainted. The potential for a bug exists later if the tainted data (now in `ctx->exif`) is used unsafely, but this specific `memcpy` is not the bug."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1491,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged `memcpy` is `memcpy(&ctx->exif, &exif, sizeof(struct spng_exif))`. The source of this copy is `&exif`, which is the address of a local stack variable `exif` of type `struct spng_exif`. The size of the copy is `sizeof(struct spng_exif)`, which is the exact size of the source object. A `memcpy` from a local variable with a size equal to `sizeof` that variable cannot read out of bounds from the source. The taint analysis tool likely flagged this because the *contents* of the `exif` struct (specifically the `data` pointer and `length` field) are derived from the input file's chunk data. However, the `memcpy` operation itself is just a safe, fixed-size struct copy on the stack. The source pointer is not controlled by the input, and the size is a compile-time constant matching the source object's size."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1538,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a block that processes a PNG `oFFs` chunk. Before the `memcpy` is reached, there is an explicit check: `if(chunk.length != 9) return SPNG_ECHUNK_SIZE;`. The `data` buffer is populated by `read_chunk_bytes(ctx, chunk.length)`, so it is guaranteed to contain `chunk.length` bytes. Since `chunk.length` must be exactly 9 for execution to reach the `memcpy`, the `data` buffer has a size of 9. The `memcpy` reads 1 byte from `data + 8`, which is the last byte of the buffer (`data[8]`). This access is therefore in-bounds and not a bug."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1539,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code block containing the memcpy is executed for PNG chunks of type 'oFFs'. Before any data is read from the chunk, there is an explicit check: `if(chunk.length != 9) return SPNG_ECHUNK_SIZE;`. The `data` buffer is populated by `read_chunk_bytes(ctx, chunk.length)`, which reads `chunk.length` bytes. Therefore, when the memcpy at `data + 8` is reached, it is guaranteed that `chunk.length` is exactly 9, and the buffer `data` is large enough to safely read 1 byte from offset 8. The access is within bounds."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1540,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code block containing the memcpy is only executed if the chunk type is `type_offs`. Inside this block, there is a check `if(chunk.length != 9) return SPNG_ECHUNK_SIZE;`. This ensures that the code proceeds only if the chunk length is exactly 9 bytes. The `data` buffer is filled by `read_chunk_bytes(ctx, chunk.length)`, which reads `chunk.length` bytes. Since `chunk.length` is guaranteed to be 9, the buffer `data` will be at least 9 bytes long. The `memcpy` at line 1540 reads 1 byte from `data + 8`, which is the 9th byte of the buffer. This access is therefore within the bounds of the `data` buffer, which has been verified to be 9 bytes long. The check on `chunk.length` prevents an out-of-bounds read."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1541,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code processes a 'tIME' PNG chunk. Before accessing the chunk data, it performs a strict size check: 'if(chunk.length != 7) return SPNG_ECHUNK_SIZE;'. The flagged memcpy reads 1 byte from 'data + 6'. Since chunk.length is guaranteed to be 7, the buffer 'data' contains 7 bytes (indices 0 through 6). The access at offset 6 is therefore always within the bounds of the data read for this chunk type."
+   }
+  ]
+ },
+ {
+  "id": "16830",
+  "project": "libspng",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 116,
+  "recall": "hit",
+  "gt_func": "spng_decode_image",
+  "n_gt_cands": 27,
+  "n_gt_confirmed": 11,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 12,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 3,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "spng_decode_image",
+    "line": 2025,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2025 reads 2 bytes from `&ctx->trns.red`. The code path reaching this operation is conditioned on `f.apply_trns` being true and `ctx->ihdr.color_type` being `SPNG_COLOR_TYPE_TRUECOLOR`. This implies that a `tRNS` chunk was parsed earlier. However, there is no explicit bounds check on the `trns` data structure visible on the path within this function, immediately before the memory access. The code relies on the implicit guarantee that the `f.apply_trns` flag would only be set if the `tRNS` chunk was correctly sized (6 bytes for this color type) during the prior parsing phase. There is no local guard here to re-verify the size of the available data in `ctx->trns` before the `memcpy` occurs."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2026,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The user is asking about the `memcpy` at line 2026. The `src-ptr` operand is `&ctx->trns.green`. According to the problem description, this pointer is tainted and input-derived. The `memcpy` reads 2 bytes from this source pointer. The code path to this operation is conditioned on `f.apply_trns`, `ctx->ihdr.color_type == SPNG_COLOR_TYPE_TRUECOLOR`, and `ctx->ihdr.bit_depth == 16`. These conditions are based on metadata from the PNG file (presence of a tRNS chunk, color type, bit depth) which an attacker can control. These `if` statements determine whether the `memcpy` is executed, but they do not perform any bounds checking or validation on the source pointer `&ctx->trns.green` itself. If the pointer value is indeed input-derived as stated, there is no visible guard on the path to the `memcpy` that would prevent a read from an arbitrary, attacker-controlled address. Therefore, under the given premise, this represents an arbitrary read vulnerability."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2027,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted `src-ptr` is `&ctx->trns.red`. The `trns` struct is embedded directly within the `spng_ctx` struct, meaning the address of `trns.red` is a fixed offset from the base pointer `ctx`. The premise that `&ctx->trns.red` is input-derived implies that the `ctx` pointer itself can be controlled by an attacker. The code path leading to the `memcpy` at line 2027 checks various properties of the PNG image being decoded (e.g., `ctx->ihdr.color_type`, `ctx->ihdr.bit_depth`), but it does not perform any validation or bounds check on the `ctx` pointer itself. The code implicitly assumes that `ctx` is a valid pointer to an initialized `spng_ctx` structure. Since there is no guard to validate the tainted source pointer before the `memcpy`, an attacker could potentially control the address and cause a read from an arbitrary location."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2068,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `scanline` buffer is allocated with size `scanline_width_max`, which is calculated based on the full image width (`ctx->ihdr.width`). The code then iterates through up to 7 interlacing passes. For each pass, a `scanline_width` is determined based on the width of that specific pass (`sub[pass].width`). The width of any pass is always less than or equal to the full image width. Since the function that calculates the scanline width (`spng_get_scanline_width`) is monotonic with respect to width, it is guaranteed that the `scanline_width` for any given pass will be less than or equal to `scanline_width_max`. The `memcpy` accesses `scanline + scanline_width - 1`. Since `scanline_width <= scanline_width_max`, this access is guaranteed to be within the bounds of the `scanline` buffer. The check `if(sub[pass].width == 0 || sub[pass].height == 0) continue;` before this loop body also ensures that `scanline_width` is at least 1, so `scanline_width - 1` is not a negative offset."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2091,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %804",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2099,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2100,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2101,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted source pointer is `scanline + (k * 6)`. The access occurs inside a loop `for(k=0; k < width; k++)`. The maximum offset accessed within this loop is `(width - 1) * 6 + 4` with a size of `2` (from a subsequent `memcpy` at line 2087), for a total reach of `(width - 1) * 6 + 6 = width * 6` bytes from the start of `scanline`. The `scanline` buffer is populated by `read_scanline_bytes` with either `scanline_width` or `scanline_width - 1` bytes. While the code is likely correct because other parts of the program establish a mathematical relationship `scanline_width = width * 6 + 1`, there is no explicit bounds check (e.g., `if (k * 6 + 6 > scanline_width)`) on the path immediately preceding the `memcpy` operations. The loop condition `k < width` alone is not sufficient to prove the access is safe without this external knowledge about the relationship between `width` and `scanline_width`. Following the provided rules, which require a specific, visible guard, and defaulting to true in its absence, this is flagged as a potential bug."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2113,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads one byte from `scanline + k`. This operation is inside a `for` loop: `for(k=0; k < width; k++)`. This loop iterates `k` from `0` to `width - 1`. The `width` variable is set to `sub[pass].width`, which is the number of pixels for the current (potentially interlaced) scanline. The code path leading to the `memcpy` is only taken when `ctx->ihdr.color_type == SPNG_COLOR_TYPE_INDEXED` and `ctx->ihdr.bit_depth == 8`. In this image format, each pixel is represented by exactly one byte. Therefore, the pixel data for a scanline of `width` pixels occupies `width` bytes. Before this loop, the `scanline` buffer is populated by `read_scanline_bytes`. The number of bytes read is at least `scanline_width - 1`. The `scanline_width` for the current pass is calculated based on `sub[pass].width` and the bits-per-pixel. With a bit depth of 8, `scanline_width` is `width + 1` (for the filter byte). This means at least `width` bytes of pixel data are read into the `scanline` buffer. The loop condition `k < width` directly ensures that the index `k` never exceeds the bounds of the pixel data (`0` to `width-1`) stored in the `scanline` buffer. Thus, the loop itself serves as a sufficient bounds check for the memory access."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2114,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop `for(k=0; k < width; k++)`. The source pointer is `scanline + k`. The loop condition `k < width` ensures that `k` ranges from `0` to `width - 1`.\n\nOn this specific code path, the conditions `ctx->ihdr.color_type == SPNG_COLOR_TYPE_INDEXED` and `ctx->ihdr.bit_depth == 8` are met. In this case, the number of bytes per scanline is calculated as `scanline_width = width + 1` (where `width` is the number of pixels, and `+1` is for the filter byte).\n\nThe code first reads `scanline_width` (or `scanline_width - 1` for the last line) bytes into the `scanline` buffer. Then, it calls `defilter_scanline(..., scanline, scanline_width - 1, ...)`.\n\nThis means `defilter_scanline` processes `scanline_width - 1` bytes of data in-place. Given `scanline_width = width + 1`, the number of bytes processed and available in `scanline` for pixel data is `width`.\n\nSince the `scanline` buffer contains `width` bytes of pixel data, and the loop index `k` is strictly bounded by `width` (i.e., `0 <= k < width`), the access `scanline + k` is always within the bounds of the `scanline` buffer. The `for` loop condition `k < width` serves as a sufficient guard for this memory access."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2115,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop `for(k=0; k < width; k++)`. The source pointer is `scanline + k / samples_per_byte`. The `scanline` buffer contains pixel data for one row. The number of bytes for pixel data in `scanline` is `scanline_width - 1`, where `scanline_width` is calculated as `ceil(width * bit_depth / 8) + 1`. The variable `samples_per_byte` is `8 / bit_depth`. The loop iterates from `k=0` to `width-1`. The maximum index accessed is therefore `(width - 1) / samples_per_byte`, which is equivalent to integer division `((width - 1) * bit_depth) / 8`. The size of the pixel data buffer is `ceil((width * bit_depth) / 8)`. The access is safe because for any positive `width` and `bit_depth`, the inequality `floor(((width - 1) * bit_depth) / 8) < ceil((width * bit_depth) / 8)` holds. Thus, the loop condition `k < width` serves as a sufficient guard to prevent any out-of-bounds access."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2126,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access is `memcpy(&entry, scanline + k / samples_per_byte, 1)`. The loop runs with `k` from `0` to `width - 1`, where `width` is `sub[pass].width`. The `scanline` buffer is populated by `read_scanline_bytes` with `scanline_width` (or `scanline_width - 1`) bytes of data. `scanline_width` is `sub[pass].scanline_width`. Both `width` and `scanline_width` are calculated in `spng_get_adam7_pass_layout` based on the image dimensions and bit depth. Specifically, `scanline_width` is calculated to be `(width * bit_depth + 7) / 8 + 1`. This size is sufficient to hold all packed pixel data for a scanline of `width` pixels. The maximum index accessed is `(width - 1) / samples_per_byte`, where `samples_per_byte` is `8 / bit_depth`. The number of bytes available for pixel data in `scanline` is `(width * bit_depth + 7) / 8`. A mathematical analysis shows that `(width - 1) / (8 / bit_depth)` is always less than `(width * bit_depth + 7) / 8`. Therefore, the relationship between the loop bound `width` and the allocated buffer size (determined by `scanline_width`) serves as an implicit but effective bounds check, ensuring the memory access is always within the bounds of the `scanline` buffer."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2130,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2167,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a `for` loop: `for(k=0; k < width; k++)`. The loop variable `width` is set to `sub[pass].width` for the current image pass. Just before this loop, the `scanline` buffer is populated by `read_scanline_bytes`. The amount of pixel data read into `scanline` is calculated based on `sub[pass].width` and the image format. For the code path in question (16-bit truecolor), the number of bytes per pixel is 6 (`16 * 3 / 8`). The amount of data read for the scanline is `sub[pass].width * 6` bytes. The loop iterates `k` from `0` to `width - 1`. The highest offset accessed within the loop for a given `k` is `(k * 6) + 4` with a size of 2. For the last iteration (`k = width - 1`), this corresponds to an access up to byte `scanline + ((width - 1) * 6) + 5`, which is `scanline + (width * 6) - 1`. Since `width * 6` bytes of pixel data were read into `scanline`, the valid indices are `0` to `(width * 6) - 1`. The loop condition `k < width` is a sufficient guard to ensure that the access `scanline + (k * 6) ...` does not go out of bounds of the data read into the buffer."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2168,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code is inside a loop that iterates from `k = 0` to `width - 1`. The access is at `scanline + (k * 6)`. The protection against an out-of-bounds read relies on the `scanline` buffer being large enough. The buffer's size, `scanline_width`, is calculated before the loop based on the image's `width`, `color_type`, and `bit_depth`. Specifically, for the code path leading to this `memcpy`, `scanline_width` is calculated to be equivalent to `width * 6`. The maximum access is `(width - 1) * 6 + C` (where C is a small constant for the group of `memcpy`s), which should be within a buffer of size `width * 6`. However, the calculation of `scanline_width` from `width` (`(size_t)width * bits_per_pixel / 8`) is susceptible to an integer overflow on 32-bit platforms if the input image `width` is maliciously large. If an overflow occurs, a much smaller `scanline` buffer will be allocated, but the loop will still iterate up to the large original `width`, causing `scanline + (k * 6)` to read far beyond the buffer's bounds. There is no explicit `if` check inside the loop to guard this access against the calculated `scanline_width`. Therefore, there is no sufficient guard covering this access in the case of an integer overflow during the size calculation."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2169,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2169 reads 2 bytes from `scanline` at an offset of `k * 2`. The loop iterates up to `k = width - 1`. The `scanline` buffer is allocated based on a size calculated in `spng_get_scanline_width`. This calculation involves `(size_t)sub->width * bits_per_pixel`. On a 32-bit platform where `size_t` is 32 bits, this multiplication can overflow if `width` is sufficiently large. For the code path in question (`SPNG_COLOR_TYPE_GRAYSCALE`, `bit_depth == 16`), `bits_per_pixel` is 16. If `width` is greater than `UINT32_MAX / 16`, the multiplication overflows, leading to a `scanline_width` that is far too small. The subsequent loop, however, still iterates up to the large original `width`, causing the `memcpy` to read far beyond the bounds of the small, incorrectly-sized `scanline` buffer. There is no explicit bounds check within the loop to prevent this out-of-bounds read. The implicit check (sizing the buffer according to the loop bound) fails due to the integer overflow."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2170,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a `for` loop: `for(k=0; k < width; k++)`. The access is `scanline + k * 2`, and the size is 2 bytes. The maximum value of `k` is `width - 1`, so the highest byte accessed is at index `(width - 1) * 2 + 1`. This means the loop requires the `scanline` buffer to contain at least `(width - 1) * 2 + 2 = width * 2` bytes of valid pixel data.\n\nLooking at the code path leading to this loop, the `scanline` buffer is populated with defiltered pixel data. The size of this data is determined by the `defilter_scanline` call, which is given a length of `scanline_width - 1`.\n\nEarlier in the function (not fully visible in the snippet but present in the full source), `scanline_width` is calculated based on the number of pixels in the scanline for the current interlace pass. This pixel count is the same variable `width` that controls the loop. For the code path in question (`GRAYSCALE`, `bit_depth == 16`), each pixel is 2 bytes. The `scanline_width` is calculated to be `(width * 2) + 1` (for the pixel data plus one filter byte).\n\nTherefore, the amount of data available for the loop is `scanline_width - 1`, which is exactly `width * 2` bytes. Since the loop accesses a total of `width * 2` bytes (`width` iterations * 2 bytes/iteration), the access is within the bounds of the prepared data. The calculation of the buffer size and the loop limit are derived from the same source (`width`), which ensures they are consistent."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2174,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` is inside a `for` loop that iterates from `k = 0` to `width - 1`. The source pointer is `scanline + (k * 6)`. The loop condition `k < width` serves as an implicit bounds check, assuming that the `scanline` buffer has been allocated to hold at least `width * 6` bytes of pixel data. However, the size of the `scanline` buffer is determined by `scanline_width`, which is calculated based on image metadata from the PNG header. This calculation is vulnerable to an integer overflow on 32-bit systems where `unsigned long` is 32 bits, particularly in the expression `row_width_pixels * bpp`. If an overflow occurs, `scanline_width` will be a smaller, wrapped-around value, leading to the allocation of a buffer that is too small. The `for` loop, however, still iterates up to the original `width`, causing the `memcpy` to read past the end of the heap-allocated `scanline` buffer. There is no other explicit check on the path to this operation that validates the calculated offset against the actual allocated size of the `scanline` buffer."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2175,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop `for(k=0; k < width; k++)`. The access is `scanline + k / samples_per_byte`. The `scanline` buffer is allocated earlier in the function with a size of `scanline_width`. This size is calculated based on the image's `width` for the current pass and its `bit_depth`. Specifically, for indexed color with `bit_depth < 8`, `scanline_width` is calculated as `(size_t)(((spng_u64_t)width * ctx->ihdr.bit_depth + 7) / 8)`, which is equivalent to `ceil(width * bit_depth / 8.0)`. The value `samples_per_byte` is `8 / ctx->ihdr.bit_depth`. The maximum index accessed is when `k` is at its maximum value, `width - 1`. The maximum offset is `(width - 1) / samples_per_byte`, which is `floor(((width - 1) * bit_depth) / 8)`. It can be shown mathematically that `floor(((width - 1) * bit_depth) / 8)` is always less than `ceil((width * bit_depth) / 8)`. Therefore, the access is always within the bounds of the `scanline` buffer. The `for` loop's condition `k < width` serves as the bounds check."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `scanline` buffer is used to process a row of pixels. Its size is calculated based on the image's width for the current pass (`sub[pass].width`) and bits per pixel (`bpp`). In the code path leading to the `memcpy`, the color type is indexed and `bit_depth` is 8, which means `bpp` is 8. The variable `width` is set to `sub[pass].width` just before the loop. The size of the `scanline` buffer (`scanline_width`) is calculated as `(width * bpp + 7) / 8 + 1`, which for `bpp=8` simplifies to `width + 1`. The `memcpy` is inside a loop `for(k=0; k < width; k++)`. The access is `scanline + k`. The loop iterates `k` from `0` to `width - 1`. Therefore, the maximum offset accessed is `width - 1`. Since the buffer is allocated with size `width + 1`, the access `scanline[width - 1]` is safely within bounds. The loop's upper bound (`width`) is directly tied to the allocation size (`width + 1`), which constitutes an implicit but sufficient bounds check."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2177,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2184,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop `for(k=0; k < width; k++)`. The source pointer is `scanline + k * 2` and the size is 2. The `scanline` buffer points to `ctx->scanline_buf`, which is allocated earlier in the function. The size of this buffer, `ctx->scanline_buf_size`, is explicitly checked and resized if necessary to be at least `scanline_width`. `scanline_width` is calculated as `1 + spng_get_scanline_width(...)`. For the code path in question (16-bit grayscale), `spng_get_scanline_width` returns `width * 2`. Therefore, the `scanline` buffer is guaranteed to have a size of at least `1 + width * 2` bytes. The loop iterates with `k` from `0` to `width - 1`. The maximum offset accessed by the `memcpy` is `(width - 1) * 2` for the start, and it reads 2 bytes, so the highest byte accessed is at offset `(width - 1) * 2 + 1 = 2 * width - 1`. Since the buffer size is at least `1 + 2 * width`, the highest valid index is `2 * width`. The access up to `2 * width - 1` is within the allocated bounds. Thus, the allocation logic serves as a sufficient bounds check for this access."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2195,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads one byte from `scanline` at an offset of `k / samples_per_byte`. The loop iterates `k` from `0` to `width - 1`. The `scanline` buffer has a size of `scanline_width`, which is calculated earlier in the function as `(width * bit_depth + 7) / 8`. The `samples_per_byte` variable is `8 / bit_depth` for bit depths less than 8. The maximum offset accessed is `(width - 1) / samples_per_byte`, which is equivalent to `((width - 1) * bit_depth) / 8` using integer division. The access is safe if `((width - 1) * bit_depth) / 8 + 1 <= (width * bit_depth + 7) / 8`. This inequality can be proven to hold true for all valid values of `width` and `bit_depth` (1, 2, 4 in this path). Therefore, the size calculation for `scanline_width` acts as an implicit bounds check that covers all accesses within the loop."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2213,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The access is `scanline + k * 2` with a size of 2, inside a loop where `k` iterates from `0` to `width - 1`. The safety of this operation depends entirely on the `scanline` buffer being allocated with a size of at least `width * 2`. This allocation happens much earlier in the function based on a call to `spng_get_scanline_width`. There are no explicit bounds checks or guards (e.g., `if( (k*2) + 2 > scanline_size )`) inside the loop immediately preceding the `memcpy` operation. Given the instruction to assume this is *not* a correct allocate-to-fit scenario, the absence of a local guard makes this a potential bug."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2214,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2214 accesses the `scanline` buffer at an offset of `k * 2` for a size of 2 bytes. The loop iterates with `k` from `0` up to `width - 1`, where `width` is read from the image header. The maximum access is therefore `scanline[(width - 1) * 2 + 1]`. While the `scanline` buffer is allocated earlier based on a calculation involving `width`, there is no explicit bounds check inside this `for` loop to validate that the access `k * 2 + 2` is within the bounds of the `scanline` buffer. The code implicitly trusts that the initial size calculation is sufficient for the loop's entire execution. Given the absence of a visible guard on the access path immediately preceding the operation, this is a potential bug."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2222,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 2222 is inside a branch for grayscale images with bit depth less than or equal to 8. The source pointer offset is calculated as `k / samples_per_byte`. The variable `samples_per_byte` is initialized to 0 and only assigned a non-zero value if `ctx->ihdr.bit_depth < 8`. If the code is executed with a grayscale image of `bit_depth == 8`, `samples_per_byte` remains 0, leading to a division-by-zero when calculating the offset for the `memcpy`. There is no conditional check to handle the `bit_depth == 8` case separately or to prevent this division. This is a bug on the execution path leading to the memory operation."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2223,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation reads from the `scanline` buffer. While the non-scaling path appears safe, a bug exists when image scaling is enabled. The code flow is as follows: an original `scanline` is read from the PNG data. If scaling is enabled (`f.do_scaling` is true), a new buffer `row` is allocated based on the scaled width (`scaled_width`). The `scanline` pointer is then reassigned to point to this `row` buffer (`scanline = row`). However, the subsequent `for` loop that processes the pixels, `for(k=0; k < ctx->ihdr.width; k++)`, continues to iterate up to the original image width (`ctx->ihdr.width`), not the scaled width. The access within the loop is `scanline + (k * 2) + 1`. When the image is scaled down horizontally, `scaled_width` will be less than `ctx->ihdr.width`. This causes the loop to read past the end of the `row` buffer (now pointed to by `scanline`) when `k` becomes greater than or equal to `scaled_width`. There is no visible guard on this path to check if `k` is within the bounds of the scaled buffer. The loop condition is fixed to the original width, leading to an out-of-bounds read."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 646,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `defilter_scanline` takes a pointer `prev_scanline` and a size `scanline_width` as arguments. The `memcpy` at line 646 is inside a `for` loop that iterates from `i = 0` to `scanline_width - 1`. The access is `prev_scanline + i`. To be safe, the allocated size of the `prev_scanline` buffer must be at least `scanline_width`. However, there is no check within this function to validate that `scanline_width` is a safe size for the provided `prev_scanline` buffer. The function implicitly trusts the caller to provide valid arguments. Given that the taint analysis has determined the pointer and size are input-derived and not constrained, the absence of a local bounds check makes this a potential buffer over-read."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 647,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `defilter_scanline` takes `prev_scanline` and `scanline_width` as arguments. The `memcpy` at line 647 is inside a loop that iterates from `i = 0` to `scanline_width - 1`. The memory access is `prev_scanline + i`. For this access to be safe, the buffer `prev_scanline` must have a size of at least `scanline_width`. However, there is no check within this function to verify that the size of the buffer pointed to by `prev_scanline` is actually >= `scanline_width`. The function trusts the caller to provide a sufficiently large buffer based on the `scanline_width` parameter. Since `scanline_width` is derived from the input file, a mismatch between the allocated buffer size for the previous scanline and the width specified in the file could lead to an out-of-bounds read. No local guard covers this access."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 648,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 648 accesses the `src-ptr` operand `prev_scanline + i`. The loop iterates with `i` from `0` up to `scanline_width - 1`. This results in reading from `prev_scanline` at indices up to `scanline_width - 1`. The function `defilter_scanline` takes both `prev_scanline` and `scanline_width` as arguments. However, there is no check within this function to validate that the buffer pointed to by `prev_scanline` is at least `scanline_width` bytes long. The safety of this memory access is entirely dependent on the caller providing valid arguments, but no caller is visible in the provided code. Therefore, there is no visible bounds check covering this access."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 653,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop `for(i=0; i < scanline_width; i++)` and is guarded by the condition `if(i >= bytes_per_pixel)`. The source pointer is `scanline + i - bytes_per_pixel`. The `if(i >= bytes_per_pixel)` condition explicitly ensures that the offset `i - bytes_per_pixel` is non-negative, preventing a read from before the start of the `scanline` buffer. The loop condition `i < scanline_width` ensures that `i`'s maximum value is `scanline_width - 1`. Since `bytes_per_pixel` is at least 1 for any valid image, the maximum index accessed, `(scanline_width - 1) - bytes_per_pixel`, is always less than `scanline_width - 1`. Given that the `scanline` buffer is allocated to be `scanline_width` bytes long (as seen at the callsite in `spng_decode_scanline`), this access is always within bounds. The combination of the `if` condition and the loop's upper bound check provides a sufficient guard."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 657,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `defilter_scanline` takes a buffer `prev_scanline` and a `scanline_width` as parameters. The `memcpy` at line 657 reads from `prev_scanline` at an offset `i`. This access occurs inside a `for` loop that iterates from `i = 0` to `scanline_width - 1`. The safety of this memory access therefore depends on the allocated size of `prev_scanline` being at least `scanline_width`. However, there is no check within this function to validate that `scanline_width` is a safe size relative to the capacity of `prev_scanline`. The function implicitly trusts the caller to provide a `scanline_width` that does not exceed the buffer's bounds. Since the taint analysis states that the offset is input-derived and not validated, and no covering guard is visible within this function, an out-of-bounds read can occur if a malicious `scanline_width` is provided."
+   },
+   {
+    "func": "rgb8_row_to_rgba8",
+    "line": 328,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 3",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `rgb8_row_to_rgba8` copies 3 bytes from `row` for each iteration of a loop that runs `n` times. The source pointer for the `memcpy` is `row + i * 3`. The loop iterates from `i = 0` to `n-1`. The highest access into `row` is `row[(n-1)*3]` for a size of 3 bytes, meaning it reads up to `row[(n-1)*3 + 2]`. This requires the `row` buffer to be at least `3 * n` bytes long. There is no bounds check within the function `rgb8_row_to_rgba8` to ensure that the input buffer `row` is large enough for the `n` pixels it is asked to process. The safety of this operation is entirely dependent on the caller providing a `row` buffer of sufficient size relative to `n`. Since no caller is visible and no check is present in the function itself, a potential out-of-bounds read exists."
+   },
+   {
+    "func": "scale_row",
+    "line": 794,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `scale_row` takes a buffer `row` and a number of pixels `pixels` as arguments. Inside a `for` loop that iterates from `i = 0` to `pixels - 1`, the code performs a `memcpy` to the address `row + i * 4`. The loop's upper bound is determined solely by `pixels`, and there are no checks within the function to validate that the `row` buffer is large enough to contain `pixels * 4` bytes. If a caller provides a `pixels` value that is larger than the allocated capacity of `row` (in terms of 4-byte pixels), this `memcpy` will write out of bounds. As there is no visible guard on the path within this function that relates `pixels` to the size of `row`, the access is not protected."
+   },
+   {
+    "func": "scale_row",
+    "line": 809,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `scale_row` contains a loop that iterates from `i = 0` to `pixels - 1`. Inside the loop, when `fmt == SPNG_FMT_RGBA16`, a `memcpy` reads 8 bytes from `row + i * 8`. The highest offset accessed is `(pixels - 1) * 8`, requiring the buffer `row` to have a size of at least `pixels * 8` bytes. The function `scale_row` itself does not perform any checks to ensure that the provided `row` buffer is large enough to accommodate `pixels * 8` bytes. The safety of this memory access is entirely dependent on the caller. As no caller is visible in the provided code snippet, and no bounds check exists within the function itself, there is no visible guard to prevent a buffer over-read if the caller provides a `row` buffer smaller than `pixels * 8` bytes."
+   },
+   {
+    "func": "gamma_correct_row",
+    "line": 729,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `gamma_correct_row` takes a pointer `row` and a pixel count `pixels`. Inside the function, when `fmt == SPNG_FMT_RGBA8`, it enters a loop that iterates from `i = 0` to `pixels - 1`. The `memcpy` accesses `row + i * 4` for a size of 4 bytes. The highest access is at `(pixels - 1) * 4`, reading up to `row + pixels * 4 - 1`. The function itself does not have the allocated size of `row`, so it cannot perform a bounds check. It trusts the caller to have provided a buffer of at least `pixels * 4` bytes. Without seeing a check in the calling context that ensures `sizeof(row) >= pixels * 4`, the access is unguarded within the visible code."
+   },
+   {
+    "func": "gamma_correct_row",
+    "line": 743,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `gamma_correct_row` processes a buffer `row` containing `pixels` number of pixels. In the `SPNG_FMT_RGBA16` case, it enters a loop that iterates from `i = 0` to `pixels - 1`. Inside the loop, it performs a `memcpy` from `row + i * 8` of size 8. The highest address accessed is `row + (pixels - 1) * 8`, reading 8 bytes. This requires the `row` buffer to have a size of at least `pixels * 8` bytes. However, there is no check within this function to validate that the size of the `row` buffer is sufficient for the given `pixels` count before entering the loop. The function trusts its caller to provide a buffer of the correct size. Given the premise that the source pointer is input-derived and not from an `allocate-to-fit` call, an attacker could potentially provide a `pixels` value that, when multiplied by 8, exceeds the actual allocated size of `row`, leading to an out-of-bounds read."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1557,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1557 reads `sizeof(struct spng_chunk)` bytes from the memory location `&ctx->last_idat`. The base pointer `ctx` is a parameter to the function `read_chunks_after_idat`. The premise is that this pointer is input-derived. On the path to the `memcpy`, the only check performed on `ctx` is a null check (`if(ctx == NULL)`). There is no subsequent check to validate that `ctx` points to a memory allocation that is large enough to contain the `last_idat` field. An attacker could potentially supply a pointer to an undersized buffer, leading to an out-of-bounds read. As there is no explicit bounds check guarding this access, it is considered unsafe."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1559,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1568,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted `src-ptr` operand of the `memcpy` is `data`, and the size is `chunk.length`, which is derived from the input chunk header. The code processes an `eXIf` chunk. The function allocates a destination buffer `exif.data` of size `chunk.length` but performs no checks to ensure that the source buffer pointed to by `data` is large enough to safely read `chunk.length` bytes. On the execution path leading to the `memcpy`, inside the `else if(!memcmp(chunk.type, type_exif, 4))` block, there are no visible `if` statements or macro calls that check `chunk.length` against the capacity of the buffer `data` points to. While the code for other chunk types (like `sPLT` above it) also accesses `data` with offsets calculated from `chunk.length`, those paths also lack an explicit bounds check. Given the premise that this is not a guaranteed allocate-to-fit pattern and `chunk.length` is not clamped, and with no visible guard, the `memcpy` could read past the end of the source buffer."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1570,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1570 copies `chunk.length` bytes from a source buffer pointed to by `data`. The `chunk.length` and the contents of `data` are derived from the input file. For this memory copy to be safe, there must be a check that ensures `chunk.length` does not exceed the allocated size of the buffer `data` points to. The code that reads the chunk data from the input stream and populates the `data` pointer is not visible in the provided snippet. While there is a check `if(!chunk.length)` for the `eXIf` chunk, this is a check for non-zero length, not an upper-bound check. Other checks for different chunk types (like `sPLT`) are specific to their internal data structures and do not apply to the `eXIf` chunk. Without seeing the code that reads the chunk data or a general-purpose check on `chunk.length` against a buffer capacity on the path to this `memcpy`, it is not possible to confirm that the access is safe. Therefore, according to the instructions to default to true when a covering guard is not visible, I must conclude this is a potential bug."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1627,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a block that handles the 'tIME' chunk type. Just before the series of `memcpy` operations, there is a check `if(chunk.length != 7) return SPNG_ECHUNK_SIZE;` at line 1620. The `data` buffer is populated by `read_chunk_bytes(ctx, chunk.length)` at line 1604. The check at line 1620 ensures that `chunk.length` is exactly 7. The `memcpy` in question reads 1 byte from `data + 3`. Since the buffer `data` is guaranteed to be 7 bytes long, an access at offset 3 is well within bounds. The highest offset accessed in this block is `data + 6`, which is also safe."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2025,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 2025 copies 2 bytes from the address of `ctx->trns.red`. The `spng_trns` struct defines `red` as a `uint16_t`, which is a 2-byte type. Therefore, reading 2 bytes from its address is a valid operation that reads exactly the contents of the `red` field. The destination buffer `trns_px` is an 8-byte array, so the write is also well within bounds. Although the *value* of `ctx->trns.red` is derived from the input file, the memory access itself is safe and cannot cause an out-of-bounds read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2026,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The destination buffer `trns_px` is a local stack array of size 8. The code block in question executes when `ctx->ihdr.bit_depth == 16`. It performs three `memcpy` operations, each of a constant size of 2 bytes, into `trns_px` at offsets 0, 2, and 4. The total number of bytes written is 6 (2+2+2), which is less than the buffer's size of 8. The source pointers `&ctx->trns.red`, `&ctx->trns.green`, and `&ctx->trns.blue` point to `uint16_t` members of a struct, so reading 2 bytes from each is also safe. There is no out-of-bounds access."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2027,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code copies data from a `spng_trns` struct, which is populated from the tRNS chunk of a PNG file. The `memcpy` in question is inside a conditional block that checks if the color type is `SPNG_COLOR_TYPE_TRUECOLOR` and the bit depth is 16. In this case, the tRNS chunk defines transparency using three 16-bit values for red, green, and blue. The source of the `memcpy` is `&ctx->trns.red`. The `red` member of the `spng_trns` struct is of type `uint16_t`. The `memcpy` copies exactly 2 bytes (`sizeof(uint16_t)`). This is a perfectly in-bounds read from the `ctx->trns.red` field. The destination buffer `trns_px` is also large enough to accommodate this and subsequent copies. While the data is input-derived, the read operation is safe and does not go out of bounds."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2068,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 2068 reads one byte from the source address `scanline + scanline_width - 1`. The `scanline` buffer is allocated on the heap with a size of `scanline_width_max`, which is the maximum possible scanline width for the image. In each pass of the decoding loop, the `scanline_width` variable is less than or equal to `scanline_width_max`. Therefore, the memory access `scanline[scanline_width - 1]` is always within the bounds of the allocated `scanline` buffer and cannot cause a segmentation fault.\n\nThe logic error occurs on the last scanline of a pass. For the last scanline, the preceding call to `read_scanline_bytes` reads `scanline_width - 1` bytes into the buffer. The subsequent `memcpy` then reads from `scanline + scanline_width - 1`, which is one byte beyond the data just decompressed into the buffer. This constitutes a read of an uninitialized heap byte.\n\nHowever, the read value, which is copied into `next_filter` and then `filter`, is never used. After the inner loop finishes for the pass, the outer loop for the next pass begins by reading the first filter byte from the stream directly into the `filter` variable, overwriting the uninitialized value before it can be used in the `defilter_scanline` function. Consequently, this bug has no security impact such as information disclosure or denial of service. It is a logical flaw but not a vulnerability."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2091,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %804",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2099,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation reads from the `scanline` buffer. The source pointer is `scanline + (k * 6)`. The potential vulnerability is an out-of-bounds read from `scanline`.\n\n1.  **Buffer Allocation**: The `scanline` buffer is allocated before the loop to be large enough to hold the largest scanline from any of the interlacing passes. The size of the buffer is at least `scanline_width` for the current pass.\n\n2.  **Data Read**: Inside the loop over scanlines, the code reads `scanline_width` bytes into the `scanline` buffer. The comment and surrounding code (`memcpy(&next_filter, ...)` and the size passed to `defilter_scanline`) indicate that this chunk of data contains `scanline_width - 1` bytes of pixel data for the current scanline, plus one byte for the next scanline's filter type.\n\n3.  **Data Size Calculation**: The code path is taken when `color_type` is `TRUECOLOR` (3 samples) and `bit_depth` is 16. This means each pixel requires `3 * 16 = 48` bits, or 6 bytes.\n    The `scanline_width` is calculated as `1 (filter_byte) + (width * bits_per_pixel + 7) / 8`. For this specific case, this simplifies to `scanline_width = 1 + width * 6`.\n    Therefore, the amount of actual pixel data in the `scanline` buffer (which is what is being processed) is `scanline_width - 1`, which equals `width * 6` bytes.\n\n4.  **Access Pattern**: The code iterates through the pixels of the scanline with the loop `for(k=0; k < width; k++)`. In each iteration, it processes one pixel, which consists of 6 bytes. The `memcpy` operations access bytes at offsets `k * 6`, `k * 6 + 2`, and `k * 6 + 4`, each reading 2 bytes.\n\n5.  **Bounds Check**: The loop runs `width` times, with `k` going from `0` to `width - 1`. The maximum value for `k` is `width - 1`. The highest offset accessed is in the third `memcpy`: `scanline + (k * 6) + 4`. For `k = width - 1`, the offset is `(width - 1) * 6 + 4`. This `memcpy` reads 2 bytes, so the highest byte index accessed is `(width - 1) * 6 + 4 + 1 = width * 6 - 6 + 5 = width * 6 - 1`.\n\nSince the valid pixel data in the `scanline` buffer is `width * 6` bytes (from index 0 to `width * 6 - 1`), the maximum access at index `width * 6 - 1` is perfectly within the bounds of the buffer. The logic is sound and there is no out-of-bounds read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2100,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted source pointer is `scanline + (k * 6)`. The taint originates from `ctx->ihdr.width`, which is read from the input PNG file. This `width` determines the loop bound for `k` (i.e., `k < width`).\n\nHowever, the size of the data within the `scanline` buffer is also determined by the same `width` variable. Specifically, the size of the pixel data in a scanline is calculated as `scanline_width - 1`. The `scanline_width` is derived using the `spng_get_scanline_width` function, which for this code path (16-bit truecolor) calculates to `width * 6 + 1`. Therefore, the size of the actual pixel data in the `scanline` buffer after defiltering is `width * 6` bytes.\n\nThe loop iterates from `k = 0` to `width - 1`. For each iteration, it reads 6 bytes of pixel data (2 bytes for red, 2 for green, 2 for blue). The maximum access occurs when `k = width - 1`. The last byte read is at offset `(width - 1) * 6 + 5`, which simplifies to `width * 6 - 1`.\n\nSince the valid pixel data in the `scanline` buffer occupies bytes from index `0` to `width * 6 - 1`, the maximum access is exactly the last valid byte of the buffer. The relationship between the loop bound and the buffer content size is consistent, preventing any out-of-bounds read. The code is carefully written to ensure this correspondence."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2101,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop `for(k=0; k < width; k++)`. This code path is executed when `ctx->ihdr.color_type` is `SPNG_COLOR_TYPE_TRUECOLOR` and `ctx->ihdr.bit_depth` is 16. In this format, each pixel requires 6 bytes (2 for red, 2 for green, 2 for blue).\n\nThe source buffer `scanline` is populated by `read_scanline_bytes`. The amount of data read for the pixel data part of the scanline is `scanline_width - 1`. The `scanline_width` for a pass is calculated based on the pass width (`sub[pass].width`, which is assigned to `width` in the loop) and the bits per pixel. For 16-bit truecolor, the number of bits per pixel is `3 * 16 = 48`. The scanline width in bytes is `1 (filter byte) + (width * 48 + 7) / 8`, which simplifies to `1 + width * 6`. Therefore, the size of the pixel data read into the `scanline` buffer is `width * 6` bytes.\n\nThe loop iterates from `k = 0` to `width - 1`. The three `memcpy` calls for a single pixel access `scanline + (k*6)` through `scanline + (k*6) + 5`. The maximum access occurs when `k = width - 1`. The highest address accessed is `scanline + ((width - 1) * 6) + 5`, which is `scanline + 6*width - 1`.\n\nSince the buffer `scanline` contains `width * 6` bytes of pixel data, its valid indices are `0` to `width * 6 - 1`. The maximum access at index `width * 6 - 1` is exactly the last valid byte of the buffer. The access is therefore in-bounds. The relationship between the loop bound (`width`), the buffer size, and the access offset is correctly maintained according to the PNG format specification."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2113,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads one byte from `scanline + k` into a local variable `entry`. The `scanline` buffer holds the defiltered pixel data for the current scanline. The loop iterates from `k = 0` to `width - 1`, where `width` is the number of pixels in the scanline. The code block is executed when `ctx->ihdr.color_type` is `SPNG_COLOR_TYPE_INDEXED` and `ctx->ihdr.bit_depth` is 8. In this format, each pixel is represented by exactly one byte. The size of the pixel data in the `scanline` buffer is `scanline_width - 1` (the `scanline_width` includes an extra byte for the filter type). For 8-bit indexed images, `scanline_width - 1` is equal to `width`. Therefore, the loop iterates `width` times, and the access `scanline + k` will range from `scanline + 0` to `scanline + width - 1`. Since the buffer contains `width` bytes of pixel data, the read is always within the bounds of the `scanline` buffer. The code correctly handles the relationship between the number of pixels (`width`) and the number of bytes in the scanline data for this image format."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2114,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 2114 copies a single byte from `scanline + k` into a local variable `entry`. This operation is nested inside several loops and conditional statements. Let's analyze the bounds.\n\n1.  The outermost loop iterates through up to 7 PNG interlacing passes.\n2.  Inside, `width` is set to `sub[pass].width` and `scanline_width` is set to `sub[pass].scanline_width`.\n3.  A check `if(sub[pass].width == 0 || sub[pass].height == 0) continue;` ensures that `width` is positive.\n4.  The `scanline` buffer is populated by `read_scanline_bytes`. The number of bytes read is either `scanline_width` or, for the very last scanline of a pass, `scanline_width - 1`. The `scanline` buffer itself is allocated to be large enough for `scanline_width` bytes.\n5.  The code implements a specific scanline reading strategy where the `scanline` buffer contains `scanline_width - 1` bytes of pixel data for the current row, and for all but the last row, the byte at index `scanline_width - 1` is the filter byte for the next row.\n6.  The code reaches the `memcpy` in question only if `ctx->ihdr.color_type == SPNG_COLOR_TYPE_INDEXED` and `ctx->ihdr.bit_depth == 8`.\n7.  For this specific PNG format (indexed color, 8 bits per pixel), each pixel is represented by exactly one byte. Therefore, a scanline with `width` pixels will have exactly `width` bytes of pixel data.\n8.  This means the size of the pixel data in the `scanline` buffer, which is `scanline_width - 1`, must be equal to `width`. The library's internal calculations for `scanline_width` are consistent with this: `scanline_width = width + 1` for this format.\n9.  The `memcpy` is inside a loop `for(k=0; k < width; k++)`. The loop variable `k` therefore ranges from `0` to `width - 1`.\n10. The source of the `memcpy` is `scanline + k`. Since the `scanline` buffer contains `width` bytes of valid pixel data (at indices `0` to `width-1`), and `k` iterates exactly over this range, the access `scanline[k]` is always within bounds.\n\nTherefore, despite the source pointer being derived from tainted input data (`scanline`'s content from the file stream, and `k`'s loop bound `width` from the IHDR chunk), the logic correctly ensures that the access is always in-bounds."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2115,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing a scanline of an indexed-color PNG image where the bit depth is less than 8 (i.e., pixels are packed into bytes). The `scanline` buffer holds the pixel data for one row, read from the input file. The loop iterates from `k = 0` to `width - 1`, where `width` is the number of pixels in the scanline. The expression `k / samples_per_byte` correctly calculates the byte offset within the `scanline` buffer for the k-th pixel. `samples_per_byte` is `8 / bit_depth`. The size of the `scanline` buffer (excluding the filter byte) is `ceil(width * bit_depth / 8)`. The maximum index accessed is `(width - 1) / samples_per_byte`, which is mathematically guaranteed to be less than the size of the buffer. The logic correctly handles packed pixel data and the access is appropriately bounded by the loop condition which is tied to the image dimensions used to calculate the buffer size. Therefore, an out-of-bounds read is not possible."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2126,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2130,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing an indexed-color PNG scanline where the bit depth is less than 8 (i.e., multiple pixels are packed into a single byte). The `scanline` buffer's size is determined by `scanline_width`, which is calculated based on the image's width and bit depth to be large enough to hold all the packed pixel data for one row, plus one extra byte for the filter type. The loop iterates from `k = 0` to `width - 1`, where `width` is the number of pixels in the scanline. The expression `k / samples_per_byte` calculates the byte index within the `scanline` buffer that contains the k-th pixel. Since the loop is strictly bounded by the number of pixels (`width`), and the `scanline` buffer is allocated to hold all the bytes for those pixels, the calculated index `k / samples_per_byte` will not exceed the bounds of the allocated `scanline` buffer. This is a standard and correct way to unpack packed-pixel data."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2167,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2168,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2169,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` in question is `memcpy(&gray_16, scanline + k * 2, 2);`. This operation is inside a `for` loop that iterates from `k = 0` to `width - 1`, where `width` is `sub[pass].width` from the image metadata.\n\nThe source buffer `scanline` is allocated with a size of `scanline_width`. The calculation of `scanline_width` is performed by `spng_get_scanline_width`, which effectively computes `ceil(width * bits_per_pixel / 8.0)`.\n\nThe code path leading to this `memcpy` is guarded by `ctx->ihdr.color_type == SPNG_COLOR_TYPE_GRAYSCALE` and `ctx->ihdr.bit_depth == 16`. In this specific case, the number of bits per pixel is 16.\n\nTherefore, `scanline_width` is calculated as `(width * 16 + 7) / 8`, which simplifies to `width * 2`.\n\nThe `for` loop runs as long as `k < width`. The maximum value `k` can take is `width - 1`.\n\nLet's analyze the memory access at the last iteration of the loop, when `k = width - 1`:\n- The source pointer is `scanline + (width - 1) * 2`, which is `scanline + 2 * width - 2`.\n- The `memcpy` reads 2 bytes.\n- The bytes accessed are at offsets `2 * width - 2` and `2 * width - 1` relative to `scanline`.\n- The size of the `scanline` buffer is `scanline_width = 2 * width`.\n- The valid indices for the `scanline` buffer are from `0` to `2 * width - 1`.\n\nSince the highest index accessed (`2 * width - 1`) is the last valid index of the buffer, the memory access is perfectly in-bounds. The loop condition and the buffer allocation are correctly synchronized to prevent an out-of-bounds read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2170,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2174,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads one byte from `scanline + k`. The `scanline` buffer holds the pixel data for a single row. The code is inside a `for` loop that iterates from `k = 0` to `width - 1`, where `width` is the number of pixels in the scanline (`sub[pass].width`). The code path is for indexed color images with a bit depth of 8. In this format, each pixel corresponds to exactly one byte in the scanline data. Therefore, the size of the pixel data in `scanline` is equal to `width`. The loop iterates `k` from `0` to `width - 1`, so the access `scanline + k` will always be within the bounds of the `scanline` buffer (from `scanline[0]` to `scanline[width-1]`). The loop condition `k < width` correctly guards the memory access."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2175,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` reads one byte from `scanline + k`. The source buffer `scanline` is allocated with a size of `scanline_width`. The value of `scanline_width` is calculated based on the image's properties for the current interlacing pass, specifically `sub[pass]`. A few lines before the loop, `width` is set to `sub[pass].width`. The loop iterates with `k` from `0` up to `width - 1`.\n\nFor the code path in question (`SPNG_COLOR_TYPE_INDEXED` and `bit_depth == 8`), each pixel is one byte. The PNG format specifies a filter byte at the start of each scanline. Therefore, the total size of a raw scanline in the file, `scanline_width`, is `1 (filter byte) + width (pixels) * 1 (byte/pixel) = 1 + width`. \n\nThe `scanline` buffer is allocated with this size (`width + 1`). The loop's maximum value for `k` is `width - 1`. The maximum address accessed is `scanline + (width - 1)`. Since the buffer has a size of `width + 1`, an access at an offset of `width - 1` is safely within the allocated bounds. The logic correctly relates the loop bounds to the buffer's allocation size, preventing an out-of-bounds read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2177,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation reads a single byte from a `scanline` buffer. The source address is `scanline + k / samples_per_byte`. This code is processing an indexed-color PNG image with a bit depth less than 8, where multiple pixels are packed into a single byte.\n\n1.  The loop variable `k` iterates from `0` to `width - 1`, where `width` is the number of pixels in the scanline.\n2.  `samples_per_byte` is calculated as `8 / ctx->ihdr.bit_depth`. This gives the number of pixels packed into one byte (e.g., for 4-bit pixels, `samples_per_byte` is 2).\n3.  The expression `k / samples_per_byte` correctly calculates the byte index within the `scanline` buffer that contains the `k`-th pixel.\n4.  The size of the `scanline` buffer is determined by `scanline_width`, which is calculated earlier as `( (size_t)width * bit_depth + 7) / 8`. This is a standard C idiom for calculating the ceiling of `(width * bit_depth) / 8`, which gives the minimum number of bytes required to store all the pixels in the scanline.\n\nLet's analyze the bounds:\n- The maximum value of `k` is `width - 1`.\n- The maximum offset accessed is `(width - 1) / samples_per_byte`, which is equivalent to `((width - 1) * bit_depth) / 8` using integer division.\n- The size of the `scanline` buffer is `(width * bit_depth + 7) / 8`.\n\nA detailed mathematical analysis shows that `((width - 1) * bit_depth) / 8` is always less than `(width * bit_depth + 7) / 8`. The maximum index accessed is always within the bounds of the allocated `scanline` buffer. The code correctly handles the arithmetic for packed pixel data, and there is no out-of-bounds access."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2184,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing a scanline for a 16-bit grayscale image. In this format, each pixel is represented by 2 bytes. The loop iterates from `k = 0` to `width - 1`, where `width` is the number of pixels in the scanline. The `memcpy` reads 2 bytes (the size of one pixel) from `scanline + k * 2`. The `scanline` buffer's size is calculated based on the image properties (`width`, color type, bit depth). For 16-bit grayscale, the size of the scanline data is exactly `width * 2` bytes. The loop iterates `width` times, and the maximum access is `memcpy(&gray_16, scanline + (width - 1) * 2, 2)`. This reads the last two bytes of the `scanline` buffer, which is a valid in-bounds access. The loop condition `k < width` correctly constrains the access within the bounds of the `scanline` buffer."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2195,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The code calculates the required size for a scanline buffer based on the image width from the PNG header. Specifically, for an 8-bit truecolor image, the scanline width is calculated as `width * 3 + 1` (for the filter byte). The multiplication `width * 3` is performed using `size_t`. On a 32-bit platform where `size_t` is 32 bits wide, this multiplication can overflow if a malicious PNG provides a large `width` value (e.g., `width > UINT32_MAX / 3`). The PNG specification allows widths up to `2^31 - 1`, which is large enough to trigger this overflow.\n\nAn integer overflow will cause `scanline_width` to be a much smaller value than required. Consequently, the allocated `scanline` buffer will be too small. However, the subsequent pixel processing loop iterates from `k = 0` to `width - 1`, using the original, non-overflowed `width` value. Inside this loop, the code accesses `scanline + (k * 3) + 2`. As `k` increases, this expression will quickly exceed the bounds of the small, incorrectly-sized `scanline` buffer, leading to an out-of-bounds read. This is a classic integer overflow vulnerability leading to a heap buffer overflow."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2213,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing a scanline of a PNG image. The specific case is for a 16-bit grayscale image (`ctx->ihdr.color_type == SPNG_COLOR_TYPE_GRAYSCALE` and `ctx->ihdr.bit_depth == 16`). In this format, each pixel is represented by 2 bytes. The code is inside a loop that iterates over each pixel in the row, with `k` as the pixel index, ranging from `0` to `width - 1`. The `memcpy` at `scanline + k * 2` reads the 2 bytes corresponding to the k-th pixel. The size of the `scanline` buffer is calculated based on the image width and the bits per pixel. For 16-bit grayscale, the scanline size is `width * 2` bytes. The maximum access is `scanline + (width - 1) * 2`, and the `memcpy` reads 2 bytes from this location. The last byte accessed is at offset `(width - 1) * 2 + 1 = 2 * width - 1`. Since the buffer size is `2 * width`, this access is within the allocated bounds. The logic correctly calculates the offset for each pixel and is not vulnerable to an out-of-bounds read under normal conditions."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2214,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing a scanline (a row of pixels) from a PNG image. The `memcpy` in question is executed when the image is of color type `SPNG_COLOR_TYPE_GRAYSCALE` with a bit depth of 16. This means each pixel is represented by 2 bytes.\n\nThe `memcpy` is inside a `for` loop that iterates from `k = 0` to `width - 1`, where `width` is the number of pixels in the row. The source of the copy is `scanline + k * 2` and the size is `2`.\n\nThe `scanline` buffer holds the decoded pixel data for the row. Its size is calculated based on the image width and bit depth. For a 16-bit grayscale image, the required size for a scanline of `width` pixels is `width * 2` bytes.\n\nThe loop iterates `k` up to `width - 1`. The last access will be `memcpy(&gray_16, scanline + (width - 1) * 2, 2)`. This reads bytes at offsets `(width - 1) * 2` and `(width - 1) * 2 + 1`, which are indices `2*width - 2` and `2*width - 1`. Since the buffer is of size `2 * width`, these indices are valid (from `0` to `2*width - 1`).\n\nThe calculation for the scanline buffer size and the loop bounds are directly correlated, ensuring that the access remains within the bounds of the `scanline` buffer. Therefore, this is not an out-of-bounds read."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2222,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop that iterates from `k = 0` to `ctx->ihdr.width - 1`. The code block is executed for PNGs with color type `SPNG_COLOR_TYPE_GRAYSCALE_ALPHA` and a bit depth of 8. For this format, each pixel consists of 2 bytes (one for grayscale, one for alpha).\n\nThe source buffer `scanline` points to the data for a single row of the image. The size of this buffer is calculated earlier using `spng_get_scanline_width(ctx)`. For this specific color type and bit depth, the bits-per-pixel (bpp) is 16 (`8 * 2`), so the function correctly calculates the scanline size in bytes as `ctx->ihdr.width * 2`.\n\nThe access in question is `scanline + (k * 2) + 1`. The loop variable `k` represents the pixel index. For each pixel `k`, the code reads 2 bytes at offsets `k * 2` and `k * 2 + 1`.\n\nThe maximum value of `k` is `ctx->ihdr.width - 1`. Therefore, the maximum offset accessed is `(ctx->ihdr.width - 1) * 2 + 1`, which simplifies to `(ctx->ihdr.width * 2) - 1`.\n\nSince the `scanline` buffer has a size of `ctx->ihdr.width * 2`, the valid indices are from `0` to `(ctx->ihdr.width * 2) - 1`. The maximum access is at the very last byte of the buffer, which is in-bounds. The code correctly handles the buffer allocation and access based on the image dimensions and format defined in the PNG header."
+   },
+   {
+    "func": "spng_decode_image",
+    "line": 2223,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is part of the pixel processing loop within the `spng_decode_image` function. The source buffer `scanline` holds the data for a single row of the image. The size of this buffer is calculated before the loop using `spng_get_scanline_width`, which correctly determines the number of bytes required based on the image width, color type, and bit depth. In the specific case leading to this `memcpy`, the color type is `SPNG_COLOR_TYPE_TRUECOLOR` and the bit depth is 8, meaning each pixel consists of 3 bytes (RGB). The `scanline` buffer is therefore allocated with `ctx->ihdr.width * 3` bytes. The loop iterates with `k` from `0` to `ctx->ihdr.width - 1`. The access is at `scanline + (k * 3) + 1`. The maximum value for `k` is `ctx->ihdr.width - 1`. The highest offset accessed in this block for a pixel is `(ctx->ihdr.width - 1) * 3 + 2`, which simplifies to `(ctx->ihdr.width * 3) - 1`. This offset corresponds to the last byte of the allocated `scanline` buffer. Thus, all memory accesses within the loop, including the one flagged, are guaranteed to be within the bounds of the `scanline` buffer. The code correctly correlates the loop bounds and the memory access pattern with the size of the allocated buffer."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 646,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation reads from `prev_scanline` at an offset `i` or `i - bytes_per_pixel`. The access is within a `for` loop that iterates from `i = 0` to `scanline_width - 1`. The loop condition `i < scanline_width` strictly ensures that the index `i` will never be equal to or greater than `scanline_width`. Therefore, the maximum access index into `prev_scanline` is `scanline_width - 1`. This is a valid in-bounds access, provided that the buffer `prev_scanline` has a size of at least `scanline_width`. In standard PNG decoding, the previous scanline and the current scanline have the same width, so it is a reasonable and necessary assumption that the caller provides a buffer for `prev_scanline` that is at least `scanline_width` bytes long. Reviewing the calling context in the library confirms that the buffer for `prev_scanline` is allocated with a size of `scanline_width + 1`, which is sufficient. The code is therefore safe."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 647,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation reads from `prev_scanline + i`. This operation is inside a `for` loop that iterates with the condition `i < scanline_width`. This means the maximum value of `i` will be `scanline_width - 1`. Therefore, the memory access is always within the range `[prev_scanline, prev_scanline + scanline_width - 1]`. The function is an internal helper for PNG scanline defiltering. In this context, it is a strong and safe assumption that the caller provides a `prev_scanline` buffer that is at least `scanline_width` bytes long, as the previous scanline by definition has the same width as the current one. The loop condition `i < scanline_width` serves as an effective guard against out-of-bounds access, assuming the caller correctly allocates the buffer based on the same `scanline_width`."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 648,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation `memcpy(&a, scanline + i - bytes_per_pixel, 1)` is inside a loop that iterates from `i = 0` to `scanline_width - 1`. The operation is protected by the conditional `if(i >= bytes_per_pixel)`. This check explicitly ensures that the offset `i - bytes_per_pixel` is always non-negative. Therefore, the memory access will not read from before the start of the `scanline` buffer. The code correctly handles the boundary case for the first few pixels of the scanline in the `else` branch. This is not a triggerable out-of-bounds read."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 653,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 653 reads from `scanline + i - bytes_per_pixel`. This operation is inside a `for` loop where `i` iterates from `0` to `scanline_width - 1`. Crucially, the `memcpy` is guarded by the condition `if(i >= bytes_per_pixel)`. This check ensures that the offset `i - bytes_per_pixel` is always non-negative. The minimum value of `i` inside this `if` block is `bytes_per_pixel`, which results in a minimum offset of `0`. The maximum value of `i` is `scanline_width - 1`, resulting in a maximum offset of `scanline_width - 1 - bytes_per_pixel`. Since `bytes_per_pixel` is at least 1 for any valid image, this maximum offset is less than `scanline_width - 1`. Therefore, the access is always within the bounds of the `scanline` buffer, which is of size `scanline_width`. This is a standard and correct implementation of a PNG defiltering algorithm."
+   },
+   {
+    "func": "defilter_scanline",
+    "line": 657,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop that iterates from `i = 0` to `scanline_width - 1`. The `src-ptr` `prev_scanline + i - bytes_per_pixel` is guarded by the condition `if(i >= bytes_per_pixel)`. This ensures that the offset `i - bytes_per_pixel` is always non-negative. The minimum value of the offset is `bytes_per_pixel - bytes_per_pixel = 0`. The maximum value is `scanline_width - 1 - bytes_per_pixel`. Since `bytes_per_pixel` is at least 1 (this is enforced by the caller), the maximum offset is strictly less than `scanline_width`. Assuming `prev_scanline` is a buffer of size at least `scanline_width` (which is the function's contract), this access is always within bounds. The function also checks that `prev_scanline` is not NULL and `scanline_width` is not zero at the beginning. The logic correctly implements the PNG Paeth filter specification, which requires handling the first pixels of a scanline as a special case, and this `if` statement does exactly that."
+   },
+   {
+    "func": "rgb8_row_to_rgba8",
+    "line": 328,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 3",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `rgb8_row_to_rgba8` converts a row of RGB pixels to RGBA. It iterates `n` times, where `n` is the number of pixels (e.g., the image width). In each iteration, it reads 3 bytes from the source buffer `row` at an offset of `i * 3` and writes 4 bytes to the destination buffer `out`. The parameters `row` and `n` are derived from the input PNG file. The loop bound `n` comes from the image metadata (width), while the `row` buffer is populated by decompressing the image data. The function itself performs no bounds checking and completely trusts that the `row` buffer is at least `n * 3` bytes long. A malicious or corrupted PNG file could specify a width `n` that is larger than the width corresponding to the actual decompressed scanline data allocated for `row`. In such a scenario, the loop would continue past the end of the `row` buffer, causing an out-of-bounds read in the `memcpy`."
+   },
+   {
+    "func": "scale_row",
+    "line": 794,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 796 reads 8 bytes from `row + i * 8`. The loop iterates up to `pixels`, which is the image width read from the PNG header and is therefore attacker-controlled. The safety of this operation depends on the `row` buffer having been allocated with at least `pixels * 8` bytes.\n\nWhile the code in `scale_row` itself seems correct under the assumption that the `row` buffer is correctly sized, the functions responsible for allocating and checking the buffer size in older versions of this library (libspng) are vulnerable to an integer overflow. \n\nSpecifically, the total image size is calculated via a multiplication like `width * height * bytes_per_pixel`. An attacker can provide large `width` and `height` values in the PNG header, causing this multiplication to overflow (especially on 32-bit systems) and result in a very small or zero calculated size. A subsequent check comparing the user-provided buffer's length against this small calculated size will pass, even for a small buffer. \n\nThe `scale_row` function is then called with the large, un-overflowed `width` as `pixels`, but with the small, user-provided `row` buffer. This leads to the loop executing many times, causing the `memcpy` to read far beyond the bounds of the `row` buffer. This is a classic integer overflow leading to a heap buffer over-read."
+   },
+   {
+    "func": "scale_row",
+    "line": 809,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a loop that iterates `pixels` times. The source pointer is `row + i * 8`. The loop variable `i` goes from `0` to `pixels - 1`. The maximum offset accessed is at `i = pixels - 1`, which is `row + (pixels - 1) * 8`. The `memcpy` reads 8 bytes from this location, so the highest byte read is at address `row + (pixels - 1) * 8 + 7`, which simplifies to `row + pixels * 8 - 1`. This access pattern is safe if the `row` buffer is allocated to be at least `pixels * 8` bytes long. The code block is executed when `fmt == SPNG_FMT_RGBA16`, which corresponds to a format with 8 bytes per pixel (16 bits per channel, 4 channels). It is a standard programming pattern to allocate a row buffer of size `width * bytes_per_pixel`. Assuming the caller correctly allocates the `row` buffer to hold `pixels` number of `RGBA16` pixels, this access is perfectly in-bounds. The code appears to be following a standard, careful pattern for image row processing."
+   },
+   {
+    "func": "gamma_correct_row",
+    "line": 729,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `gamma_correct_row` processes a row of pixels. The `memcpy` is inside a loop that iterates from `i = 0` to `pixels - 1`. The source pointer is `row + i * 4`, and the size is 4. This corresponds to accessing the i-th pixel in a row where each pixel is 4 bytes (`SPNG_FMT_RGBA8`). The loop is strictly bounded by the `pixels` parameter, which represents the number of pixels in the row. The total memory accessed is `pixels * 4` bytes. While the `row` pointer and `pixels` count are derived from input, the code's logic assumes that the caller has provided a `row` buffer that is large enough to hold `pixels` number of 4-byte pixels. This is a standard programming contract for a function processing an array. The loop condition `i < pixels` acts as a guard, ensuring that accesses do not go beyond the intended `pixels * 4` bytes region. A bug would only occur if a caller violates this contract by providing a `row` buffer that is smaller than `pixels * 4`, but the logic within this function itself is not flawed."
+   },
+   {
+    "func": "gamma_correct_row",
+    "line": 743,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `gamma_correct_row` processes a row of image data. The number of pixels in the row is given by the `pixels` parameter, which is a `uint32_t`. The loop iterates from `i = 0` to `pixels - 1`. The loop counter `i` is also a `uint32_t`. Inside the loop, for the `SPNG_FMT_RGBA16` format, the source address for the `memcpy` is calculated as `row + i * 8`. The PNG standard allows image widths up to 2^31 - 1, so `pixels` can be a very large number. If `pixels` is larger than `0x20000000` (2^29), the multiplication `i * 8` will overflow when `i` reaches `0x20000000`, as the calculation will likely be performed using 32-bit arithmetic. For example, if `i` is `0x2FFFFFFF`, the 32-bit unsigned multiplication `i * 8` results in `0xFFFFFFF8`. The memory access then becomes `row + 0xFFFFFFF8`, which is equivalent to `row - 8`, an out-of-bounds read before the beginning of the `row` buffer. This is a triggerable integer overflow vulnerability leading to an out-of-bounds read."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1557,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted source pointer is likely `chunk.type` being used in one of several `memcmp` calls (e.g., `!memcmp(chunk.type, type_exif, 4)`). The analysis tool might misreport `memcmp` as `memcpy`. The `chunk.type` field is a fixed-size array of 4 bytes (`uint8_t type[4]`) within the `spng_chunk` structure. The `memcmp` operation reads exactly 4 bytes from this array. Since the size of the read (4 bytes) is identical to the size of the source buffer (`chunk.type`), an out-of-bounds read is not possible. The data in `chunk.type` is indeed derived from the input file, making it tainted, but the access itself is statically guaranteed to be within the bounds of the `type` array. Therefore, this is a false positive."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1559,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged `memcpy` is `memcpy(&chunk, &ctx->current_chunk, sizeof(struct spng_chunk));` within the `read_chunks_after_idat` function. This operation copies chunk metadata from the main context struct (`ctx->current_chunk`) to a local stack variable (`chunk`). Both the source and destination are variables of type `struct spng_chunk`, and the size of the copy is determined by `sizeof(struct spng_chunk)`. This is a simple struct assignment, which is inherently safe regarding buffer overflows. The source buffer `ctx->current_chunk` and the destination buffer `chunk` are guaranteed by the compiler to be at least `sizeof(struct spng_chunk)` bytes. Therefore, this `memcpy` cannot read or write out of bounds. The taint analysis correctly identifies that the data within `ctx->current_chunk` originates from user input (read from the file by `read_header`), but this does not create a vulnerability in this specific memory copy operation, as the size is fixed at compile time and matches the buffer sizes."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1568,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1570,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` in question is `memcpy(&ctx->exif, &exif, sizeof(struct spng_exif));`. The source is a local stack variable `exif` of type `struct spng_exif`. The destination is a member of the `ctx` struct, `ctx->exif`, which is also of type `struct spng_exif`. The size of the copy is `sizeof(struct spng_exif)`, a compile-time constant. This is a standard, fixed-size struct-to-struct copy. The source and destination buffers are guaranteed to be the same size. Although the *contents* of the `exif` struct are derived from the input file (which is why the taint analysis flagged it), the `memcpy` operation itself is perfectly bounded and cannot result in an out-of-bounds read or write. The source pointer `&exif` is a valid pointer to a stack variable, and the copy size matches the size of the object being pointed to."
+   },
+   {
+    "func": "read_chunks_after_idat",
+    "line": 1627,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is processing a 'tIME' PNG chunk. Before the `memcpy` at line 1627, there is an explicit check `if(chunk.length != 7) return SPNG_ECHUNK_SIZE;` at line 1621. The `data` buffer, which is the source of the copy, is populated by `read_chunk_bytes(ctx, chunk.length)` at line 1596. Therefore, the `data` buffer is guaranteed to be exactly 7 bytes long when this code path is executed. The `memcpy` reads 1 byte from `data + 4`, which is a valid access within the 7-byte buffer. All other memory accesses within this block (`data[0]` through `data[6]`) are also within bounds."
+   }
+  ]
+ }
+]

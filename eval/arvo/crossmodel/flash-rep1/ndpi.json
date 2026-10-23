@@ -1,0 +1,61 @@
+[
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "search_valid_dns",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 0,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 89 copies `sizeof(struct ndpi_dns_packet_header)` (12 bytes) from `flow->packet.payload[x]`. The variable `x` is initialized with `payload_offset`, which is an input-derived value. There is no preceding bounds check that ensures `payload_offset + 12` does not exceed the `flow->packet.payload` buffer size. Therefore, an input-derived `payload_offset` could lead to an out-of-bounds read."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 195 copies `sizeof(struct ndpi_dns_packet_header)` bytes from `flow->packet.payload[x]`. The variable `x` is initialized with `payload_offset`. There is no explicit bounds check (e.g., `if (x + sizeof(...) > flow->packet.payload_packet_len)`) before this memcpy operation. Therefore, if `payload_offset` is sufficiently large, or `flow->packet.payload_packet_len` is too small, this memcpy could read beyond the bounds of `flow->packet.payload`."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 89 copies `sizeof(struct ndpi_dns_packet_header)` bytes from `flow->packet.payload[x]` to `dns_header`. The `src-ptr` is `&flow->packet.payload[x]`. The size of the copy is a constant `12`. The `x` variable is initialized with `payload_offset`, which comes from the `ndpi_search_dns` function. The `ndpi_search_dns` function calls `search_valid_dns` with `flow->packet.l4_packet_len_r`. `flow->packet.l4_packet_len_r` represents the L4 payload length. Before the call to `search_valid_dns`, the `ndpi_search_dns` function checks `if (flow->packet.l4_packet_len_r < sizeof(struct ndpi_dns_packet_header))` and returns if true, effectively ensuring that `x` (which is `payload_offset`) is at least `12`. Therefore, the `memcpy` operation cannot read out-of-bounds relative to the `flow->packet.payload` buffer, given the pre-check on `l4_packet_len_r` and assuming `flow->packet.payload` is a valid pointer to a buffer of at least `l4_packet_len_r` bytes."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation at line 195 copies `sizeof(struct ndpi_dns_packet_header)` bytes from `flow->packet.payload[x]`. The variable `x` is initialized with `payload_offset`. The size of the copy is a fixed constant, not directly derived from user input. While `payload_offset` is input-derived, there are no checks in the provided snippet to ensure `payload_offset + sizeof(struct ndpi_dns_packet_header)` does not exceed `flow->packet.payload_packet_len`. However, the overall function `search_valid_dns` is typically called after some initial packet parsing and length validation. Without the context of how `search_valid_dns` is called and how `payload_offset` is determined, it's difficult to definitively say there's no guard. Given that the size is fixed and small, it's common for such operations to assume basic validity of `payload_offset` if called from a higher-level parsing function that has already done length checks. Many network protocol parsers make initial fixed-size reads for headers, and a bug in `payload_offset` calculation leading to OOB here would likely be due to an earlier error, not this specific `memcpy` being inherently unsafe if `payload_offset` is properly bounded. I'll err on the side of caution and say `false` for a 'genuine, triggerable' bug at this exact line based on the limited snippet, assuming `payload_offset` is validated upstream, which is standard practice for such functions."
+   }
+  ]
+ }
+]

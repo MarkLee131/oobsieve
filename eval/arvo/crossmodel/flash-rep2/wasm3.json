@@ -1,0 +1,61 @@
+[
+ {
+  "id": "33240",
+  "project": "wasm3",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "miss",
+  "gt_func": "ParseSection_Type",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 474 is guarded by an `if` statement on line 472: `if ((size_t) segmentOffset + segment->size <= io_memory->mallocated->length)`. This check explicitly ensures that the `segmentOffset` plus the `segment->size` (which is the length of the memcpy) does not exceed `io_memory->mallocated->length`, which is the allocated size of the memory region. This directly covers the bounds of the destination pointer `dest` and the size `segment->size` for the `memcpy` operation."
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1067 is copying 56 bytes from `i_runtime->error` to `*o_info`. The `src-ptr` (`i_runtime->error`) is a member of the `i_runtime` object. The `i_runtime` object itself is an input to the function `m3_GetErrorInfo`. There is an `if (i_runtime)` check, which ensures `i_runtime` is not NULL. However, there is no bounds check on the size of `i_runtime->error` or on the validity of the memory pointed to by `i_runtime->error` to ensure it can safely provide 56 bytes. The analysis determined `i_runtime` is INPUT-DERIVED, and since no explicit bounds check or size validation for the `error` field within `i_runtime` is present before the memcpy, a buffer overflow could occur if `i_runtime->error` were smaller than 56 bytes. It's assumed `M3ErrorInfo` is always 56 bytes, but without a specific check or guarantee from a macro, it's considered unsafe based on the strict rules."
+   },
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation is guarded by a size check: `if ((size_t) segmentOffset + segment->size <= io_memory->mallocated->length)`. This check ensures that the sum of the segment offset and the segment size does not exceed the allocated memory length. If the condition is false, the code explicitly throws an error (`_throw (\"data segment overflowing linear memory\")`), preventing an out-of-bounds write."
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for the `memcpy` is `&i_runtime->error`. This is a member of the `i_runtime` struct. The `memcpy` copies 56 bytes into `o_info`. The `M3ErrorInfo` struct, which is the type of `i_runtime->error` and `o_info`, has a size of 56 bytes (as confirmed by `sizeof(M3ErrorInfo)` in the header file). Therefore, `*o_info = i_runtime->error;` performs a 56-byte copy from a 56-byte source to a 56-byte destination, which is not an out-of-bounds access. The `src-ptr` is also guarded by `if (i_runtime)`, ensuring `i_runtime` is not null before dereferencing it."
+   }
+  ]
+ }
+]

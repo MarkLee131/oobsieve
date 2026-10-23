@@ -1,0 +1,41 @@
+[
+ {
+  "id": "23499",
+  "project": "clamav-devel",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "cli_codepage_to_utf8",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 256 is guarded by a preceding `if` statement at line 235 (`if (b->size < b->len + (off_t)len)`). If `b->data` is initially `NULL`, it's allocated to `growth` (which is at least `pagesize` and scaled by `len`). If `b->data` is not `NULL` but is too small, `realloc` is called to increase its size. In both cases, `b->size` is updated to reflect the new capacity. The allocation ensures `b->size` is at least `b->len + (off_t)len`, providing enough space for the `memcpy` of `len` bytes starting at `b->data[b->len]`."
+   },
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code explicitly checks `b->size < b->len + (off_t)len` before reallocating memory. If `b->data` is not null and the existing allocated size (`b->size`) is insufficient to hold the new data (`b->len + len`), then `realloc` is called to increase `b->size`. The new size is `b->size + growth` (with `growth` being at least `pagesize` or `len`) or `b->size + (len * 4)`. In both cases, the new `b->size` will be at least `b->len + len`, ensuring enough space for the `memcpy` operation at line 256. The `memcpy` uses `len` as its size, and it copies into `&b->data[b->len]`. The reallocations ensure `b->size` is sufficient to cover `b->len + len` bytes, thus preventing an out-of-bounds write."
+   }
+  ]
+ }
+]

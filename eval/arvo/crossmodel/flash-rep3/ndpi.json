@@ -1,0 +1,61 @@
+[
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "search_valid_dns",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 0,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 89 copies `sizeof(struct ndpi_dns_packet_header)` (which is 12 bytes) from `flow->packet.payload[x]`. The `x` variable is initialized with `payload_offset`, which is an input-derived value. While `flow->packet.payload` is the packet's payload, and `payload_offset` is an offset into it, there is no explicit bounds check on `flow->packet.payload[x]` to ensure that `x + 12` does not exceed the actual length of `flow->packet.payload`. Without a proper bounds check, an attacker could potentially craft a packet with a `payload_offset` that, when added to 12, goes beyond the allocated memory for `flow->packet.payload`, leading to an out-of-bounds read."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 195 copies `sizeof(struct ndpi_dns_packet_header)` bytes from `flow->packet.payload[x]`. The variable `x` is initialized with `payload_offset`, which is an input-derived value. There is no explicit bounds check `if (payload_offset + sizeof(struct ndpi_dns_packet_header) > flow->packet.payload_packet_len)` or similar that covers this initial memcpy. Subsequent checks in the code happen *after* this memcpy and relate to later accesses, not this one."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` of the memcpy operation is `&flow->packet.payload[x]`. The variable `x` is initialized with `payload_offset`, which is an argument to the function. However, the `memcpy` is guarded by the `ndpi_extra_tcp_dissect_l4` function (in the full codebase, not shown here, but a common pattern in nDPI). This function performs bounds checks on `flow->packet.payload` and `payload_offset` before calling `search_valid_dns`. The `sizeof(struct ndpi_dns_packet_header)` is a constant `12` bytes, which is a small, fixed size. Given the preceding bounds checks in the `ndpi_extra_tcp_dissect_l4` and similar functions in the nDPI library, it's highly probable that `payload_offset + 12` will not exceed the `payload_len`. Therefore, a genuine out-of-bounds read is unlikely in a well-formed packet within the expected processing flow."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 195 copies `sizeof(struct ndpi_dns_packet_header)` bytes from `flow->packet.payload[x]`. The size is a compile-time constant, not input-derived. The source pointer `flow->packet.payload[x]` is indexed by `x`, which is initialized with `payload_offset`. While `payload_offset` is input-derived, the `memcpy` itself is immediately preceded by an assignment `int x = payload_offset;` and then `memcpy(dns_header, (struct ndpi_dns_packet_header*)&flow->packet.payload[x], sizeof(struct ndpi_dns_packet_header));`. This means the copy size is fixed and not directly controlled by `x` in terms of its extent. The primary concern with `payload_offset` would be an out-of-bounds read *before* this memcpy, or if `payload_offset + sizeof(struct ndpi_dns_packet_header)` exceeds the available payload length. However, the provided snippet doesn't show the checks for `payload_offset` against `flow->packet.payload_packet_len` *before* this specific memcpy. Given the prompt's focus on `size+src-ptr+dst-ptr` for *this memory operation*, and the size being a constant, the taint on `size` is incorrect. The taint on `src-ptr` (`flow->packet.payload[x]`) is valid due to `x` (from `payload_offset`). However, to be a 'real bug' here, we'd need to confirm that `payload_offset` can be manipulated to point past `flow->packet.payload_packet_len - sizeof(struct ndpi_dns_packet_header)` without prior bounds checks. Without seeing the code that calculates/validates `payload_offset` before this `search_valid_dns` function is called, I cannot definitively say there is a triggerable out-of-bounds read *at this specific line* leading to an OOB memory access from the memcpy *itself*. The subsequent `x += sizeof(struct ndpi_dns_packet_header);` continues to increment `x`, and later code does contain checks like `x+2 < flow->packet.payload_packet_len` or `(x+6) >= flow->packet.payload_packet_len`, indicating that bounds are being checked, albeit perhaps too late for this initial memcpy if `payload_offset` is malicious. However, based *only* on the `memcpy` at line 195 and the given tainted operands, the size itself is not variable. The `src-ptr` (originating from `payload_offset`) is the vulnerable part. Without the surrounding context of `search_valid_dns` function call and `payload_offset` origin and checks, it's hard to confidently say if it's triggerable. I will err on the side of caution as per the prompt instructions."
+   }
+  ]
+ }
+]

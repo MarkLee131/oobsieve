@@ -1,0 +1,760 @@
+[
+ {
+  "id": "16804",
+  "project": "libhevc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "ihevcd_parse_slice_data",
+  "n_gt_cands": 3,
+  "n_gt_confirmed": 3,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 2785,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1005",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted operand `src-ptr` of the `memcpy` at line 2785 is `&ps_codec->s_parse.s_cabac.au1_ctxt_models`. The size of the copy is `size` which is `sizeof(ps_codec->s_parse.s_cabac.au1_ctxt_models)`. This is a fixed size (compile-time constant). However, the taint analysis states that the `src-ptr` is INPUT-DERIVED. This means that although the `memcpy` copies a fixed size, the base pointer `ps_codec->s_parse.s_cabac.au1_ctxt_models` itself, or more likely, some intermediate pointer leading to it, could be manipulated to point to an invalid location. There is no explicit bounds check (e.g., `if (src_ptr + size > end_of_buffer)`) visible on the path leading to this `memcpy` that would protect against an `INPUT-DERIVED` `src-ptr` pointing outside its allocated bounds. Therefore, a real bug exists if the input can manipulate `ps_codec->s_parse.s_cabac.au1_ctxt_models` to point to an arbitrary address."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3268,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2295",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` operation at line 3268 has an input-derived size and destination pointer. While there are some checks around the boundary strength calculation (e.g., `if (0 == ps_codec->i4_disable_deblk_pic)` and `if (0 != ps_slice_hdr->i1_slice_disable_deblocking_filter_flag)`), these do not directly constitute a bounds check for the `memset` operation itself. The calculation of `pu4_vert_bs` and `pu4_horz_bs` involves several input-derived values (`ps_codec->s_parse.i4_ctb_x`, `ps_codec->s_parse.i4_ctb_y`, `ctb_size`, `ps_sps->i2_pic_wd_in_ctb`) and there's no visible explicit bounds check or guard (like ND_TCHECK or a simple if/return) ensuring that the `memset` will not write beyond the allocated buffers `ps_codec->s_parse.s_bs_ctxt.pu4_pic_vert_bs` or `ps_codec->s_parse.s_bs_ctxt.pu4_pic_horz_bs`. Without such a specific guard, it's unsafe."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3269,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2302",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 3269 uses `(ctb_size / 8) * (ctb_size / 4) / 8 * 2` as the size. While `ctb_size` is derived from `ps_sps->i1_log2_ctb_size`, which is checked (e.g., in `ihevcd_parse_sps` at line 673 for `i1_log2_ctb_size` to be within [4, 6]), there is no explicit bounds check or allocation-to-fit logic for `pu4_vert_bs` or `pu4_horz_bs` based on the calculated size before the `memset` operation. The size expression `i64 %2302` is `(ctb_size / 8) * (ctb_size / 4) / 8 * 2`, which can vary based on `ctb_size`. Without a clear check that `pu4_vert_bs` and `pu4_horz_bs` have sufficient allocated memory to cover this variable size, a heap overflow is possible if the derived size exceeds the allocated buffer bounds. The `bs_strd` calculation might relate to buffer size, but it's not directly used as a bound for the `memset` size, and the base addresses `ps_codec->s_parse.s_bs_ctxt.pu4_pic_vert_bs` and `ps_codec->s_parse.s_bs_ctxt.pu4_pic_horz_bs` do not have their allocation size visible in this snippet."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1510,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1510 uses `size` which is calculated based on `max_tile_cols` and `max_tile_rows`, which in turn depend on `wd` and `ht` (from `ps_codec->i4_wd` and `ps_codec->i4_ht`). There are no visible bounds checks or `RETURN_IF` macros directly covering the size calculation or the `memset` operation itself to ensure that the allocated buffer `pv_buf` is large enough to prevent an overflow when `size` is applied."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1529,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %51",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1529 writes to `ps_codec->s_parse.pu4_skip_cu_top` with a size derived from `max_num_cu_cols`. The size calculation is `size = max_num_cu_cols / 8; size = ALIGN4(size);`. This `size` is then used in `pf_aligned_alloc` and the subsequent `memset`. While `RETURN_IF((NULL == pv_buf), IV_FAIL);` checks for allocation failure, there is no explicit bounds check (e.g., `if (size > MAX_ALLOWED_SIZE)` or a comparison against a known maximum for `max_num_cu_cols`) to ensure that the calculated `size` does not lead to an integer overflow during the calculation or an excessively large allocation. If `max_num_cu_cols` is very large, the `size` calculation could overflow or result in an allocation that is too large, potentially leading to a heap overflow during the `memset` if the allocated buffer is smaller than the calculated size due to system limits or an incorrect `pf_aligned_alloc` implementation not properly handling extremely large requests. The tainted operand is the `size` itself, which directly dictates the extent of the memory operation, and its derivation from `max_num_cu_cols` lacks a visible upper bound check."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1538,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1538 is filling a buffer `pv_buf` which was allocated just above it at line 1536 using `ps_codec->pf_aligned_alloc` with the `size` computed at lines 1528-1530. A `RETURN_IF((NULL == pv_buf), IV_FAIL);` check immediately follows the allocation. Therefore, the `memset` operates on a validly allocated buffer of the exact size requested, meaning the access is covered by the allocation and the null check."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1547,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %78",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1547 is writing to `ps_codec->pu1_pic_intra_flag`. The size of this buffer is calculated earlier as `size = max_num_cu_cols * max_num_cu_rows / 8; size = ALIGN4(size);`. This `size` is then passed directly to `ps_codec->pf_aligned_alloc` to allocate `pv_buf`, and then to `memset`. Since the `memset` uses the exact same `size` that was allocated, and the allocation itself was checked for `NULL`, the `memset` is covered by the allocation size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1556,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %93",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1556 operates on `pv_buf` with a `size` operand. This `pv_buf` was allocated just above it using `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);`. The `memset` uses the exact same `size` value as was used for the allocation, hence the write is fully contained within the allocated buffer. A `RETURN_IF((NULL == pv_buf), IV_FAIL);` check ensures that `pv_buf` is not NULL before `memset` is called."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1567,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %112",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1567 is preceded by an allocation using `ps_codec->pf_aligned_alloc` with `size` as the requested size. Immediately after the allocation, there is a `RETURN_IF((NULL == pv_buf), IV_FAIL);` check. If the allocation is successful, `pv_buf` points to a memory region of at least `size` bytes. The `memset` then uses this same `size` to clear the allocated memory. Therefore, the `memset` operation is covered by the preceding allocation and null check."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1617,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %176",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memset at line 1617 uses `size` which is the return value of `pf_aligned_alloc`. Immediately after `pf_aligned_alloc` is called, there is a `RETURN_IF((NULL == pv_buf), IV_FAIL);` check. If `pv_buf` is not NULL, it means the allocation was successful and `pv_buf` points to a buffer of at least `size` bytes. Therefore, the `memset` operates within the bounds of the newly allocated memory."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1624,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %187",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1624 is clearing a buffer `ps_codec->as_process[i].pu4_pic_pu_idx_left`. This buffer is an offset into `pv_buf`, which was allocated just before. The size of this `memset` operation is `sizeof(UWORD32) * MAX_CTB_SIZE / 4`. However, `pu4_buf` is initialized to `(UWORD32 *)pv_buf`, and then `ps_codec->as_process[i].pu4_pic_pu_idx_left` is set to `pu4_buf + i * (MAX_CTB_SIZE / 4)`. The loop for `i` goes from `0` to `MAX_PROCESS_THREADS - 1`. The total allocated size for `pv_buf` is `(max_num_4x4_cols + MAX_PROCESS_THREADS * (MAX_CTB_SIZE / 4) + 1) * sizeof(WORD32)`. The memset within the loop uses `ps_codec->as_process[i].pu4_pic_pu_idx_left` which could potentially exceed the bounds of `pv_buf` if `i * (MAX_CTB_SIZE / 4) + (MAX_CTB_SIZE / 4)` (the end of the memset for the last iteration) goes beyond the allocated memory. The `max_num_4x4_cols` part of the allocation is added to the beginning, but the individual `memset` operations are only relative to `pu4_buf + i * (MAX_CTB_SIZE / 4)`. There's no explicit check that `i * (MAX_CTB_SIZE / 4) + (MAX_CTB_SIZE / 4)` is within the bounds of `pv_buf` considering the full size expression for `pv_buf` and how the pointers are being offset for each `i`."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1633,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %203",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1633 operates on `pv_buf` with `size` as its length. Immediately preceding this `memset`, there's an allocation call `pv_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);` followed by a null check: `RETURN_IF((NULL == pv_buf), IV_FAIL);`. This sequence ensures that `pv_buf` is a valid, non-null pointer, and that the allocated memory is at least `size` bytes. Therefore, the `memset` operates within the bounds of the newly allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1642,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1642 uses `pv_buf` and `size`. `pv_buf` is the result of `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The `RETURN_IF((NULL == pv_buf), IV_FAIL);` check ensures `pv_buf` is not NULL. However, the `pf_aligned_alloc` function itself is presumed to return a buffer of at least `size` bytes, but there's no explicit bounds check (like `if (size > allocated_size)`) surrounding the `memset` operation after the allocation. The taint analysis states `size` is input-derived and not clamped. Therefore, if `pf_aligned_alloc` returns a buffer smaller than the requested `size` (which could happen if `size` is excessively large or if the allocator has a bug), the `memset` would be an out-of-bounds write. No explicit bounds check is visible to cover this potential scenario."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %319",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1684 uses `size` as the length argument. This `size` is calculated by a series of additions and multiplications of `MAX` results and other variables (ht, wd, max_ctb_rows, max_ctb_cols). The allocation `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` immediately precedes the `memset`, using the same `size` value. While the allocation function itself might perform internal checks, there's no explicit bounds check (like an `if (size > MAX_ALLOWED_SIZE)` or a macro like `ND_TCHECK`) visible in the provided code snippet that ensures the calculated `size` is within safe limits before the allocation or the subsequent `memset`. The problem statement also clarifies that the size is INPUT-DERIVED and NOT clamped/min'd, so there is no guarantee that `size` will not overflow or exceed the intended buffer capacity if the input values are maliciously crafted. Without an explicit check, an extremely large input-derived size could lead to an allocation of insufficient size (due to integer overflow) followed by an out-of-bounds write during the `memset`."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1833,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %565",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1833 initializes the buffer `pu1_buf` with `size` bytes. The `pu1_buf` is allocated just before this `memset` call using `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The `RETURN_IF((NULL == pu1_buf), IV_FAIL);` ensures that the allocation was successful. Therefore, the `memset` operation is performed on a buffer that has just been allocated with the exact size, making it a covered access."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1882,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %687",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1882 uses `pu1_buf` as the destination and `size` as the length. `pu1_buf` is the result of a call to `ps_codec->pf_aligned_alloc` with `size` as the allocation size. The `RETURN_IF((NULL == pu1_buf), IV_FAIL);` check ensures that the allocation was successful. Therefore, the `memset` operates within the bounds of the freshly allocated memory."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1900,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %713",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1900 initializes the memory allocated by `ps_codec->pf_aligned_alloc` using the `size` variable. A `RETURN_IF((NULL == pu1_buf), IV_FAIL);` check immediately follows the allocation. This check ensures that `pu1_buf` is not NULL. The `memset` then uses the same `size` value that was passed to `pf_aligned_alloc`. Therefore, the `memset` operates within the bounds of the allocated memory."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1924,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %757",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1924 is for the buffer `pv_buf`. The size `i64 %757` corresponds to the variable `size` just before `pv_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);`. The `pf_aligned_alloc` call is immediately followed by `RETURN_IF((NULL == pv_buf), IV_FAIL);`. This check ensures that `pv_buf` is a valid, non-NULL pointer, and that the allocation was successful. Since `memset` is then called with the exact `size` that was successfully allocated, the `memset` is covered by the allocation success check."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 2785,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1005",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 2785 copies `sizeof(ps_codec->s_parse.s_cabac.au1_ctxt_models)` bytes from `&ps_codec->s_parse.s_cabac.au1_ctxt_models` to `&ps_codec->s_parse.s_cabac.au1_ctxt_models_sync`. Both source and destination are members of the `s_cabac` structure within `ps_codec->s_parse`. Specifically, `au1_ctxt_models` and `au1_ctxt_models_sync` appear to be intended as a backup mechanism for CABAC context models. The `size` variable is calculated using `sizeof`, ensuring that the copy operation will not read or write beyond the bounds of these arrays. As long as `au1_ctxt_models` and `au1_ctxt_models_sync` are properly sized arrays within the `cabac_t` structure, this `memcpy` operation is safe. There's no indication that `ps_codec->s_parse.s_cabac.au1_ctxt_models` (the tainted operand `src-ptr`) can be controlled by input in a way that makes it point to an invalid memory location, or that its size (`size`) is incorrectly calculated based on input. The taint analysis might be flagging `src-ptr` as input-derived because the content of `au1_ctxt_models` itself is derived from the input bitstream during CABAC decoding, but this does not imply that the pointer to the array or its size are attacker-controlled in a way that leads to an OOB access."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3268,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2295",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size operand `i64 %2295` is calculated as `(ctb_size / 8) * (ctb_size / 4) / 8 * 2`. While `ctb_size` is derived from input, the multiplication by `2` and division by `8` twice (effectively division by 64) suggests a careful, fixed-size calculation based on `ctb_size`. This `ctb_size` usually represents the CTB block size (e.g., 16, 32, 64), which is constrained by the H.265 standard (specifies sizes like 16x16 to 64x64). The destination pointers `pu4_vert_bs` and `pu4_horz_bs` are offset from `ps_codec->s_parse.s_bs_ctxt.pu4_pic_vert_bs` and `ps_codec->s_parse.s_bs_ctxt.pu4_pic_horz_bs` respectively, using `i4_ctb_x`, `i4_ctb_y`, `bs_strd`, and another fixed-size offset `(ctb_size * ctb_size / 8 / 16)`. The `bs_strd` also depends on `i2_pic_wd_in_ctb`, which is `ps_sps->i2_pic_wd_in_ctb`. All these dimensions (`ctb_size`, `i2_pic_wd_in_ctb`) are typically derived from the SPS/PPS headers which are usually subject to sanity checks during parsing to ensure they fall within standard-compliant and allocated bounds. Without seeing the allocation of `pu4_pic_vert_bs` and `pu4_pic_horz_bs` and the checks on `ctb_size` and `i2_pic_wd_in_ctb`, it's difficult to be absolutely certain, but the repeated divisions and fixed multipliers in the size calculation strongly suggest that the intent is to clear a block of a size related to `ctb_size` that is expected to fit within pre-allocated buffers. It's unlikely that `ctb_size` can be arbitrarily large to cause an overflow, as it's typically constrained by the HEVC standard's maximum CTB size (e.g., 64x64). Therefore, given the typical constraints on video decoding parameters, this operation is likely safe and within bounds, assuming proper initial buffer allocation and parameter validation."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3269,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2302",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size is calculated as `(ctb_size / 8) * (ctb_size / 4) / 8 * 2`. `ctb_size` is derived from `ps_sps->i1_log2_ctb_size`, which is a `UWORD8` and represents a logarithm. This value is used in various calculations related to block sizes. The `memset` destination pointers `pu4_vert_bs` and `pu4_horz_bs` are offset by `ps_codec->s_parse.i4_ctb_x * (ctb_size * ctb_size / 8 / 16)` and `ps_codec->s_parse.i4_ctb_y * bs_strd`. `i4_ctb_x` and `i4_ctb_y` are CTB (Coding Tree Block) coordinates within the picture. The overall buffers `pu4_pic_vert_bs` and `pu4_pic_horz_bs` are allocated based on the total picture size in CTBs, considering `(ps_sps->i2_pic_wd_in_ctb + 1)` for boundary handling and `ctb_size * ctb_size / 8 / 16` as the size for each CTB's boundary strength data. Given that `ctb_size` is derived from a `log2_ctb_size` from the SPS (Sequence Parameter Set), it's a fixed value for a given video stream (e.g., 16, 32, 64). The `memset` size calculation uses `ctb_size` in a way that is consistent with the `bs_strd` and the per-CTB data size. The `i4_ctb_x` and `i4_ctb_y` coordinates are bounds-checked earlier in the parsing process to ensure they are within the picture dimensions (`i2_pic_wd_in_ctb` and `i2_pic_ht_in_ctb`). Therefore, the offsets should not exceed the allocated buffer size. The size expression for memset appears to be a fixed calculation based on valid video parameters, which are usually validated during stream parsing. It does not appear to be directly input-derived in a way that an attacker could manipulate to cause an out-of-bounds write beyond the pre-allocated buffers."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1510,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `size` is calculated based on `max_tile_cols` and `max_tile_rows`, which are derived from `ps_codec->i4_wd` and `ps_codec->i4_ht` (width and height). These dimensions are typically parsed from the bitstream, hence input-derived. However, the `ALIGN64` macro is applied to `ps_codec->i4_wd` and `ps_codec->i4_ht` before calculating `max_tile_cols` and `max_tile_rows`. This ensures that `wd` and `ht` are multiples of 64, which are then used in the subsequent calculations for `max_tile_cols`, `max_tile_rows`, and `size`. The allocation uses `ps_codec->pf_aligned_alloc` which implies a proper memory allocator. The `memset` then operates on this newly allocated buffer `pv_buf` with the calculated `size`. There are no obvious integer overflows or negative size issues in the calculation: `max_tile_cols` and `max_tile_rows` are calculated using `(dividend + divisor - 1) / divisor` which is a common way to calculate ceil division and avoids negative results for positive inputs. `MIN_TILE_WD` and `MIN_TILE_HT` are likely constants. The multiplication `size *= sizeof(tile_t);` and `size *= MAX_PPS_CNT;` could potentially overflow if `max_tile_cols * max_tile_rows` is extremely large, but given typical video resolutions, `sizeof(tile_t)` and `MAX_PPS_CNT` are small constants, it's unlikely to overflow a `WORD32` in a practical scenario that leads to a smaller allocation than requested. Even if `size` overflows and wraps around to a small positive number, `pf_aligned_alloc` would likely return a small buffer or `NULL`. If it returns a small buffer, the `memset` could be an out-of-bounds write. However, typical `WORD32` limits (2GB) for `size` would imply extremely large resolutions to overflow. Given the `ALIGN64` and the structure of the calculation, it's more likely to be a large but valid allocation, or `pf_aligned_alloc` would fail and the `RETURN_IF` would catch it. The code seems to follow a standard memory allocation pattern for image/video processing where sizes are derived from frame dimensions. Without more context on the maximum allowed dimensions or constant values, it's hard to confidently say an overflow will occur and lead to a heap overflow. Therefore, I will conservatively assume it's not a readily triggerable bug."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1529,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %51",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size operand `i64 %51` is derived from `size` which is calculated as `max_num_cu_cols / 4`, and then `ALIGN4(size)`. The allocation `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` uses the same calculated `size`. Therefore, the `memset` operates within the bounds of the allocated memory, and there is no out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1538,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand of `memset` is derived from `max_num_cu_cols` and `max_num_cu_rows`, which are calculated based on `wd` and `ht` (aligned width and height of the frame). While `wd` and `ht` are ultimately derived from input, the subsequent calculations `size = max_num_cu_cols * max_num_cu_rows / 8;` and `size = ALIGN4(size);` appear to be for internal buffer allocation. The allocated buffer `pv_buf` is then passed to `memset` along with this `size`. The allocation `pv_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);` uses the same `size`. Assuming `pf_aligned_alloc` correctly allocates memory of the requested `size`, the `memset` operation should not cause an out-of-bounds write. The taint on `size` is expected because it's a size based on input video dimensions, but it's used consistently for allocation and zeroing, so it doesn't indicate an OOB itself without a mismatch between allocation and usage sizes, which isn't apparent here."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1547,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %78",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size calculation for memset is based on derived dimensions (wd, ht, max_tile_cols, max_tile_rows, max_ctb_rows, max_ctb_cols, etc.), which are themselves derived from `ps_codec->i4_wd` and `ps_codec->i4_ht`. These dimensions are passed through ALIGN64, ensuring they are multiples of 64. All subsequent multiplications and additions in the `size` calculation use these derived values or constants. The allocated buffer `pv_buf` is obtained through `pf_aligned_alloc` with the calculated `size`. The `memset` then uses this same `size` to clear the allocated buffer. There's a `RETURN_IF((NULL == pv_buf), IV_FAIL);` check before memset. There is no apparent way for `size` to exceed the actual allocation size. The taint on `i64 %78` (which corresponds to `size`) is indeed input-derived, but the allocation size is also based on this same `size`, meaning the `memset` operates within the bounds of the allocated memory."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1556,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %93",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `i64 %93` for `memset` is derived from a `size` variable that is directly used as the allocation size in `pf_aligned_alloc` immediately preceding the `memset` call. There are no intermediate operations that could modify `size` to be larger than the allocated buffer. Therefore, `memset` operates within the bounds of the allocated memory."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1567,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %112",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size for the memset operation is derived from `ps_codec->i4_wd` and `ps_codec->i4_ht`, which are typically frame width and height. These values are subject to `ALIGN64`, `MIN_TILE_WD`, `MIN_TILE_HT`, `MIN_CTB_SIZE`, `MIN_CU_SIZE`, and `MAX_PPS_CNT` constants. The calculation for `size` consistently multiplies these derived dimensions by `sizeof` appropriate types or divides by constants (like 8 for bits). These operations are standard for calculating buffer sizes for image/video processing. There are no obvious unchecked user inputs or arithmetic overflows that would cause `size` to become excessively large beyond what `pf_aligned_alloc` can handle. The `RETURN_IF((NULL == pv_buf), IV_FAIL);` after each allocation ensures that if allocation fails (e.g., due to an extremely large `size` or out of memory), the function will return an error status before `memset` is called on an invalid pointer. The taint analysis might flag `i64 %112` as input-derived because `ps_codec->i4_wd` and `ps_codec->i4_ht` are determined by the input video stream's properties. However, these are constrained by codec limitations and reasonable video dimensions, making an out-of-bounds write unlikely under normal operating conditions."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1617,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %176",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 1617 uses `size` as its length argument. Immediately preceding this `memset`, memory is allocated using `ps_codec->pf_aligned_alloc` with the same `size` value. The `RETURN_IF` macro checks for `NULL` return from `pf_aligned_alloc`, ensuring that if allocation fails, the `memset` is not called. Therefore, the `memset` is operating within the bounds of the freshly allocated memory block. The taint analysis flags `size` as input-derived, but the critical point for an out-of-bounds write is whether `size` could exceed the allocated buffer. Since `size` is used for both allocation and `memset`, and `pf_aligned_alloc` is assumed to correctly allocate `size` bytes, there is no apparent out-of-bounds write here."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1624,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %187",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand in the `memset` at line 1624 is used as the size for a memory allocation (`pv_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);`) immediately before the `memset`. The `memset` then operates on `pv_buf` with the same `size`. As long as `pf_aligned_alloc` correctly allocates memory of at least `size` bytes (which is its contract), and the `RETURN_IF` ensures `pv_buf` is not NULL, there will be no out-of-bounds write. The `size` itself is derived from various `max_*` variables, which are likely parameters controlling the video dimensions or processing capabilities. While these parameters could be large and lead to an Out-Of-Memory (OOM) condition, it wouldn't be an out-of-bounds `memset` as the `memset` operates within the bounds of the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1633,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %203",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation is performed on a buffer `pv_buf` that was just allocated using `ps_codec->pf_aligned_alloc` with the same `size` value. The `RETURN_IF((NULL == pv_buf), IV_FAIL);` check ensures that the allocation was successful before `memset` is called. Therefore, it is guaranteed that `memset` will operate within the bounds of the newly allocated memory."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1642,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'size' operand of memset is derived from several input-dependent variables (max_num_cu_cols, max_num_cu_rows, max_ctb_rows, max_ctb_cnt, etc.) that are then passed through `ALIGN4` function and bounds checks via `RETURN_IF((NULL == pv_buf), IV_FAIL);`. In all cases, the size used in `memset` is the same `size` that was passed to `pf_aligned_alloc`, and the `pv_buf` is checked for `NULL` before `memset` is called. This indicates that the allocated buffer size matches the `memset` size. Therefore, there is no out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %319",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `size` variable, which determines the length of the `memset` operation, is calculated based on several factors including `ht`, `wd`, `max_ctb_rows`, and `max_ctb_cols`. All these variables are derived from the input bitstream during parsing. However, the memory for `pu1_buf` is allocated using `ps_codec->pf_aligned_alloc` with this very same `size` value, after `size` is `ALIGN64`'d. The `memset` then uses this aligned `size` value to zero out the allocated buffer. This ensures that the `memset` operates within the bounds of the freshly allocated memory. Although the size is input-derived, it is used consistently for both allocation and `memset`, preventing an out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1833,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %565",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation is performed on a buffer `pu1_buf` that was just allocated using `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);`. The size of the allocation is `size`, and the `memset` also uses `size` as its length argument. This indicates that the `memset` is intended to clear the entire newly allocated buffer. The `size` variable itself is calculated based on input-derived values `wd` (width) and `ht` (height), which are then divided by constants like `MIN_CTB_SIZE`, `MIN_TU_SIZE`, `MIN_CU_SIZE`, and multiplied by other constants. While the `size` is input-derived, the allocation and `memset` are consistently using the same calculated size. An out-of-bounds write would only occur if the `size` calculation somehow overflows or is incorrect, leading to a smaller allocation than `size`, or if `ps_codec->pf_aligned_alloc` returns a buffer smaller than requested without indicating an error (which is generally an allocator bug). Given the code structure, the `memset` itself is not directly introducing the out-of-bounds write; it's correctly zeroing the allocated `size` bytes. If `size` becomes excessively large due to input, `pf_aligned_alloc` might fail and return `NULL`, which is handled by `RETURN_IF((NULL == pu1_buf), IV_FAIL);`. If `size` is valid but unexpectedly large, it might lead to excessive memory consumption, but not an out-of-bounds `memset` itself on a valid allocation. Therefore, without evidence of an integer overflow in `size` calculation leading to a small allocation or a faulty `pf_aligned_alloc`, this specific `memset` is not a `real_bug`."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1882,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %687",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'size' variable used in memset is computed based on 'wd' (width) and 'ht' (height), which are likely derived from input. However, 'pu1_buf' is allocated using 'pf_aligned_alloc' with this same 'size'. As long as the allocation itself doesn't fail (which is checked by `RETURN_IF`), the `memset` operation will be performed on a buffer of sufficient size. Therefore, there is no out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1900,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %713",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `size` variable, which determines the amount of memory allocated by `pf_aligned_alloc` and subsequently cleared by `memset`, is calculated based on `vert_bs_size`, `horz_bs_size`, `qp_size`, and `qp_const_flag_size`. These individual sizes are derived from `ht` (height) and `wd` (width), which are likely input-derived. However, the calculation involves divisions and multiplications with constants like `MAX_CTB_SIZE`, `MIN_TU_SIZE`, `MIN_CTB_SIZE`, `MIN_CU_SIZE`, and `8`. These operations effectively scale the input dimensions. The final `size` used in `memset` is the exact same `size` passed to `pf_aligned_alloc`. There's no apparent arithmetic overflow that would cause `size` to wrap around to a small value while the actual calculated total required memory is much larger, nor is there an obvious way for the individual size components to be negative or excessively large in a way that would lead to an under-allocation or an out-of-bounds write during the `memset`. The `memset` simply clears the allocated memory, ensuring it doesn't write beyond the bounds of `pu1_buf` as `size` is consistent with the allocation size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1924,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %757",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size variable used in `memset(pv_buf, 0, size);` is calculated based on `ihevcd_get_tu_data_size(wd * ht)`. The `pv_buf` is allocated using `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`, where the same `size` is passed. This means `memset` will operate within the bounds of the allocated buffer. The `wd` and `ht` variables are likely derived from video stream parameters, which could be input-derived, but the allocation and memset sizes are consistently derived from these same `wd` and `ht` values. There's no apparent intermediate manipulation that would cause `size` to exceed the allocated buffer size before the `memset` call."
+   }
+  ]
+ },
+ {
+  "id": "16805",
+  "project": "libhevc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "ihevcd_parse_slice_data",
+  "n_gt_cands": 3,
+  "n_gt_confirmed": 3,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 2785,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1005",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted memcpy at line 2785 copies `i64 %1005` bytes from `&ps_codec->s_parse.s_cabac.au1_ctxt_models` to `&ps_codec->s_parse.s_cabac.au1_ctxt_models_sync`. The size of the copy is determined by the `size` variable, which is set to `sizeof(ps_codec->s_parse.s_cabac.au1_ctxt_models)`. While the destination buffer `au1_ctxt_models_sync` is also a member of `s_cabac` and has the same type, `i64 %1005` is an input-derived value. The analysis states that `i64 %1005` is not a constant, not clamped/min'd, and not an allocate-to-fit size. The code sets `size = sizeof(ps_codec->s_parse.s_cabac.au1_ctxt_models)`, and `sizeof` is a compile-time constant. However, the analysis explicitly states that the size expression for the `memcpy` is `i64 %1005`, and that this is an INPUT-DERIVED value. If `i64 %1005` is indeed the actual size used in the `memcpy` and is input-derived, and not equal to the `sizeof` value, then there is no explicit bounds check (such as `if (off+n > cap)`) or a macro (like ND_TCHECK/ND_TTEST) ensuring that `i64 %1005` does not exceed the size of `au1_ctxt_models_sync`. Therefore, without a visible guard covering the input-derived size, it's a real bug."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3268,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2295",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 3268 has a size operand `(ctb_size / 8) * (ctb_size / 4) / 8 * 2` which is input-derived and not constant. The destination pointer `pu4_horz_bs` is calculated using `ps_codec->s_parse.s_bs_ctxt.pu4_pic_horz_bs` plus offsets derived from `ps_codec->s_parse.i4_ctb_x`, `ps_codec->s_parse.i4_ctb_y`, and `bs_strd`. There are no visible explicit bounds checks or guards (like ND_TCHECK or a plain 'if' check) that cover this specific `memset` operation to ensure that the calculated address plus the size does not go out of bounds of the `pu4_pic_horz_bs` buffer. Without such a check, a malicious input could potentially cause an out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3269,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2302",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 3269 uses `(ctb_size / 8) * (ctb_size / 4) / 8 * 2` as the size operand. The `ctb_size` is derived from `sps_t` and `ps_codec` which are input-derived. There are no explicit bounds checks (like `if (size > capacity)`) on `pu4_vert_bs` or `pu4_horz_bs` based on the calculated size, nor any uses of `ND_TCHECK`/`ND_TTEST`/`CHECK_*/GROW/ENSURE` macros to ensure the memory access is within bounds. Without such a check, an attacker could potentially craft an input to cause an out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1510,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1510 uses `size` derived from `max_tile_cols * max_tile_rows * sizeof(tile_t) * MAX_PPS_CNT`. There is no explicit bounds check (like `if (size > buffer_capacity) RETURN_IF(...)`) on `size` against the allocated buffer size. While `pv_buf` is checked for `NULL`, this doesn't guarantee the `size` operand is safe from overflow or underflow leading to an incorrect size calculation, or that the calculated size is within the intended bounds for `memset` given `pv_buf` and its actual capacity."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1529,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %51",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1529 uses `size` as its third argument. This `size` is calculated based on `max_num_cu_cols`. `max_num_cu_cols` itself is derived from `wd` (width) which comes from `ps_codec->i4_wd`. While `wd` is aligned to 64, there is no explicit bounds check or allocation for `ps_codec->s_parse.pu4_skip_cu_top` that covers the calculated `size` before the `memset`. The `pv_buf` is allocated using `ps_codec->pf_aligned_alloc` with `size`, but there is no check that `size` itself is within a safe, predetermined bound related to `ps_codec->s_parse.pu4_skip_cu_top` which is the destination of the memset, or that the allocated `pv_buf` is actually used as `ps_codec->s_parse.pu4_skip_cu_top` from the start. Although `ps_codec->s_parse.pu4_skip_cu_top` is assigned the `pv_buf` just after the `memset`, the analysis is about the access during the `memset`. Without a clear, prior bounds check on the computed `size` against a known, fixed buffer size for `ps_codec->s_parse.pu4_skip_cu_top`, or explicit proof that the allocation itself is the buffer for `s_parse.pu4_skip_cu_top` and `size` is not oversized, it's safer to assume a potential overflow."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1538,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1538 uses `size` as the length argument. The `size` variable is calculated as `max_num_cu_cols * max_num_cu_rows / 8`, then `ALIGN4(size)`. The allocation for `pv_buf` is `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. While `ALIGN4(size)` ensures the size is a multiple of 4, the initial calculation `max_num_cu_cols * max_num_cu_rows / 8` can result in an integer truncation if `max_num_cu_cols * max_num_cu_rows` is not perfectly divisible by 8. If this happens, the `size` used for allocation might be smaller than the conceptually intended size, leading to an overflow if the `memset` writes up to the larger, non-truncated value. There is no explicit bounds check (e.g., `if (size > allocated_size)`) covering this specific `memset` operation."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1547,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %78",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1547 is writing to `ps_codec->pu1_pic_intra_flag`. The size for this `memset` is calculated as `size = max_num_cu_cols * max_num_cu_rows / 8; size = ALIGN4(size);`. Immediately before the `memset`, memory is allocated for `ps_codec->pu1_pic_intra_flag` using `pv_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);` and a `RETURN_IF` check ensures the allocation was successful. The `memset` then uses this exact allocated `size` and the newly allocated `pv_buf` (assigned to `ps_codec->pu1_pic_intra_flag`), meaning the `memset` is fully covered by the preceding allocation."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1556,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %93",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1556 operates on `pv_buf` with a size of `size`. Immediately prior to the `memset`, `pv_buf` is allocated using `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The `RETURN_IF((NULL == pv_buf), IV_FAIL);` statement ensures that if the allocation fails (returning `NULL`), the function exits, preventing the `memset` from being called on an invalid pointer. Therefore, the `memset` is bounded by the size of the memory allocated for `pv_buf`."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1567,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %112",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1567 uses `size` as the length operand. The `size` variable is calculated immediately before the `pf_aligned_alloc` call: `size = ((max_num_cu_cols + 8) * (max_num_cu_rows + 8)) / 8; size = ALIGN4(size);`. This `size` is then passed to `ps_codec->pf_aligned_alloc`, which is a memory allocation function. If the allocation fails, the function returns early (`RETURN_IF((NULL == pv_buf), IV_FAIL)`). If the allocation succeeds, `pv_buf` is guaranteed to point to a memory region of at least `size` bytes. The subsequent `memset` operation uses this exact `size` and `pv_buf`, ensuring that it operates within the allocated boundaries."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1617,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %176",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1617 operates on `pv_buf` with `size` as the length. `pv_buf` was just allocated immediately before this `memset` call using `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The `RETURN_IF((NULL == pv_buf), IV_FAIL)` macro ensures that `pv_buf` is not NULL. The `memset` size matches the size requested in the preceding allocation. Therefore, the `memset` is covered by the allocation size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1624,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %187",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1624 is within a loop. The size operand `i64 %187` is derived from `(MAX_NUM_4X4_COLS /* left */ + MAX_PROCESS_THREADS * (MAX_CTB_SIZE / 4)/* top */ + 1/* top right */) * sizeof(WORD32)` which is allocated with `pv_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);`. The `memset` itself is `memset(pv_buf, 0, size);`, covering the entire allocated buffer. However, inside the loop, the subsequent `memset` on line 1628 is `memset(ps_codec->as_process[i].pu4_pic_pu_idx_left, 0, sizeof(UWORD32) * MAX_CTB_SIZE / 4);`. The destination `ps_codec->as_process[i].pu4_pic_pu_idx_left` is an offset from `pv_buf`. The allocation for `pv_buf` is `size` which covers the *entire* buffer for all `MAX_PROCESS_THREADS`. The `memset` inside the loop uses `sizeof(UWORD32) * MAX_CTB_SIZE / 4` as its size. The loop iterates `MAX_PROCESS_THREADS` times. The total size written by these `memset` operations is `MAX_PROCESS_THREADS * (sizeof(UWORD32) * MAX_CTB_SIZE / 4)`. This value should be less than or equal to `size` allocated for `pv_buf`. If `MAX_PROCESS_THREADS * (MAX_CTB_SIZE / 4)` exceeds `(max_num_4x4_cols /* left */ + MAX_PROCESS_THREADS * (MAX_CTB_SIZE / 4)/* top */ + 1/* top right */)`, there would be an out-of-bounds write. While the first `memset` on line 1624 covers its entire allocation, the subsequent `memset`s in the loop do not have explicit bounds checks of their own against the *sub-segment* they are operating on, other than implicitly relying on the overall `pv_buf` allocation. The tainted operand for the *initial* `memset` on line 1624 is `size`. This `memset` is safe because it uses the allocated size. The prompt is asking about the `memset` at line 1624. There is no bounds check before the `memset` at line 1624 other than the `RETURN_IF((NULL == pv_buf), IV_FAIL);` which only checks for allocation failure, not size overflow relative to an implicit or explicit maximum. The `size` variable is derived from various input-derived quantities (`max_num_4x4_cols`, `MAX_PROCESS_THREADS`, `MAX_CTB_SIZE`). Although `MAX_PROCESS_THREADS` and `MAX_CTB_SIZE` appear to be constants, `max_num_4x4_cols` is likely derived from input video dimensions. No explicit check on `size` is visible before the allocation or the memset."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1633,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %203",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1633 is immediately preceded by an `pf_aligned_alloc` call, and the size used for `memset` is the exact same `size` variable that was passed to `pf_aligned_alloc`. There is also a `RETURN_IF((NULL == pv_buf), IV_FAIL);` check after the allocation. This means that if `pf_aligned_alloc` returns a non-NULL pointer, it has successfully allocated at least `size` bytes, and `memset` will operate within the bounds of that allocated memory. The analysis states that the `size` operand is INPUT-DERIVED and not a constant, but `pf_aligned_alloc` is expected to handle arbitrary valid sizes by returning NULL on failure, which is checked."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1642,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1642 operates on `pv_buf`, which is allocated with `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The `size` is calculated as `(max_num_4x4_cols + MAX_PROCESS_THREADS * (MAX_CTB_SIZE / 4) + 1) * sizeof(WORD32)`. The subsequent `memset` operations within the loop (`memset(ps_codec->as_process[i].pu4_pic_pu_idx_left, 0, sizeof(UWORD32) * MAX_CTB_SIZE / 4);`) and after the loop (`memset(ps_codec->as_process[0].pu4_pic_pu_idx_top, 0, sizeof(UWORD32) * (wd / 4 + 1));`) use pointers derived from `pv_buf` and potentially different sizes. The initial `memset` to zero fills the entire allocated buffer. However, the problem statement focuses on the `memset` at line 1642 itself. This `memset` is filling `pv_buf` with 0s for the entire `size` that was just allocated. The `pf_aligned_alloc` call acts as the allocation boundary. There's no additional check explicitly ensuring that `size` is not larger than what `pf_aligned_alloc` can actually return or that `pf_aligned_alloc` won't return a buffer smaller than requested while still being non-NULL. The `RETURN_IF((NULL == pv_buf), IV_FAIL);` only checks for `NULL`. If `pf_aligned_alloc` were to return a non-NULL pointer but for a smaller size than requested (e.g., due to an internal allocation failure for the full size), then the `memset` would write out of bounds. Without knowing the exact behavior guarantees of `pf_aligned_alloc`, we cannot be certain that the allocated size (`size`) is always exactly what was requested. Therefore, a bounds check covering the `memset`'s access within the `pv_buf` (i.e., that `size` does not exceed the actual allocated capacity if `pf_aligned_alloc` can return less than requested) is not explicitly visible."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %319",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1684 uses `size` as the size argument. This `size` variable is calculated immediately before the `pf_aligned_alloc` call, and then passed to `pf_aligned_alloc` to allocate `pu1_buf`. The `memset` then initializes this entire allocated buffer. Since the allocation size is precisely what is passed to `memset`, the `memset` operation is fully covered by the allocation. The `RETURN_IF((NULL == pu1_buf), IV_FAIL);` handles the case where allocation fails, ensuring `pu1_buf` is valid if `memset` is reached."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1833,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %565",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1833 uses `pu1_buf` and `size`. `pu1_buf` is the result of `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. A `NULL` check is performed on `pu1_buf` immediately after the allocation: `RETURN_IF((NULL == pu1_buf), IV_FAIL);`. If the allocation succeeds, `memset` is called with the allocated buffer and the calculated `size`. Therefore, the `memset` is covered by the allocation size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1882,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %687",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1882 operates on `pu1_buf` with `size`. The `pu1_buf` is allocated immediately before the `memset` by `ps_codec->pf_aligned_alloc` using the same `size` variable. The `RETURN_IF((NULL == pu1_buf), IV_FAIL);` ensures that the allocation was successful. Therefore, the `memset` is covered by the allocation size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1900,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %713",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1900 uses `size` as its length argument. This `size` is calculated by summing up `vert_bs_size`, `horz_bs_size`, `qp_size`, and `qp_const_flag_size`. Immediately before the `memset`, memory is allocated using `ps_codec->pf_aligned_alloc` with this exact `size` (plus an alignment argument of 128). The allocation is checked for `NULL` with `RETURN_IF((NULL == pu1_buf), IV_FAIL);`. If the allocation is successful, `pu1_buf` points to a buffer of at least `size` bytes, making the subsequent `memset` with `size` as the length a covered access within the allocated memory."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1924,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %757",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 1924 is immediately preceded by an `pf_aligned_alloc` call at line 1923, which allocates `size` bytes. The `memset` then clears `size` bytes from the allocated buffer `pv_buf`. The `RETURN_IF((NULL == pv_buf), IV_FAIL)` check ensures that `pv_buf` is a valid, non-NULL pointer. Therefore, the `memset` operates within the bounds of the newly allocated memory, covering the exact access. The size `i64 %757` corresponds to the `size` variable which is used directly for allocation and then for the `memset`."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 2785,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1005",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 2785 is copying `size` bytes from `ps_codec->s_parse.s_cabac.au1_ctxt_models` to `ps_codec->s_parse.s_cabac.au1_ctxt_models_sync`. The `size` is determined by `sizeof(ps_codec->s_parse.s_cabac.au1_ctxt_models)`. Both `au1_ctxt_models` and `au1_ctxt_models_sync` are members of the `s_cabac` struct within `ps_codec->s_parse`. Assuming `au1_ctxt_models_sync` is intended to be a backup of `au1_ctxt_models` and they are of the same size or `au1_ctxt_models_sync` is large enough to hold `au1_ctxt_models`, this `memcpy` should be safe. The size being copied is fixed and determined by the structure definition, not directly by user input, although the values within `au1_ctxt_models` might be input-derived. The only way this could be an OOB write is if `au1_ctxt_models_sync` is smaller than `au1_ctxt_models`, which would be a structural error, not a runtime OOB derived from input `size` calculation."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3268,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2295",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `i64 %2295` in the `memset` call corresponds to `(ctb_size / 8) * (ctb_size / 4) / 8 * 2`. The destination buffer `pu4_vert_bs` (and `pu4_horz_bs`) is derived from `ps_codec->s_parse.s_bs_ctxt.pu4_pic_vert_bs` with an offset calculated using `ps_codec->s_parse.i4_ctb_x`, `ps_codec->s_parse.i4_ctb_y`, and `bs_strd`. The `bs_strd` itself is `(ps_sps->i2_pic_wd_in_ctb + 1) * (ctb_size * ctb_size / 8 / 16)`. The `ctb_size` is a derived value from `sps_t` or `pps_t` structures (e.g., `i2_ctb_size`), which are usually validated during parsing. The expression for the size `(ctb_size / 8) * (ctb_size / 4) / 8 * 2` simplifies to `ctb_size * ctb_size / 128`. The offset calculated for `pu4_vert_bs` is `ps_codec->s_parse.i4_ctb_x * (ctb_size * ctb_size / 128) + ps_codec->s_parse.i4_ctb_y * bs_strd`. Given that `ctb_size` is likely a power of 2 (e.g., 16, 32, 64) in video decoding contexts, and `i2_pic_wd_in_ctb` represents the picture width in CTBs, the size and offset calculations appear to be derived from valid, spec-constrained parameters. Without seeing the allocation of `pu4_pic_vert_bs` and `pu4_pic_horz_bs` and the maximum possible values for `ctb_size`, `i2_pic_wd_in_ctb`, `i4_ctb_x`, and `i4_ctb_y`, it's difficult to definitively say there's an out-of-bounds access. However, these calculations are typical for traversing a CTB-based buffer, and the size being set to zero is a fraction of the CTB's boundary strength data. Such operations are usually carefully sized to fit within pre-allocated buffers based on video parameters. It is more likely to be a correctly bounded operation within the context of the HEVC standard."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3269,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2302",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size is calculated as `(ctb_size / 8) * (ctb_size / 4) / 8 * 2`. While `ctb_size` is derived from input, the expression implies `ctb_size` must be a multiple of 8 and 4. Typically `ctb_size` in HEVC is 16, 32, or 64. For these values, the size calculation results in small, non-negative values. The destination `pu4_vert_bs` and `pu4_horz_bs` are offset from `ps_codec->s_parse.s_bs_ctxt.pu4_pic_vert_bs` and `ps_codec->s_parse.s_bs_ctxt.pu4_pic_horz_bs` based on `ps_codec->s_parse.i4_ctb_x` and `ps_codec->s_parse.i4_ctb_y` which are within bounds of the picture dimensions. The `bs_strd` calculation also uses `ps_sps->i2_pic_wd_in_ctb` which should bound the CTB coordinates. Given the common values for `ctb_size` and the indexing based on picture/CTB dimensions, it's unlikely to be an out-of-bounds write. It's more likely that the size `i64 %2302` is just a derived value from configuration parameters that are properly constrained."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1510,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `size` is calculated based on `max_tile_cols` and `max_tile_rows`, which are derived from `ps_codec->i4_wd` and `ps_codec->i4_ht`. These dimensions are typically part of the video stream's header and can be controlled by an attacker. However, `wd` and `ht` are first passed through `ALIGN64`, ensuring they are multiples of 64. `max_tile_cols` and `max_tile_rows` are then calculated using integer division and addition, which should prevent arbitrary large values unless the input dimensions are also arbitrarily large. The size calculation `size = max_tile_cols * max_tile_rows; size *= sizeof(tile_t); size *= MAX_PPS_CNT;` looks like a standard memory allocation for an array of `tile_t` structures, repeated `MAX_PPS_CNT` times. Without knowing the constraints on `ps_codec->i4_wd`, `ps_codec->i4_ht`, `MIN_TILE_WD`, `MIN_TILE_HT`, `sizeof(tile_t)`, and `MAX_PPS_CNT`, it's hard to be certain, but this pattern often has internal checks or limitations on the maximum resolution. If the input `wd` and `ht` were sufficiently large to cause `size` to wrap around due to integer overflow, then the `memset` could become an out-of-bounds write. However, typical video codecs have limits on resolution, and if `size` is an `int` (as implied by `WORD32`), an overflow before multiplication by `sizeof(tile_t)` or `MAX_PPS_CNT` would be needed for a small allocated size. Given the context of allocating dynamic buffers, it's more likely that the calculated size is validated against system memory limits before allocation or implicitly capped by reasonable video dimensions. Since the multiplication is by `sizeof(tile_t)` (which is a fixed size) and `MAX_PPS_CNT` (also likely a fixed, small constant), an overflow would primarily be due to extremely large `max_tile_cols` or `max_tile_rows`. Without explicit information about how `ps_codec->i4_wd` and `ps_codec->i4_ht` are constrained, or if `size` can actually overflow before being passed to `memset`, it's difficult to confirm a `real_bug`. The code looks like a standard allocation, and the risk lies mainly in unhandled integer overflow of `size` or extremely large input dimensions exceeding system memory, which might lead to a denial-of-service rather than an arbitrary out-of-bounds write due to a small allocation. Being conservative, and assuming `ALIGN64` and subsequent calculations are meant to produce valid sizes within expected operational limits, I'll mark this as false, pending further proof of integer overflow or an allocation of a small buffer for a large calculated size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1529,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %51",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size is `i64 %51`, which is derived from `max_num_cu_cols / 4`, then `ALIGN4(size)`. `max_num_cu_cols` is `wd / MIN_CU_SIZE`, where `wd` is `ALIGN64(ps_codec->i4_wd)`. All these calculations (`ALIGN64`, division, `ALIGN4`) are deterministic and based on `ps_codec->i4_wd`, which is an input parameter to the codec. The `memset` is preceded by an `pf_aligned_alloc` call with the exact same `size`. As long as `pf_aligned_alloc` correctly allocates the requested size, the `memset` will operate within the allocated bounds. There is no indication of integer overflow in the size calculation itself leading to a smaller-than-intended allocation, nor is there a mismatch between the allocated size and the `memset` size. Therefore, there is no apparent out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1538,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand of `memset` is derived from `max_num_cu_cols` and `max_num_cu_rows`, which are calculated from `ps_codec->i4_wd` and `ps_codec->i4_ht` (width and height). These dimensions are typically input-derived from the video stream. However, the allocated buffer size is `max_num_cu_cols * max_num_cu_rows / 8`, which is then `ALIGN4`ed. The `memset` uses this `ALIGN4`ed size. The `pv_buf` is allocated using `ps_codec->pf_aligned_alloc` with the same `size`. As long as the allocation function correctly provides a buffer of the requested size, there should be no out-of-bounds write. The `ALIGN4` ensures the size is a multiple of 4, which is a common practice for memory operations and doesn't inherently introduce an overflow if the allocation matches the `ALIGN4`ed size. Therefore, this does not appear to be a real bug unless `pf_aligned_alloc` fails to allocate the correct size or `ALIGN4` introduces an unexpected truncation/overflow in the size calculation itself which is not evident here."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1547,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %78",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size for memset is calculated based on `max_num_cu_cols` and `max_num_cu_rows`, which are derived from `wd` and `ht` (aligned width and height of the video). These dimensions are typically constrained by the video standard (e.g., maximum resolution). The `pf_aligned_alloc` call immediately before the memset uses the same `size` value, and there is a `RETURN_IF((NULL == pv_buf), IV_FAIL);` check to ensure the allocation was successful. Assuming that `pf_aligned_alloc` returns a buffer of at least `size` bytes, and given that `wd` and `ht` are expected to be within reasonable bounds for video processing, it's unlikely to be an out-of-bounds write. The input derivation of `wd` and `ht` is controlled by the video stream's metadata, but typically there are checks at a higher level to ensure these values are valid and supported by the decoder's capabilities. If an attacker could provide an extremely large `wd` or `ht`, it would likely lead to an allocation failure rather than an out-of-bounds write after a successful allocation."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1556,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %93",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `i64 %93` for `memset` is derived from a `size` variable which is consistently calculated before each allocation and then passed to `pf_aligned_alloc` and `memset`. The `pf_aligned_alloc` function is checked for `NULL` return, and if it fails, the function returns `IV_FAIL`. This ensures that `memset` is only called on validly allocated memory, and the size used for `memset` is the same size that was requested for allocation. Thus, there is no out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1567,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %112",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `size` variable, which determines the allocation and memset size, is derived from `max_num_cu_cols` and `max_num_cu_rows`. These in turn are derived from `ps_codec->i4_wd` and `ps_codec->i4_ht`, which are width and height values. These values are passed through `ALIGN64`, ensuring they are positive and multiples of 64. The calculations for `size` involve division and multiplication, but no subtractions or operations that could lead to a negative `size`. The final `size` is also `ALIGN4`ed, further ensuring it's a valid positive size. There is an `(max_num_cu_cols + 8) * (max_num_cu_rows + 8)` term, which means `max_num_cu_cols` and `max_num_cu_rows` cannot be so large that their sum overflows. However, since they are derived from `i4_wd` and `i4_ht` which are `WORD32` (int32_t), and typical video resolutions fit within this, overflow seems unlikely for standard use cases. Even if `wd` and `ht` are large, intermediate products like `max_tile_cols * max_tile_rows` are calculated, and `size` is capped by `WORD32` max. If any intermediate calculation of `size` were to overflow, it would be caught by `pf_aligned_alloc` returning NULL, which is handled by `RETURN_IF`. Therefore, `size` should always be a non-negative value that accurately reflects the intended allocation size, and the `memset` will operate within the bounds of the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1617,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %176",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 1617 uses `size` as its size operand. This `size` is immediately preceded by a `pf_aligned_alloc` call using the *same* `size` as the allocation size. The code includes a `RETURN_IF((NULL == pv_buf), IV_FAIL);` check right after `pf_aligned_alloc`. This pattern indicates that the memory was successfully allocated with the requested `size`, and then `memset` is called on that allocated memory using the exact same size. Therefore, there is no out-of-bounds write beyond the allocated buffer. The tainted `size` is properly used for both allocation and initialization."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1624,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %187",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 1624 uses `size` as its size argument. This `size` variable is computed using `max_num_4x4_cols`, `MAX_PROCESS_THREADS`, and `MAX_CTB_SIZE`. The buffer `pv_buf` is allocated immediately before the `memset` call with this same `size`. Therefore, the `memset` operates within the bounds of the allocated buffer. The taint analysis indicates that `size` is input-derived, but as long as `pf_aligned_alloc` correctly allocates the requested size (which is assumed for a well-behaved allocator), and `memset` uses that same size, there is no out-of-bounds write here. The subsequent loop for `MAX_PROCESS_THREADS` initializes parts of this buffer, but this specific `memset` covers the entire buffer initially."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1633,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %203",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 1633 is preceded by an allocation call `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The `size` variable, which is used as the size argument for `memset`, is directly derived from the value returned by `pf_aligned_alloc`. Assuming `pf_aligned_alloc` correctly allocates `size` bytes, the `memset` will operate within the allocated bounds. The taint analysis indicates `size` is input-derived, but this pattern (allocate-then-memset with the same size) is generally safe unless there's an issue with the allocator itself, or an integer overflow when calculating `size` before allocation. There is no immediate indication of an integer overflow in the calculation of `size` for *this specific memset* in the provided snippet; the `size` at this point is calculated as `(max_num_4x4_cols + MAX_PROCESS_THREADS * (MAX_CTB_SIZE / 4) + 1) * sizeof(WORD32)`, which is then `ALIGN4`'d. Without further context on the values of `max_num_4x4_cols`, `MAX_PROCESS_THREADS`, and `MAX_CTB_SIZE`, we cannot definitively say there's an overflow. However, the core issue of an out-of-bounds write due to `memset` writing past the allocated buffer is unlikely given the direct dependency on the allocation size. The subsequent `memset` operations within the loop (`for(i = 0; i < MAX_PROCESS_THREADS; i++)`) are also carefully calculated based on `sizeof(UWORD32) * MAX_CTB_SIZE / 4` and `sizeof(UWORD32) * (wd / 4 + 1)`, within the previously allocated `pv_buf` that accounted for all these segments. Therefore, it's not a clear out-of-bounds bug from the provided snippet."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1642,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'size' variable used in memset is derived from several input-derived values (max_num_cu_cols, max_num_cu_rows, max_tile_cols, max_ctb_rows, max_ctb_cnt, ht, wd). However, in every instance where 'size' is used for a memset, it is immediately preceded by an allocation `pv_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);` and a `RETURN_IF((NULL == pv_buf), IV_FAIL);` check. The `pf_aligned_alloc` function is assumed to return a buffer of at least 'size' bytes. Therefore, as long as `pf_aligned_alloc` behaves as expected (i.e., it doesn't return a buffer smaller than requested without indicating failure), the memset operation should not go out of bounds. The crucial assumption is that the allocator correctly handles the requested size, and the program checks for allocation failure. There's no obvious arithmetic overflow or underflow in the size calculations leading to a small allocated buffer and a large memset size, given the typical ranges of video parameters. The `ALIGN4` macro also seems to correctly round up the size, not introducing a vulnerability."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %319",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted size operand (`i64 %319`) is used in a `memset` operation. This `memset` follows an `pf_aligned_alloc` call, and the `size` variable used in `memset` is the same `size` that was passed to `pf_aligned_alloc`. This indicates that the `memset` is clearing the entire allocated buffer. Assuming `pf_aligned_alloc` correctly allocates memory of the requested `size`, there is no out-of-bounds write. The `size` variable is derived from `max_ctb_rows`, `max_ctb_cols`, `ht`, `wd`, and `MAX_PROCESS_THREADS`, all of which are likely derived from input video parameters. However, the allocation and `memset` logic suggests that the memory is properly managed based on these derived sizes. Without further context on how `max_ctb_rows`, `max_ctb_cols`, `ht`, `wd` are constrained or validated, it's hard to definitively say that `pf_aligned_alloc` would never return a smaller buffer than requested, but based on the provided snippet, the `memset` itself is not the source of the out-of-bounds access. The bug would be in `pf_aligned_alloc` or the size calculation leading to an integer overflow if it were to occur."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1833,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %565",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation is performed on a buffer `pu1_buf` that was just allocated using `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The `size` argument to `memset` is the same `size` that was passed to the allocation function. Therefore, as long as `pf_aligned_alloc` returns a valid buffer of at least `size` bytes, the `memset` operation will not go out of bounds. The code includes a `RETURN_IF((NULL == pu1_buf), IV_FAIL);` check, indicating that a NULL return from allocation is handled. There is no obvious arithmetic error in the calculation of `size` that would cause an undersized allocation to be passed to `memset`. The `size` is an accumulation of `vert_bs_size`, `horz_bs_size`, `qp_size`, and `qp_const_flag_size`, all derived from `wd` and `ht` (width and height), but these are just sizing parameters for the allocation, not directly used in a way that implies an overflow during the `memset` itself after allocation."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1882,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %687",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'size' variable used in memset is derived from several calculations involving 'wd' (width) and 'ht' (height). These calculations are all multiplications, divisions, and additions of 'wd', 'ht', and various constants (MAX_CTB_SIZE, MIN_TU_SIZE, MIN_CTB_SIZE, MIN_CU_SIZE). While 'wd' and 'ht' are typically input-derived, the subsequent allocation `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` uses this calculated 'size'. The `memset(pu1_buf, 0, size)` then operates on the buffer that was just allocated with that exact 'size'. Therefore, as long as `pf_aligned_alloc` correctly allocates the requested size (and it returns NULL if not), the `memset` operation will not cause an out-of-bounds write. The taint analysis correctly identifies 'size' as input-derived, but the allocation and memset operations are consistent with each other."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1900,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %713",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `size` variable, which determines the allocation and `memset` size, is calculated based on input-derived values (`ht`, `wd`). However, the `memset` occurs immediately after `ps_codec->pf_aligned_alloc` with the exact same `size`. The allocation includes a `RETURN_IF((NULL == pu1_buf), IV_FAIL)` check, which guards against allocation failure. As long as `pf_aligned_alloc` correctly allocates `size` bytes, the `memset` operation will not go out of bounds. The critical point is whether `size` itself can become excessively large, leading to an integer overflow during its calculation or an OOM error, but the `memset` operation itself is not a direct out-of-bounds write relative to the *allocated* buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1924,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %757",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size variable for the `memset` operation is calculated based on various sizes (`vert_bs_size`, `horz_bs_size`, `qp_size`, `qp_const_flag_size`), which are derived from `ht` and `wd`. The memory for `pu1_buf` is allocated using `ps_codec->pf_aligned_alloc` with the exact same `size` value that is later used in `memset`. As long as the `pf_aligned_alloc` call succeeds, the `memset` operation will write within the bounds of the allocated buffer. There is no clear path where `size` could become larger than the allocated memory, leading to an out-of-bounds write."
+   }
+  ]
+ }
+]

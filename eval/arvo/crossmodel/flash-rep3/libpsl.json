@@ -1,0 +1,61 @@
+[
+ {
+  "id": "39226",
+  "project": "libpsl",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "domain_to_punycode",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 579 is preceded by a bounds check `if (outlen + labellen + (e != NULL) >= outsize) return 1;` which ensures that `outlen + labellen` (plus an optional dot) does not exceed `outsize`. The `memcpy` uses `labellen` as its size argument and writes to `out + outlen`. This guard sufficiently covers the access."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 257 copies `sizeof(psl_entry_t)` bytes from `elem` to `elemp`. The `elemp` buffer is allocated immediately before the `memcpy` with `malloc(sizeof(psl_entry_t))`, which is precisely the size needed for the copy. Therefore, the destination buffer `elemp` is guaranteed to be large enough. The source `elem` is a `const psl_entry_t *` which is a pointer to a `psl_entry_t` object, so it's assumed to be a valid pointer to an object of at least `sizeof(psl_entry_t)` bytes. There is no explicit bounds check on `elem` itself, but the question is about the src-ptr operand of memcpy. Since `elem` is a pointer to a `const psl_entry_t`, it's implicitly assumed to point to a valid `psl_entry_t` object of at least the size being copied. Therefore, the access is covered."
+   },
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 579 is `memcpy(out + outlen, label, labellen);`. The `src-ptr` operand is `label`, and the size is `labellen`. This operation is guarded by the condition `if (outlen + labellen + (e != NULL) >= outsize) return 1;`. This check ensures that the total length of data to be copied (`outlen` + `labellen` + 0 or 1 for the dot) does not exceed the available buffer size `outsize`. Therefore, `label` will always be within the bounds of `domain` (the input string), and `labellen` will be a valid length from `domain`. The destination buffer `out` is also checked against overflow."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation copies `sizeof(psl_entry_t)` bytes from `elem` to `elemp`. The `elemp` pointer is allocated using `malloc(sizeof(psl_entry_t))`, which ensures that `elemp` points to a memory block large enough to hold a `psl_entry_t` object. Therefore, the destination buffer `elemp` is correctly sized for the copy, preventing an out-of-bounds write. The `src-ptr` (`elem`) is an input parameter, but its usage as the source for `sizeof(psl_entry_t)` bytes doesn't immediately indicate an out-of-bounds read if `elem` itself is assumed to be a valid `psl_entry_t` pointer. The taint analysis might flag `elem` because it's an input, but the `memcpy` itself is safe regarding the size, assuming `elem` points to at least `sizeof(psl_entry_t)` readable bytes, which is a standard assumption for function arguments of pointer type."
+   }
+  ]
+ }
+]

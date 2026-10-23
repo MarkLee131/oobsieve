@@ -1,0 +1,9 @@
+[
+ {
+  "id": "52006",
+  "project": "lldpd",
+  "build_ok": false,
+  "recall": "error:ServerError",
+  "tb": ")\n  File \"/home/likaixuan/.local/lib/python3.10/site-packages/google/genai/errors.py\", line 148, in raise_error\n    raise ServerError(status_code, response_json, response)\ngoogle.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}\n"
+ }
+]

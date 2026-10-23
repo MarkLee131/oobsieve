@@ -1,0 +1,41 @@
+[
+ {
+  "id": "23499",
+  "project": "clamav-devel",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "cli_codepage_to_utf8",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 256 copies `len` bytes from `data` to `b->data[b->len]`. Prior to the memcpy, there's a check `if (b->size < b->len + (off_t)len)` (lines 222 and 241). If this condition is true, `b->data` is reallocated to a larger size (`b->size + growth` or `b->size + (len * 4)`), which is sufficient to accommodate `b->len + (off_t)len` bytes. The `growth` calculation specifically considers `len` to ensure enough space is added. Therefore, the destination buffer `b->data` is guaranteed to have enough space to hold the `len` bytes being copied."
+   },
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code first checks `b->size < b->len + (off_t)len` before reallocating. If the `b->data` buffer is insufficient, it is grown. The growth calculation ensures that there is enough space for `len` new bytes, plus some extra. Specifically, in the `HAVE_CLI_GETPAGESIZE` block, `growth` is at least `pagesize`, and if `len` is larger, `growth` is `((len / pagesize) + 1) * pagesize`. This means `b->size + growth` will be large enough to accommodate `b->len + len`. In the `else` block (without `HAVE_CLI_GETPAGESIZE`), `b->size` is increased by `(off_t)len * 4`, which is also sufficiently large. The `memcpy` then copies `len` bytes into `b->data` starting at `b->len`. Given the preceding reallocation logic, `b->data[b->len]` to `b->data[b->len + len - 1]` should be within the allocated `b->size`."
+   }
+  ]
+ }
+]

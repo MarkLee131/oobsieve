@@ -1,0 +1,201 @@
+[
+ {
+  "id": "27818",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "hit",
+  "gt_func": "Lizard_decompress_safe",
+  "n_gt_cands": 7,
+  "n_gt_confirmed": 6,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 172,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %54",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 172 copies `length` bytes from `ip` to `op`. The bounds check `if (ip + length > iend || op + length > oend)` at line 170 ensures that both the source buffer (`ip`) and the destination buffer (`op`) have enough space for `length` bytes. However, the analysis states that `size+src-ptr+dst-ptr` are all INPUT-DERIVED. While `length` is checked against `iend` and `oend` (which are derived from `inputSize` and `outputSize`, respectively), there is no specific information provided about `ip`, `op` being part of a larger allocated buffer which `iend` and `oend` are meant to protect. If `ip` or `op` are themselves not pointing to sufficiently sized buffers determined by `inputSize` or `outputSize`, then this check is insufficient. Since the question asks to assume `real_bug=true` unless a *specific sufficient guard* is visible, and the information provided doesn't explicitly guarantee that `ip` and `op` are indeed within the bounds defined by `iend` and `oend` at the time of the check (other than relative to each other), I'm defaulting to `true`. While `op + length > oend` is a check for the destination, and `ip + length > iend` for the source, the 'tainted operand size+src-ptr+dst-ptr' could imply issues with the base pointers `ip` and `op` themselves, which are not explicitly bounded by checks on the path to the memcpy at this point, only that they are not past their respective ends after adding 'length'. The initial `inputSize` and `outputSize` are used to define `iend` and `oend`, but the specific derivation of `ip` and `op` could lead to issues. Without further context, it's safer to mark as a potential bug."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 234,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 44",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 234 copies `length` bytes from `ip` to `op`. The `src-ptr` (`ip`) is an input-derived value. The check `if (ip + length > iend || op + length > oend)` on line 228 ensures that `ip + length` does not exceed `iend`. However, the size of the `memcpy` is `length`, but the provided trace is `i64 44`. The check `ip + length > iend` guards against `ip` reading beyond `iend` for `length` bytes. Without knowing what `i64 44` refers to, and given the general complexity of the decompression logic and multiple `memcpy` operations, it's safer to default to `true` given the prompt's instruction to do so if unsure. The `length` used in the check is a 24-bit little-endian value read from `ip` at line 227, which is a variable value. Therefore, it's not possible to definitively state that `length` will always be exactly `44` or that the check at line 228 covers all possible `src-ptr` accesses of size `44` if `length` can be different. The analysis cannot assume `length` is always 44 based on the line 234 information alone."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 117,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %556",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memmove` call is at line 117. The provided code snippet only goes up to line 111. Without the full function body, it's impossible to determine if there's a bounds check covering the `memmove` operation. Therefore, defaulting to `real_bug=true`."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 123,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %583",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 123 is within the `Lizard_readStream` function, specifically in the `else` branch when `flag` is true. The `size` operand for this `memcpy` is `comprStreamLen`. While there's a check `*ip + comprStreamLen > iend - 6` which seems to ensure the source buffer is not read out of bounds, there is no explicit check to ensure that the destination buffer `op` can accommodate `streamLen` bytes (which is then used as `res` in `HUF_decompress`) or that `op + streamLen` does not exceed `oend`. The condition `(op > oend - streamLen)` checks that the destination pointer is not already past the end when considering the stream length, but it doesn't guarantee enough space within `op` and `oend`."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 130,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %584",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 130 uses `i64 %584` as its size operand. Looking at the provided code snippet, there is no explicit bounds check (e.g., `if (off+n > cap)`) that covers this specific `memcpy` operation before it is executed. The function `Lizard_readStream` has several return 0 conditions that seem to be some kind of checks, but none of them clearly and explicitly ensure that `streamLen` (which is likely the `i64 %584` value or related to it, although not directly visible in the snippet) will not cause an overflow when copying to `op`. Specifically, the `if ((op > oend - streamLen) || (*ip + comprStreamLen > iend - 6)) return 0;` line checks for potential output buffer overflow. However, it is not possible to confirm that this check is sufficient and covers the exact access of the memcpy, without knowing how streamLen is computed."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1036",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 180 has `length` as its size operand. The check `if (ip + length > iend || op + length > oend)` ensures that the source buffer (`ip`) and destination buffer (`op`) have enough space for `length` bytes. However, the problem statement indicates that `i64 %1036` is the tainted size, which is not `length` in this context. The context provided does not show a specific check covering the tainted `i64 %1036` against the bounds of `op` (destination) or `ip` (source). Without a clear guard for `i64 %1036`, it's assumed to be a potential bug."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1037",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 187 is within an `if` block that checks `if (ip + length > iend || op + length > oend)`. This explicitly checks if the source buffer (`ip`) would read beyond `iend` and if the destination buffer (`op`) would write beyond `oend` based on the `length`. The `length` variable, which is `i64 %1037` in the provided context, is derived from `MEM_readLE24(ip)`. Therefore, the `memcpy` is guarded by a bounds check `op + length > oend` that covers this exact access."
+   },
+   {
+    "func": "MEM_read16",
+    "line": 146,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 146 is inside the `MEM_read16` function. The provided code snippet does not include the definition of `MEM_read16`. Without the definition of `MEM_read16`, it's impossible to determine if there are any bounds checks covering the `src-ptr` operand for a read of 2 bytes. Therefore, by default, `real_bug` is true."
+   },
+   {
+    "func": "Lizard_copy8",
+    "line": 342,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation is at line 342 in the `Lizard_copy8` function. This specific function is not present in the provided C code snippet. The provided code contains functions like `Lizard_decompress_generic`, `Lizard_decompress_safe`, `Lizard_createStreamDecode`, etc. Without the definition of `Lizard_copy8`, it's impossible to determine if there's a bounds check covering the `memcpy` operation's `src-ptr` with a size of 8. Therefore, defaulting to `real_bug=true`."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 172,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %54",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is preceded by a check: `if (ip + length > iend || op + length > oend) { LIZARD_LOG_DECOMPRESS(\"UNCOMPRESSED ip[%p]+length[%d] > iend[%p]\\n\", ip, length, iend); goto _output_error; }`. This check ensures that both the source buffer (`ip`) and the destination buffer (`op`) have enough space to accommodate `length` bytes. If either buffer would be overread or overwritten, the code jumps to `_output_error`, preventing an out-of-bounds access. Therefore, the `memcpy` is guarded against out-of-bounds conditions."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 234,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 44",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `src-ptr` is `ip` which comes from `source` + `offset`. The size is `length` which is also read from the input stream. However, there's a bounds check `if (ip + length > iend || op + length > oend) { ... goto _output_error; }` right before the `memcpy`. `iend` is `source + inputSize` and `oend` is `dest + outputSize`. This check ensures that `ip + length` does not exceed `iend`, which means `ip` plus the amount to copy (`length`) stays within the bounds of the input buffer (`source` to `source + inputSize`). Therefore, the `memcpy` will not read out-of-bounds from the `src-ptr` (`ip`)."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 117,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %556",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted size expression `i64 %556` for `memmove` is part of the `Lizard_decompress_generic` function. This function takes an `outputSize` argument which limits the destination buffer. There is a check `if (op > oend - streamLen)` which translates to `if (current_output_pointer > (output_buffer_start + outputSize) - streamLength)`. This explicitly checks if the current operation would write past the end of the `oend` buffer, which is determined by `outputSize`. If this condition is true, it returns 0 (an error), preventing the `memmove` from occurring with a size that would overflow the buffer. This makes the code robust against an out-of-bounds write to the destination buffer."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 123,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %583",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet does not contain the `memcpy` call at line 123. The function `Lizard_decompress_safe` is mentioned in the prompt, but its implementation is not included. Without the relevant code, it's impossible to determine if a real bug exists. The `memcpy` could be guarded by checks not visible in the given context."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 130,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %584",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet for `Lizard_decompress_safe` does not contain a `memcpy` call at line 130. The `memcpy` operation is not visible in the provided code, and without the context of the `memcpy` call and how the tainted `size` (i64 %584) is used in relation to `src-ptr` and `dst-ptr`, it's impossible to determine if there's a real out-of-bounds vulnerability. The available code is primarily function declarations and setup, with the actual decompression logic likely being in the `Lizard_decompress_generic` function or its called sub-functions, which are not fully provided here. Therefore, I cannot confidently declare this a real bug based on the given information."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1036",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is preceded by two bounds checks: `if (ip + length > iend || op + length > oend)`. The `ip + length > iend` check ensures the source buffer has enough data, and `op + length > oend` ensures the destination buffer (`op`) can accommodate the `length` bytes. If either of these conditions is true, the code jumps to `_output_error`, preventing an out-of-bounds write or read. Therefore, the `memcpy` itself is guarded against out-of-bounds access."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1037",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is guarded by `if (ip + length > iend || op + length > oend) { ... goto _output_error; }`. This check ensures that both the source buffer (`ip`) and the destination buffer (`op`) have enough space to accommodate `length` bytes. `length` is an input-derived value, but the explicit checks against `iend` (input end) and `oend` (output end) prevent an out-of-bounds access. If the condition is true, the code jumps to `_output_error`, which handles the error gracefully without performing the `memcpy`."
+   },
+   {
+    "func": "MEM_read16",
+    "line": 146,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is incomplete. The `memcpy` call at line 146 is within the `MEM_read16` function, but the definition of `MEM_read16` is not present in the given code. Without the definition of `MEM_read16`, it's impossible to analyze how `src-ptr` is derived and whether it can lead to an out-of-bounds access. The `memcpy` itself is not shown in the provided code."
+   },
+   {
+    "func": "Lizard_copy8",
+    "line": 342,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The provided code snippet is a high-level function `Lizard_decompress_safe_usingDict` which then calls `Lizard_decompress_generic`. The `memcpy` at line 342 is not directly visible in this snippet. The `src-ptr` operand is flagged as input-derived. However, the surrounding code shows careful handling of `dictSize` and `dictStart` when `dictSize == 0`, routing it to `noDict` and `NULL` respectively. This suggests that the dictionary handling, which `src-ptr` likely pertains to, is being managed. Without the actual `memcpy` call at line 342 and the context within `Lizard_decompress_generic` where `src-ptr` is derived, it's impossible to confirm a bug. The current snippet does not provide enough information to definitively state that an out-of-bounds access will occur due to an input-derived `src-ptr`."
+   }
+  ]
+ }
+]

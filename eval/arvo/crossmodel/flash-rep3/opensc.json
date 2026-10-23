@@ -1,0 +1,135 @@
+[
+ {
+  "id": "22967",
+  "project": "opensc",
+  "build_ok": false,
+  "recall": "error:ServerError",
+  "tb": ")\n  File \"/home/likaixuan/.local/lib/python3.10/site-packages/google/genai/errors.py\", line 148, in raise_error\n    raise ServerError(status_code, response_json, response)\ngoogle.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}\n"
+ },
+ {
+  "id": "32202",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "sc_pkcs15emu_oberthur_add_pubkey",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "sc_pkcs15emu_oberthur_add_pubkey",
+    "line": 631,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %118",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 631 copies `len` bytes from `info_blob + offs + 2` to `key_info.id.value`. There is a check at line 628: `if (len == 0 || len > sizeof(key_info.id.value) || offs + 2 + len > info_len)` which ensures that `len` is not zero, is within the bounds of `key_info.id.value`, and that `offs + 2 + len` does not exceed `info_len`. This last condition covers the read from `info_blob`, ensuring `info_blob + offs + 2` to `info_blob + offs + 2 + len - 1` is within `info_blob`'s allocated size `info_len`."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_prvkey",
+    "line": 849,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %207",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 849 uses `len` as the size, which is derived from `*(info_blob + offs + 1) + *(info_blob + offs) * 0x100`. While there are checks for `len + offs + 2 > info_len` to ensure `info_blob` is not over-read, there is no check to ensure `len` does not exceed the size of the destination buffer `kinfo.id.value`. The previous check `len > sizeof(kinfo.id.value)` correctly identifies an invalid length, but the `memcpy` is not within its scope."
+   },
+   {
+    "func": "sc_oberthur_parse_tokeninfo",
+    "line": 375,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 375 uses `buff` as the source pointer and copies `0x20` bytes. Immediately preceding this, at line 370, there is a bounds check: `if (!buff || len < 0x24) LOG_TEST_RET(ctx, SC_ERROR_INVALID_ARGUMENTS, \"Cannot parse token info\");`. Since `0x20` is less than `0x24`, this check ensures that `buff` has at least `0x24` bytes available, thus covering the `memcpy` of `0x20` bytes from `buff`."
+   },
+   {
+    "func": "sc_oberthur_parse_containers",
+    "line": 434,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 36",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 434 copies 36 bytes into `cont->uuid` from `ptr + 2`. The `ptr` itself is derived from `buff + offs + 2`. The loop condition `offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len` ensures that there are enough bytes in `buff` for the entire `memcpy` operation (`buff[offs + 2 + 2+2+2 + 2+2+2 + 2]` to `buff[offs + 2 + 2+2+2 + 2+2+2 + 2 + 36 - 1]`). However, the `memcpy` uses `ptr + 2`, which is equivalent to `buff + offs + 2 + 2`. The guard in the `for` loop `offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len` covers `buff[offs + 2 + 2+2+2 + 2+2+2 + 2 + 36 - 1]`. The `memcpy` accesses `buff + offs + 2 + 2` to `buff + offs + 2 + 2 + 36 - 1`. This range is `buff + offs + 4` to `buff + offs + 39`. The loop condition `offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len` simplifies to `offs + 2 + 8 + 8 + 2 + 36 <= len`, which is `offs + 56 <= len`. So, the condition ensures that `buff[offs + 55]` is accessible. However, the `memcpy` reads from `ptr + 2` with size 36. `ptr` is `buff + offs + 2`. So the read starts at `buff + offs + 2 + 2 = buff + offs + 4`. The end of the read is `buff + offs + 4 + 36 - 1 = buff + offs + 39`. The existing check `offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len` means `offs + 56 <= len`. This condition does cover the access up to `buff[offs + 39]`. So the access is covered."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_cert",
+    "line": 717,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %124",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy operation at line 717 copies `len` bytes from `info_blob + offs + 2`. The size `len` is read from `*(info_blob + offs + 1) + *(info_blob + offs) * 0x100`. Immediately before the memcpy, there is a check: `if (len + offs + 2 > info_len)` at line 713. If this condition is true, the function logs an error and returns, preventing the memcpy from being executed with an out-of-bounds source read. This check ensures that `info_blob + offs + 2 + len` does not exceed `info_len`, thus covering the source buffer boundary."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_pubkey",
+    "line": 631,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %118",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 631 copies `len` bytes from `info_blob + offs + 2` to `key_info.id.value`. The `len` variable is checked to ensure it is not greater than `sizeof(key_info.id.value)` (which is `SC_PKCS15_MAX_ID_SIZE`, typically 20 bytes for SHA1) and that `offs + 2 + len` does not exceed `info_len`, the total size of the allocated `info_blob`. These checks prevent an out-of-bounds read from `info_blob` and an out-of-bounds write to `key_info.id.value`."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_prvkey",
+    "line": 849,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %207",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code carefully checks the length 'len' against 'info_len' before the memcpy operation. Specifically, the check `if (len + offs + 2 > info_len)` ensures that there are enough bytes remaining in `info_blob` for `len` bytes to be copied from `info_blob + offs + 2`. If this check fails, the function returns, preventing an out-of-bounds read. Additionally, the length 'len' is checked against `sizeof(kinfo.id.value)` to prevent an overflow of the destination buffer `kinfo.id.value`. Therefore, the memcpy is guarded against out-of-bounds access on both source and destination."
+   },
+   {
+    "func": "sc_oberthur_parse_tokeninfo",
+    "line": 375,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 375 copies `0x20` (32) bytes from `buff` into `label`. The `label` buffer is declared as `char label[0x21]`, which is 33 bytes in size. This means there is enough space in `label` to accommodate the 32 bytes from `buff` plus a null terminator, without overflowing the buffer. The `len` check `len < 0x24` ensures that `buff` itself has at least 36 bytes, so `buff` is guaranteed to be large enough to provide the `0x20` bytes. Therefore, no out-of-bounds write occurs."
+   },
+   {
+    "func": "sc_oberthur_parse_containers",
+    "line": 434,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 36",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` in question for the `memcpy` is `ptr + 2`. The `ptr` itself is derived from `buff + offs + 2`. The size of the `memcpy` is `36`. The loop condition `offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len` explicitly checks for enough remaining `len` to read all the fields, including the 36 bytes for `cont->uuid`. Specifically, `offs + 2 + (6 * 2) + 2 + 36 <= len` simplifies to `offs + 52 <= len`. The `ptr` advances by `(6 * 2)` bytes before `ptr + 2` is used as the source for the `memcpy`. So, the `memcpy` reads from `buff + offs + 2 + (6 * 2) + 2 = buff + offs + 16`. The largest index accessed is `buff + offs + 16 + 36 - 1 = buff + offs + 51`. The loop condition ensures `offs + 51` is always less than `len` (because `offs + 52 <= len` implies `offs + 51 < len`), preventing an out-of-bounds read from `buff`. Therefore, the `memcpy` operation is safely bounded by `len`."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_cert",
+    "line": 717,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %124",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size for memcpy is `len`, which is read from `info_blob`. However, `len` is checked against `sizeof(cinfo.id.value)` before the memcpy. If `len` is greater, the function returns an error, preventing an overflow. The source `info_blob + offs + 2` is also checked to ensure it does not exceed `info_len` (`len + offs + 2 > info_len`). Therefore, the memcpy operation appears to be safely bounded."
+   }
+  ]
+ },
+ {
+  "id": "16614",
+  "project": "opensc",
+  "build_ok": false,
+  "recall": "error:ServerError",
+  "tb": ")\n  File \"/home/likaixuan/.local/lib/python3.10/site-packages/google/genai/errors.py\", line 148, in raise_error\n    raise ServerError(status_code, response_json, response)\ngoogle.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}\n"
+ }
+]

@@ -1,0 +1,61 @@
+[
+ {
+  "id": "9325",
+  "project": "mupdf",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "next_null",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "next_null",
+    "line": 70,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %104",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memmove` at line 70 is moving `nbytes_in_buffer` bytes from `stm->rp` to `state->buffer`. The `nbytes_in_buffer` variable is derived from `state->extras`, which is an `unsigned int` and is INPUT-DERIVED. The source pointer `stm->rp` is also INPUT-DERIVED (it's the current read pointer within the `state->buffer` from a previous read). While `state->buffer` is a fixed-size array (4096 bytes), there is no explicit bounds check ensuring that `stm->rp` + `nbytes_in_buffer` does not read past the end of `state->buffer` or that `nbytes_in_buffer` is not greater than `sizeof(state->buffer)`."
+   },
+   {
+    "func": "fz_open_null_n_terminator",
+    "line": 152,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 152 copies `nranges * sizeof(*ranges)` bytes from `ranges` to `state->ranges`. The `state->ranges` buffer is allocated with `fz_calloc(ctx, nranges, sizeof(*ranges))`. This allocation is only sufficient if `nranges` is non-negative. However, `nranges` is an `int` and could be negative. If `nranges` is negative, the allocation `nranges * sizeof(*ranges)` would be a large positive number due to integer overflow, leading to a small allocation, then the `memcpy` would read or write out of bounds. The code doesn't explicitly check `nranges >= 0` before the allocation and memcpy."
+   },
+   {
+    "func": "next_null",
+    "line": 70,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %104",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memmove` operation at line 70 is: `memmove(state->buffer, stm->rp, nbytes_in_buffer);`. The size operand `nbytes_in_buffer` is initialized from `state->extras`, which is of type `unsigned int`. `state->extras` represents the number of 'extra' bytes that were in the buffer from a previous read, potentially part of an `endstream` marker. The `stm->rp` pointer points into `state->buffer`. This `memmove` is consolidating data within the `state->buffer`. The `nbytes_in_buffer` value is derived from `state->extras`, which should reflect a valid count of bytes already present in the buffer. The maximum value for `state->extras` is bounded by `sizeof(state->buffer)` as data is always copied into `state->buffer` and `state->extras` tracks part of that. The source `stm->rp` is also within `state->buffer`. The destination `state->buffer` is the start of the buffer. Therefore, `nbytes_in_buffer` will not exceed the buffer's capacity, and both source and destination are within the bounds of `state->buffer`."
+   },
+   {
+    "func": "fz_open_null_n_terminator",
+    "line": 152,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand is constrained by `if (state->size > sizeof(state->buffer)) state->size = sizeof(state->buffer);` and then `if (n > size - nbytes_in_buffer) n = size - nbytes_in_buffer;`. The `memcpy` uses `n` as the size argument and `stm->wp` as the destination. `stm->wp` is `state->buffer` plus `nbytes_in_buffer`, and `nbytes_in_buffer` is incremented by `n` in each iteration. The maximum value for `n` is `size - nbytes_in_buffer`, which effectively means `stm->wp` will not exceed `state->buffer + size`. Since `size` is capped at `sizeof(state->buffer)`, the `memcpy` destination `stm->wp + n` will not write beyond the bounds of `state->buffer`."
+   }
+  ]
+ }
+]
