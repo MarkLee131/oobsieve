@@ -1,0 +1,61 @@
+[
+ {
+  "id": "39226",
+  "project": "libpsl",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "domain_to_punycode",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The check `outlen + labellen + (e != NULL) >= outsize` only validates capacity for the destination buffer `out`, not the source buffer `label`/`domain`. There is no bounds guard validating the source buffer's allocated length or packet boundary against `labellen`."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds or validity check on the pointer `elem` before copying `sizeof(psl_entry_t)` bytes from it into the newly allocated memory."
+   },
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The length `labellen` copied by `memcpy(out + outlen, label, labellen)` is derived directly from `strchr(label, '.') - label` or `strlen(label)`, ensuring that `label` contains at least `labellen` valid bytes. Additionally, buffer bounds are checked against `outsize` before the copy (`outlen + labellen + (e != NULL) >= outsize`). Thus, there is no out-of-bounds read or write."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy accurately copies sizeof(psl_entry_t) bytes from the source pointer elem of type const psl_entry_t * into newly allocated memory of the same size sizeof(psl_entry_t). This is a standard struct-cloning pattern and does not represent an out-of-bounds read."
+   }
+  ]
+ }
+]

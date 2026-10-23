@@ -1,0 +1,61 @@
+[
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "search_valid_dns",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 0,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `search_valid_dns`, `flow->packet.payload[x]` is copied via `memcpy` using `sizeof(struct ndpi_dns_packet_header)` (12 bytes) without any preceding bounds check against the packet payload length."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

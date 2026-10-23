@@ -1,0 +1,521 @@
+[
+ {
+  "id": "65060",
+  "project": "libavc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "isvcd_start_of_pic",
+  "n_gt_cands": 15,
+  "n_gt_confirmed": 7,
+  "n_other_sampled": 10,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 298,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %276",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The size calculation `num_mbs` is derived from `ps_dec->ps_cur_sps->u2_total_num_of_mbs` and shifted, then directly passed to `memset` for `pu1_dec_mb_map`, `pu1_recon_mb_map`, and `pu2_slice_num_map` without bounds checks verifying that `num_mbs` (or `num_mbs * sizeof(UWORD16)`) does not exceed the allocated capacity of those buffers (e.g. if the SPS changed or resolution increased without reallocating buffers appropriately)."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 303,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %284",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 308,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %294",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 385,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20184",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The copy `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei))` copies exactly `sizeof(sei)` bytes from `ps_dec->ps_sei` to `ps_cur_pic->s_sei_pic`. Both source and destination are complete structures of type `sei`, so the fixed size copy does not overrun the `sei` structure."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 397,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %484",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset operations (such as `memset(..., mb_info_map_size)` or `memset(..., num_mbs)`) use sizes calculated directly from input metadata (`ps_dec->u4_total_mbs` or `ps_dec->ps_cur_sps->u2_total_num_of_mbs`) without any bounds check verifying that the target buffer (allocated elsewhere) is large enough to accommodate this computed size."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 398,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %491",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The size for the memset operations (such as num_mbs or mb_info_map_size) is computed directly from SPS/stream-derived values without visible bounds checks verifying that it does not exceed the allocated capacity of the destination buffer."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 410,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei))` copies exactly `sizeof(sei)` bytes from `ps_dec->ps_sei` (which points to an allocated/static structure of type `sei`) to `&ps_cur_pic->s_sei_pic` of the identical type `sei`. Both source and destination have fixed statically known object sizes equal to `sizeof(sei)`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 412,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `sizeof(sei)` bytes (20296 bytes) from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. Both source and destination correspond to full `sei` structure instances/allocations of size `sizeof(sei)` rather than variable-sized input buffers, making the fixed-size structure copy bounded and valid."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 414,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei))` copies exactly `sizeof(sei)` bytes from `ps_dec->ps_sei` (which points to an allocated/valid `sei` structure) into `ps_cur_pic->s_sei_pic`, an embedded struct field of type `sei`. Both the destination and the source have the fixed type and capacity of `sizeof(sei)`, so this is a standard fixed-size struct copy with no out-of-bounds access."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 416,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei))` copies `sizeof(sei)` (20296 bytes) from `ps_dec->ps_sei` without any bounds check verifying that `ps_dec->ps_sei` points to a buffer of sufficient size or is non-null/valid."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 417,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy operand is `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei));`, where both destination and source are pointers to structures of type `sei`, and the size copied is fixed to `sizeof(sei)`. Assuming ps_sei is an allocated/valid `sei` structure pointer within the decoder context, the access is fully covered by the type/size definition and not vulnerable to an out-of-bounds copy."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 419,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check or validation verifying the capacity of ps_dec->ps_sei before copying sizeof(sei) bytes from it."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 420,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei))` copies exactly `sizeof(sei)` bytes from `ps_dec->ps_sei` (a pointer to a full `sei` structure) into `&ps_cur_pic->s_sei_pic` (an embedded `sei` structure member of `pic_buffer_t`). Both destination and source are pointers to complete instances of type `sei`, so the fixed size copy `sizeof(sei)` does not overflow the buffers."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 422,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy copying from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic` (with `sizeof(sei) == 20296`) has no bounds check on `ps_dec->ps_sei` or its allocation/capacity prior to the copy on this path."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 444,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds or validity check on ps_dec->ps_sei or its allocated buffer size prior to the memcpy of sizeof(sei) bytes into &ps_cur_pic->s_sei_pic."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 199,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The code explicitly validates `u1_seq_parameter_set_id >= MAX_NUM_SEQ_PARAMS` before using it. Furthermore, the copy operation `*ps_seq = *ps_dec->ps_cur_sps` is protected by `NULL != ps_dec->ps_cur_sps`, and copying between fixed-size structs of type `dec_seq_params_t` has fixed bounds guaranteed by the compiler struct layout and valid pointer checks."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 883,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation copying `*ps_subset_seq` (or `*ps_seq`) operates on local/context structure pointers whose types and sizes are fixed structs within libih264d/libisvcd; prior to this point in SPS parsing, `u1_seq_parameter_set_id` is validated against `MAX_NUM_SEQ_PARAMS` (32) during syntax element parsing, ensuring `ps_svc_lyr_dec->ps_subset_sps[u1_seq_parameter_set_id]` and the struct copy are in bounds."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 889,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The index `u1_seq_parameter_set_id` used to index `ps_dec->ps_sps` and `ps_svc_lyr_dec->ps_subset_sps` (which triggers the struct copy / memcpy of size 80 or similar) is not bounds-checked against the allocated size / maximum array bound (e.g. MAX_NUM_SEQ_PARAMS / 32) in the visible path."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1192,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The index `u1_seq_parameter_set_id` is parsed from the bitstream using Exp-Golomb decoding (`ih264d_uev`) and checked only against `MASK_ERR_SEQ_SET_ID` without verifying that it is within the bounds of the array `ps_dec->ps_sps` (e.g. `u1_seq_parameter_set_id < MAX_NUM_SEQ_PARAMS`). Accessing `ps_dec->ps_sps[u1_seq_parameter_set_id]` allows an out-of-bounds access / copy."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1670,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check visible on the path reaching this structure copy operation to ensure the source pointer and buffer length (2228 bytes) remain within bounds."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1671,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check guarding the index `u1_seq_parameter_set_id` before indexing into `ps_dec->ps_sps` or `ps_svc_lyr_dec->ps_subset_sps` on the provided execution path."
+   },
+   {
+    "func": "isvcd_parse_pps",
+    "line": 1713,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 544",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before accessing `ps_dec->ps_pps[u4_temp]`, `u4_temp` is checked with `if(u4_temp & MASK_ERR_PIC_SET_ID) return ERROR_INV_SPS_PPS_T;`. In H.264/SVC decoding (`ih264d`), `MASK_ERR_PIC_SET_ID` verifies that the decoded PPS ID does not exceed the maximum allowed PPS range (`MAX_NUM_PIC_PARAMS - 1`), bounding the array index access."
+   },
+   {
+    "func": "isvcd_parse_pps",
+    "line": 1872,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 544",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The operation `ps_dec->ps_pps[ps_pps->u1_pic_parameter_set_id] = *ps_pps;` (implemented as a memcpy/struct assignment of size 544 bytes) uses `ps_pps->u1_pic_parameter_set_id` as an index into the `ps_dec->ps_pps` array. There is no bounds check visible on `ps_pps->u1_pic_parameter_set_id` prior to this access."
+   },
+   {
+    "func": "isvcd_parse_decode_slice_ext_nal",
+    "line": 1535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 524",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `sizeof(dpb_commands_t)` (524 bytes) from `&(ps_dec->s_dpb_cmds_scratch)` to `ps_dec->ps_dpb_cmds`. The source operand is the address of `ps_dec->s_dpb_cmds_scratch`, which is a fixed structure member of type `dpb_commands_t` with size exactly matching `sizeof(dpb_commands_t)`. The read of fixed size 524 from an object of size 524 cannot overflow."
+   },
+   {
+    "func": "isvcd_parse_decode_slice",
+    "line": 2775,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 524",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `sizeof(dpb_commands_t)` (524 bytes) from `&ps_dec->s_dpb_cmds_scratch` to `ps_dec->ps_dpb_cmds`. Both the source and destination are fixed-size structs of type `dpb_commands_t` embedded in or allocated for `ps_dec`, and copying `sizeof(dpb_commands_t)` does not overflow the fixed-size structure."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 298,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %276",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The buffers (pu1_dec_mb_map, pu1_recon_mb_map, pu2_slice_num_map) are allocated during decoder initialization / SPS activation based on the maximum picture dimensions (total number of macroblocks, accounting for field/frame coding). Clearing `num_mbs` elements upon starting a new picture is standard buffer re-initialization within the allocated bounds."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 303,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %284",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 308,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %294",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 385,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20184",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy copies sizeof(sei) bytes from `ps_dec->ps_sei` into `&ps_cur_pic->s_sei_pic`. Both source and destination pointers refer to allocated/structured SEI data buffers of size `sizeof(sei)` (20184 bytes), making this a standard fixed-size structure copy rather than an out-of-bounds read/write."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 397,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %484",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operations in isvcd_start_of_pic zero out macroblock maps (pu1_dec_mb_map, pu1_recon_mb_map, pu2_slice_num_map, and mb info maps) based on dimensions derived from the SPS. In libavc/libisvcd, these buffers are allocated during decoder initialization / SPS activation based on the maximum picture dimensions and macroblock counts (u4_total_mbs or max SPS sizes). Unless SPS parsing or buffer reallocation fails to validate bounds, the memset sizes match or are within the allocated buffer capacity."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 398,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %491",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operations in this block (for MB maps or QP/MB type maps) operate on buffers allocated based on the SPS dimensions and maximum picture buffers. The calculation of num_mbs and mb_info_map_size matches the allocated dimensions and is standard buffer clearing in libgav1/libih264d/libisvcd style code. Without a dimension mismatch or missing allocation update shown, this represents expected initialization."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 410,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sizeof(sei) bytes from ps_dec->ps_sei into &ps_cur_pic->s_sei_pic. Both ps_dec->ps_sei and ps_cur_pic->s_sei_pic are appropriately allocated structures of type sei, and the copy size is a compile-time constant sizeof(sei). The contents of ps_dec->ps_sei may be populated from input/bitstream (tainted), but copying a fixed struct of known size into another buffer of that same struct type does not cause an out-of-bounds read or write."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 412,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sizeof(sei) bytes from `ps_dec->ps_sei` into `&ps_cur_pic->s_sei_pic`. Both source and destination are allocated structures of type sei (size 20296), so copying sizeof(sei) bytes is a valid fixed-size structure copy rather than an out-of-bounds read/write."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 414,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy copies sizeof(sei) bytes from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. Both source and destination buffers are allocated structures of matching type/size (`sei`), and the copy size is a compile-time constant `sizeof(sei)` (20296 bytes). While the contents of `ps_dec->ps_sei` are populated from input data, the pointer and structure bounds are valid and fixed, meaning no out-of-bounds read or write occurs."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 416,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy copies sizeof(sei) bytes from ps_dec->ps_sei to &ps_cur_pic->s_sei_pic. ps_dec->ps_sei points to an allocated SEI structure and s_sei_pic is of type sei, so copying sizeof(sei) bytes between these valid structure instances is a fixed-size struct copy and not an out-of-bounds bug."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 417,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sizeof(sei) bytes from `ps_dec->ps_sei` into `&ps_cur_pic->s_sei_pic`. Both source and destination are pointers to allocated structures of type `sei` (or embedded `sei` struct `s_sei_pic`), and `sizeof(sei)` matches the size of the structure. This is a standard struct copy and does not perform an out-of-bounds read or write."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 419,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy is copying from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic` with a compile-time fixed size `sizeof(sei)`. Both `ps_dec->ps_sei` and `ps_cur_pic->s_sei_pic` are standard allocated structures of type `sei`. The static analysis tool flagged it because the content of SEI messages originates from parsed bitstream input, but the pointers and sizes involved are valid structure allocations with identical type `sei`."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 420,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation `memcpy(&ps_cur_pic->s_sei_pic, ps_dec->ps_sei, sizeof(sei));` copies `sizeof(sei)` bytes (20296 bytes) from `ps_dec->ps_sei` to `&ps_cur_pic->s_sei_pic`. Both operands are valid pointers to `sei` structures allocated during decoder/picture buffer initialization, and the size copied is fixed to `sizeof(sei)`. The def-use taint analysis flagging `ps_dec->ps_sei` as input-derived is due to SEI data parsed into that structure, but the memory copy itself stays within the allocated `sei` buffer bounds."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 422,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy operation copies sizeof(sei) bytes from ps_dec->ps_sei to &ps_cur_pic->s_sei_pic. Both ps_dec->ps_sei and s_sei_pic are structures of type 'sei' (sized 20296 bytes), which are allocated and sized specifically to hold this structure. Copying sizeof(sei) between these two typed buffers is a standard struct copy and does not cause an out-of-bounds access."
+   },
+   {
+    "func": "isvcd_start_of_pic",
+    "line": 444,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 20296",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation copies sizeof(sei) bytes from `ps_dec->ps_sei` into `&ps_cur_pic->s_sei_pic`. Both source and destination are allocated structures of type `sei` (or holding a `sei_t`/`sei` struct), with fixed compile-time size matching `sizeof(sei)`. There is no dynamic length or untrusted buffer overflow here."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 199,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The parameter set id is bounds-checked with `if(u1_seq_parameter_set_id >= MAX_NUM_SEQ_PARAMS) return ERROR_INV_SPS_PPS_T;` before any indexing or copying. The structure copy `*ps_seq = *ps_dec->ps_cur_sps;` uses fixed-size structures allocated in the decoder context, and destination pointers point to valid pre-allocated scratch buffers."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 883,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memory operation is a struct copy (assignment `*ps_subset_seq` or `*ps_seq` of size 2228 bytes). `ps_subset_seq` points to a valid local or context structure and `u1_seq_parameter_set_id` is validated earlier during SPS ID parsing according to standard H.264/SVC bounds (MAX_NUM_SEQ_PARAMS / 32). This is a safe internal structure assignment rather than an out-of-bounds read or write."
+   },
+   {
+    "func": "isvcd_parse_subset_sps",
+    "line": 889,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged operation corresponds to struct assignment (such as `ps_dec->ps_sps[u1_seq_parameter_set_id] = *ps_seq;` or `ps_svc_lyr_dec->ps_subset_sps[...] = *ps_subset_seq;`), which the compiler lowers to a fixed-size `memcpy` of size 80 (the struct size). The source pointer points to a local or properly allocated decoding structure on the stack/heap, and `u1_seq_parameter_set_id` is validated earlier in the SPS parsing logic according to H.264 / SVC specification bounds (maximum SPS ID is 31). There is no buffer overflow."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1192,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted u1_seq_parameter_set_id is validated against MASK_ERR_SEQ_SET_ID immediately after decoding via ih264d_uev (if (u4_temp & MASK_ERR_SEQ_SET_ID) return ERROR_INV_SPS_PPS_T;). In standard libchrome/libgav1/libh264/libsvc decoders, MASK_ERR_SEQ_SET_ID restricts the value to valid bounds (e.g., <= MAX_NUM_SEQ_PARAMS - 1), preventing out-of-bounds indexing into ps_sps or memcpy source buffer overflow."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1670,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2228",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy corresponds to the structure copy `ps_dec->ps_sps[u1_seq_parameter_set_id] = *ps_seq` or `ps_svc_lyr_dec->ps_subset_sps[u1_seq_parameter_set_id] = *ps_subset_seq`. Earlier in `isvcd_parse_sps` (standard H.264/SVC SPS parsing in libchrome / libhevc / libavc / libsvc), `u1_seq_parameter_set_id` is parsed and validated against the maximum allowed SPS ID (MAX_NUM_SEQ_PARAMS / 32). The source and destination pointers point to valid stack or allocated context structures of known size (2228 bytes for dec_seq_params_t / dec_subset_seq_params_t)."
+   },
+   {
+    "func": "isvcd_parse_sps",
+    "line": 1671,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memory operation corresponds to structure assignment (`*ps_subset_seq` or `*ps_seq`), where the source pointer is a valid stack or heap allocated structure (`dec_struct_t` or local `dec_seq_params_t`) of fixed size (80 bytes) and the destination is an array element within the decoder context (`ps_sps` or `ps_subset_sps`). Both src and dst point to valid memory of the appropriate type/size, so copying the structure does not cause an out-of-bounds read or write."
+   },
+   {
+    "func": "isvcd_parse_pps",
+    "line": 1713,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 544",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The index `u4_temp` is validated against `MASK_ERR_PIC_SET_ID` before indexing into `ps_dec->ps_pps[u4_temp]`, preventing out-of-bounds access."
+   },
+   {
+    "func": "isvcd_parse_pps",
+    "line": 1872,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 544",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "isvcd_parse_decode_slice_ext_nal",
+    "line": 1535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 524",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies exactly sizeof(dpb_commands_t) from ps_dec->s_dpb_cmds_scratch into ps_dec->ps_dpb_cmds, where s_dpb_cmds_scratch is a struct of type dpb_commands_t. This is a fixed-size structure copy between valid buffers, not an out-of-bounds read or write."
+   },
+   {
+    "func": "isvcd_parse_decode_slice",
+    "line": 2775,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 524",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source pointer is the address of `ps_dec->s_dpb_cmds_scratch`, which is a struct member of type `dpb_commands_t`. The copy length is exactly `sizeof(dpb_commands_t)` (524 bytes). Thus, the read is strictly within the bounds of `s_dpb_cmds_scratch`."
+   }
+  ]
+ }
+]

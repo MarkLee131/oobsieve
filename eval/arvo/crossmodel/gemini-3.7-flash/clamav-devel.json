@@ -1,0 +1,41 @@
+[
+ {
+  "id": "23499",
+  "project": "clamav-devel",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "cli_codepage_to_utf8",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function dynamically manages the buffer capacity before copying: it checks `b->size < b->len + (off_t)len` and reallocates `b->data` with sufficient `growth` (where `growth > len`), ensuring `b->size >= b->len + len` before performing `memcpy(&b->data[b->len], data, len)`."
+   },
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "When b->data is not NULL and b->size < b->len + len, the code reallocates b->data with b->size + growth (where growth is computed solely based on len rounded up to pagesize). However, b->size - b->len can be less than pagesize, meaning b->size + growth can be less than b->len + len, or more specifically, if b->len is close to b->size and len is small or if growth is computed as ((len / pagesize) + 1) * pagesize: consider pagesize=4096. Suppose b->size = 4096, b->len = 4000. len = 200. b->len + len = 4200 > b->size (4096). Since len < pagesize, growth = 4096. b->size + growth = 8192 >= 4200. But wait: suppose b->size = 4096, b->len = 4090, len = 5000. growth = ((5000 / 4096) + 1) * 4096 = 2 * 4096 = 8192. b->size + growth = 12288 >= 9090. What if len causes growth calculation overflow, or more simply in the #else branch: b->size + (len * 4) might overflow, but look closely at the #if HAVE_CLI_GETPAGESIZE branch: if b->len is already large and b->size is somehow smaller than b->len? No, what if len is large: ((len / pagesize) + 1) * pagesize can wrap around (integer overflow of int growth, or size_t multiplication overflow). Specifically, growth is a signed int ('int growth;'), so if len is large (e.g. >= 2GB or (len/pagesize + 1)*pagesize overflows int), growth overflows and becomes negative or small, leading to buffer overflow during memcpy."
+   }
+  ]
+ }
+]

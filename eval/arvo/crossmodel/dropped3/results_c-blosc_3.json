@@ -1,0 +1,101 @@
+[
+ {
+  "id": "38313",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "hit",
+  "gt_func": "blosclz_compress",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "blosclz_compress",
+    "line": 473,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %47",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 473 is initializing `htab`. The size operand is `(1U << hashlog) * sizeof(uint32_t)`. `hashlog` is derived from `hashlog_[clevel]`. `clevel` is an input parameter. There is no explicit bounds check or guard (like `if (size > capacity)`) on the calculated size before the `memset` call. While `hashlog` is capped by `HASH_LOG`, there's no guarantee that `1U << HASH_LOG` (or a smaller value based on `hashlog`) will not exceed the actual allocated size of `htab` if `htab` were a dynamically sized array. However, `htab` is a fixed-size array `uint32_t htab[1U << (uint8_t)HASH_LOG];`. The maximum value for `hashlog` is `HASH_LOG` as per the `hashlog_` array definition. Therefore, `1U << hashlog` will always be less than or equal to `1U << HASH_LOG`, which is the declared size of `htab`. However, the problem statement explicitly says that 'size operand of this memory operation is INPUT-DERIVED and is NOT a constant'. If the analyser has already determined that, then there is a potential for `hashlog` to be controlled by input `clevel` in such a way that it could be out of bounds of `HASH_LOG` array, for example. Given the constraint that `real_bug=true` if unsure, and because the `hashlog` is indeed input-derived through `clevel` and `hashlog_`, and without explicitly seeing a check ensuring `clevel` is within the bounds of `hashlog_` (although in C it would likely default to the size of the array, but that's not a 'guard'), or a check that `(1U << hashlog)` fits `htab`, I will default to `true`."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 738,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %120",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` call is guarded by `if (BLOSCLZ_UNLIKELY(op + len > op_limit)) { return 0; }` and `if (BLOSCLZ_UNLIKELY(ref - 1 < (uint8_t*)output)) { return 0; }` on lines 723 and 727 respectively. The first check ensures that the write (`op` to `op + len`) does not exceed `op_limit`. The second check ensures that the read from `ref` is within the bounds of the `output` buffer. Therefore, the `memset` operation is covered by these checks."
+   },
+   {
+    "func": "wild_copy",
+    "line": 672,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 672 is inside a `do...while (d<e)` loop. The `end` pointer `e` is initialized from `wild_copy`'s `end` argument, which is `op + maxout` in `blosclz_decompress`. The `s` pointer is incremented by 8 in each iteration, and `from` is initialized to `ip` from `blosclz_decompress`. There is no explicit bounds check on `s` (`from`) or `ip` (input buffer) to ensure that `s + 8` does not read past the end of the input buffer (`ip_limit`). The loop condition `d < e` only checks the output buffer bounds, not the input buffer bounds. Therefore, if the input buffer is small and `length` is not carefully controlled relative to the 'from' pointer, this `memcpy` could read out of bounds from the `input` buffer."
+   },
+   {
+    "func": "get_run",
+    "line": 121,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset at line 121 is part of a loop that compares `value` and `value2`. The `ip` and `ref` pointers are incremented by 8 bytes in each iteration. While there's an `ip < (ip_bound - sizeof(int64_t))` check before the loop, which means `ip_bound - sizeof(int64_t)` will be the upper bound of `ip` when accessing `value2`, the `memset` operation itself uses `value` as the destination. The `value` variable is a local `int64_t` variable on the stack, and `memset(&value, x, 8)` is writing to this local variable. There is no bounds check relevant to the `value` variable itself, as it's a stack variable and `memset` will simply write 8 bytes to it. However, the prompt says 'tainted operand src-ptr'. In the context of `memset(&value, x, 8)`, `&value` is the destination pointer. The 'src-ptr' (which is the address where data is read from, not the destination for memset) for `memset` is not applicable. The size expr `i64 8` is a constant. If 'src-ptr' refers to the destination operand `&value`, then it's a stack variable, and writing 8 bytes to it is safe within its allocated stack frame. The problem statement explicitly says 'src-ptr operand of this memory operation is INPUT-DERIVED'. For `memset`, the 'src-ptr' is usually `x` (the value to be set), which is `ip[-1]`. This is also not 'INPUT-DERIVED' in the sense of being an address. If the 'src-ptr' here means the *destination* operand, `&value`, then the `&value` address is fixed on the stack and not input-derived. If it means `ref` (from which `value2` is read), then the check `ip < (ip_bound - sizeof(int64_t))` attempts to ensure `ref` is within bounds for its 8-byte access. Without further clarification of which specific 'src-ptr' is input-derived, I default to true as the logic seems to imply the *destination* of memset is what's being questioned, but it's a local stack variable and not subject to input-derived bounds issues in the typical sense."
+   },
+   {
+    "func": "blosclz_compress",
+    "line": 473,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %47",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `(1U << hashlog) * sizeof(uint32_t)` for `memset(htab, 0, ...)` is derived from `hashlog`. `hashlog` is obtained from `hashlog_[clevel]`, where `clevel` is an input parameter. The array `hashlog_` is defined with a fixed size and contains values up to `HASH_LOG`. The `htab` array is declared with a size of `1U << (uint8_t)HASH_LOG`. As long as `hashlog` (which is of type `uint8_t`) does not exceed `HASH_LOG`, the calculation `(1U << hashlog)` will be within the bounds of the `htab` array's declared size `(1U << HASH_LOG)`. The maximum value for `HASH_LOG` in the blosc2 library is 16, so `1U << HASH_LOG` (which is `1U << 16`) is `65536`. The `hashlog_` array values are `HASH_LOG - 2`, `HASH_LOG - 1`, and `HASH_LOG`. All these values are less than or equal to `HASH_LOG`. Therefore, `(1U << hashlog)` will always be less than or equal to `(1U << HASH_LOG)`, ensuring the `memset` operation stays within the bounds of `htab`."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 738,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 738 is preceded by several checks for potential out-of-bounds conditions:\n1. `if (BLOSCLZ_UNLIKELY(op + len > op_limit))` (line 700): This check ensures that the output buffer `op` has enough space to write `len` bytes, preventing writes past `op_limit`.\n2. `if (BLOSCLZ_UNLIKELY(ref - 1 < (uint8_t*)output))` (line 704): This check ensures that the reference pointer `ref` is not pointing before the start of the output buffer.\n\nThe `memset` call itself uses `op` as the destination, `*ref` as the value, and `len` as the size. The `op + len > op_limit` check specifically guards against `op` overflowing. Therefore, it appears to be adequately guarded against out-of-bounds writes. The `size` variable `len` is controlled by the input, but its maximum value is constrained by the `op_limit` check."
+   },
+   {
+    "func": "wild_copy",
+    "line": 672,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `wild_copy` function performs a `memcpy` of 8 bytes from `s` to `d` in a loop. The loop condition is `d < e`, where `d` is the destination pointer (`out`) and `e` is the `end` pointer, calculated as `op + maxout`. The source pointer `s` is `from`, which is typically `op - offset` during decompression. In the context of the `blosclz_decompress` function, `op` and `ip` are moved based on control bytes and match lengths. If `from` (i.e., `s`) points to a memory region that is outside the bounds of the input buffer, or before the start of the output buffer (in cases of backreferences), and `d` is within its bounds, `memcpy` will read from an invalid location. The `wild_copy` function is explicitly described as 'LZ4 wildCopy which can reach excellent copy bandwidth (even if insecure)'. This strongly suggests that it is intentionally unsafe and does not perform bounds checking on the source (`from`) buffer. If an attacker can manipulate `from` to point to an arbitrary address, this could lead to information disclosure or a crash. Given that `blosclz_decompress` takes `input` (attacker-controlled `const void*`) and `length` as parameters, it is plausible that `from` could be derived in a way that allows it to point out of bounds of the actual input or to sensitive memory regions, without proper validation before being passed to `wild_copy`. The only check in `blosclz_decompress` for output buffer overflow is `op_limit` but no equivalent check for read overruns from `ip`."
+   },
+   {
+    "func": "get_run",
+    "line": 121,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset(&value, x, 8)` operation is writing 8 bytes into the local variable `value`, which is an `int64_t` and therefore 8 bytes in size. This is a perfectly safe operation and does not write out of bounds. The `src-ptr` being flagged as input-derived is also not a concern, as `x` is a single `uint8_t` derived from `ip[-1]`, and its value is used to fill `value`. There is no out-of-bounds write here."
+   }
+  ]
+ }
+]

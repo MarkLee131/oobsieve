@@ -1,0 +1,181 @@
+[
+ {
+  "id": "47503",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 8,
+  "recall": "hit",
+  "gt_func": "uncompress_b44_impl",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 7,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 2,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "uncompress_b44_impl",
+    "line": 505,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "internal_coding_fill_channel_info",
+    "line": 32,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` on line 32 uses a size calculated from the variable `chans`, which is read from the input file (`part->channels->chlist->num_channels`). The prompt instructs to assume this is NOT an allocate-to-fit pattern, meaning we cannot rely on the allocation on line 29 being sufficient for the size used in the `memset`. The code path leading to the `memset` does not contain any bounds checks that validate or clamp the value of `chans` to a safe maximum. An attacker could provide a large value for `chans`, and since there is no guard to prevent this, the `memset` could write beyond the bounds of the `chanfill` buffer."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 353,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %46",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 353 uses a size `bpl` and pointers `tmp` (destination) and `packed` (source) that are derived from input-controlled metadata (`encode->channels[c].width`, `bytes_per_element`, etc.). The source buffer `packed` points into `encode->packed_buffer` (size `encode->packed_bytes`), and the destination buffer `tmp` points into `encode->scratch_buffer_1` (size `encode->scratch_alloc_size_1`, which is allocated to be `encode->packed_bytes`). The pointers `packed` and `tmp` are advanced within nested loops. The amount they are advanced, and the size of the copy (`bpl`), depend on fields from the `exr_coding_channel_info_t` struct. There are no checks visible in the provided code to ensure that the cumulative pointer advancements plus the current copy size (`bpl`) will remain within the bounds of their respective buffers. For example, a crafted file could specify channel dimensions that cause the calculated `bpl` or total `nBytes` to be larger than the allocated buffer sizes, leading to an out-of-bounds read from `packed` and/or an out-of-bounds write to `tmp`."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 377,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %110",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 429,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 429 is inside an `else` block that is guarded by the condition `if (x + 3 >= nx)`. This means the `memcpy` is only executed when `x + 3 < nx`, which is equivalent to `x + 4 <= nx`. The source pointer `row3` points to the start of a 4-pixel segment within a row of width `nx`. The `memcpy` reads `4 * sizeof(uint16_t)` bytes. The check `x + 3 < nx` ensures that reading 4 elements starting at index `x` will not go past the end of the row (the last element accessed is at index `x+3`, which is less than `nx`). Additionally, the vertical bounds are handled by the padding logic for `row0, row1, row2, row3` based on `y` and `ny` just before the `x` loop, ensuring that `row3` always points to a valid row within the allocated `scratch` buffer. Therefore, the access is fully bounds-checked."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 430,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 430 reads 4 `uint16_t`s (8 bytes) from the source pointer `row0`. This operation is inside an `else` block that is only executed when the condition `x + 3 >= nx` is false. This means the code explicitly checks `x + 3 < nx` before performing the `memcpy`. The pointer `row0` effectively points to `(uint16_t*)scratch + y*nx + x`. The guard `x + 3 < nx` ensures that the read of 4 elements does not go past the end of the current row (of width `nx`). The outer loop `for (int y = 0; y < ny; ...)` ensures that `y` is a valid row index. Together, these conditions guarantee that the access is within the bounds of the `scratch` buffer, which is sized to hold `ny * nx` elements."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 431,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 431 reads 8 bytes (4 `uint16_t`s) from `row0`. The pointer `row0` is an offset into the `scratch` buffer, effectively pointing to `(uint16_t*)scratch + y*nx + x`. The size of the relevant portion of the scratch buffer is `ny * nx` `uint16_t`s. The access is covered by two checks:\n1. (Horizontal check): The `memcpy` is within an `else` block that is only entered if `x + 3 < nx`. This ensures the read of 4 `uint16_t`s starting at `x` does not exceed the width `nx` of the current row.\n2. (Vertical check): The outer loop condition is `for (int y = 0; y < ny; y += 4)`. This ensures that `y` is always a valid row index (`y < ny`). Since the horizontal check ensures the access stays within the current row, the maximum offset accessed is less than `(y+1)*nx`. The loop condition `y < ny` implies `y+1 <= ny`, which in turn means `(y+1)*nx <= ny*nx`. This guarantees the access does not go past the end of the `ny` rows allocated in the buffer.\nTogether, these two conditions form a sufficient bounds check for the `memcpy` operation."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 432,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operations occur inside an `else` block that is only entered if `x + 3 < nx`. This condition ensures that reading `4 * sizeof(uint16_t)` bytes starting from `row0`, `row1`, `row2`, or `row3` will not go past the end of the current row (of width `nx`). The `row` pointers themselves (`row0`, `row1`, `row2`, `row3`) are calculated based on the `y` loop index. There is a specific check `if (y + 3 >= ny)` which handles cases where the 4x4 block would extend beyond the vertical limit of the image data (`ny`). In such cases, the row pointers are clamped to point to the last valid rows, preventing an out-of-bounds access vertically. Therefore, the access is covered by explicit bounds checks in both the horizontal and vertical dimensions."
+   },
+   {
+    "func": "uncompress_b44_impl",
+    "line": 505,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "internal_coding_fill_channel_info",
+    "line": 32,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code allocates a buffer `chanfill` and then calls `memset` on it. The size argument for the allocation function `pctxt->alloc_fn` is `(size_t) (chans) * sizeof (exr_coding_channel_info_t)`. The size argument for the subsequent `memset` call is the *exact same expression*. Therefore, the `memset` operation is perfectly bounded by the size of the memory that was just allocated for it. Even if an integer overflow were to occur in the size calculation, it would affect both the allocation and the `memset` identically, meaning the `memset` would still operate within the (incorrectly sized but still valid) allocated bounds. There is no out-of-bounds write."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 353,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %46",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code implements a de-interleaving operation, copying data from a packed buffer (`packed_buffer`) to a planar buffer (`scratch_buffer_1`). The `memcpy` in question copies one scanline of data for a specific channel into its corresponding plane in the destination buffer.\n\n1. **Destination Buffer Allocation**: The destination buffer `encode->scratch_buffer_1` is allocated with a size of `encode->packed_bytes`, which is intended to be the total size of all channel data for the chunk.\n\n2. **Pointer Arithmetic**: The code iterates through each scanline `y` and then each channel `c`. For each channel, it calculates its total size (`nBytes`) and advances a pointer `scratch` by this amount. This effectively partitions the destination buffer into contiguous blocks, one for each channel. The sum of all `nBytes` values is expected to equal the total allocated size, `encode->packed_bytes`.\n\n3. **Offset Calculation**: Within each channel's block, the destination pointer `tmp` is calculated by adding an offset to the block's start address (`scratch`). This offset depends on the current scanline index `y` and the channel's vertical subsampling factor (`curc->y_samples`). The calculation correctly determines the position of the current scanline within the channel's plane.\n\n4. **Bounds Check**: The crucial check is whether the `memcpy` writes beyond the boundary of the block allocated for the current channel. This requires `offset + bpl <= nBytes`. The analysis of the indexing logic shows that `offset` is calculated as `(y_effective * bpl)`, where `y_effective` is the subsampled row index. The condition simplifies to `(y_effective + 1) <= ny` (where `ny` is the channel height). This condition holds true based on the standard definition of subsampled dimensions in the EXR format, where the channel height `ny` is calculated as `ceil(chunk_height / y_samples)`.\n\n5. **Integer Overflow Prevention**: The calculations for sizes (`bpl`, `nBytes`) and offsets are performed using `uint64_t`, which mitigates the risk of integer overflows for large image dimensions.\n\nWhile the parameters to `memcpy` are derived from user input (the EXR file), the surrounding logic correctly calculates the pointers and sizes to ensure the copy operation remains within the bounds of the allocated destination buffer. The code appears to be a correct and safe implementation of a standard image data de-interleaving algorithm."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 377,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %110",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The code processes image channels in a loop, using a `scratch` buffer that contains the data for all channels laid out sequentially (planar format). A pointer, also named `scratch`, is used to iterate through the data for each channel in this buffer.\n\nInside the loop over channels, there is an `if/else` block based on the channel's data type (`curc->data_type`).\n\n1. If the data type is NOT `EXR_PIXEL_HALF`, the code enters the `if` block containing the flagged `memcpy`. After the copy, it correctly advances the source pointer: `scratch += nBytes;`.\n\n2. If the data type IS `EXR_PIXEL_HALF`, the code enters the `else` block. This block processes the data but **fails to advance the `scratch` pointer** after it's done.\n\nThis leads to a vulnerability. Consider a scenario with two consecutive channels:\n- Channel `N` is of type `EXR_PIXEL_HALF` and has a data size of `nBytes_N`.\n- Channel `N+1` is of a different type and has a data size of `nBytes_N+1`.\n\nWhen processing channel `N`, the `else` block is executed, and the `scratch` pointer is not advanced. In the next loop iteration for channel `N+1`, the `scratch` pointer still points to the beginning of channel `N`'s data. The `if` block is then executed for channel `N+1`, and the `memcpy` attempts to read `nBytes_N+1` bytes starting from channel `N`'s data plane. The available data at that location is only `nBytes_N` bytes.\n\nIf an attacker crafts an input file where `nBytes_N+1 > nBytes_N` (e.g., channel `N+1` has a higher resolution), the `memcpy` will read past the end of channel `N`'s data within the scratch buffer, resulting in an out-of-bounds read."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 429,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code processes a channel's pixel data in 4x4 blocks. The `memcpy` at line 429 copies the 4th row of a 4x4 block.\n\nThere are two relevant boundary checks:\n\n1.  **Vertical Boundary (Height `ny`):** Before the loop over `x` begins, there's a check `if (y + 3 >= ny)`. If the current 4-row strip would go past the end of the image data, the pointers `row1`, `row2`, and `row3` are adjusted to point to the last valid row, effectively padding by repetition. This ensures `row3` always points to a valid row within the allocated `scratch` buffer.\n\n2.  **Horizontal Boundary (Width `nx`):** The `memcpy` calls are inside an `else` block. The corresponding `if` condition is `if (x + 3 >= nx)`. This means the `memcpy` is only executed when `x + 3 < nx`, which is equivalent to `x + 4 <= nx`. The `memcpy` reads `4 * sizeof(uint16_t)` bytes. Since `row3` points to the start of the current `x` segment within a valid row, and the code only enters this block when there are at least 4 more pixels (`x` through `x+3`) available in that row, the read of 4 `uint16_t`s is guaranteed to be within the bounds of the row buffer. The case where `x` is near the right edge of the image is handled by the `if` block, which copies pixels individually with bounds checks.\n\nBoth vertical and horizontal accesses are properly guarded, making an out-of-bounds read at this `memcpy` not triggerable."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 430,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code processes image data in 4x4 blocks. The `memcpy` at line 430 is part of this block processing. The source pointer `row3` is calculated to point to the 4th row in the current 4-row block being processed. The potential for an out-of-bounds read exists if the image height `ny` is not a multiple of 4, which could cause `row3` to point past the end of the allocated `scratch` buffer. However, the code explicitly guards against this. The `if (y + 3 >= ny)` block checks if the current 4-row block extends past the end of the image data. If it does, it reassigns the row pointers (`row1`, `row2`, `row3`) to point to the last valid row, effectively padding the data by repeating the last row. Specifically, `row3` is set to `row2`, which may have been set to `row1`, which may have been set to `row0`. This ensures that `row3` always points to a valid memory location within the `scratch` buffer. Additionally, a horizontal check `if (x + 3 >= nx)` ensures that the `memcpy` only executes when there are at least 4 pixels left in the row, preventing a horizontal out-of-bounds read. The combination of these guards makes the memory access safe."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 431,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code processes image data in 4x4 blocks. The `memcpy` at line 431 is one of four operations used to copy a 4x4 block of `uint16_t` pixels from a source buffer (`scratch`) into a temporary array `s`. The source pointer for this specific `memcpy`, `row1`, points to the second row of the 4x4 block being processed.\n\nThe taint analysis is correct that the address calculation for `row1` depends on input-derived values (`nx` and `ny`, which are the width and height of the image channel). However, the code contains explicit checks to prevent out-of-bounds reads.\n\n1.  **Horizontal Bounds Check:** The `memcpy` calls are inside an `else` block that is only executed if `x + 3 < nx`. This condition ensures that the 4-pixel wide read does not go past the right edge of the image row.\n\n2.  **Vertical Bounds Check:** Before the inner loop over `x`, there is a check: `if (y + 3 >= ny)`. This block handles cases where the 4x4 block would extend past the bottom edge of the image. It does this by re-assigning the pointers `row1`, `row2`, and `row3` to point to the last valid row(s) instead of an out-of-bounds memory location. For example, `if (y + 1 >= ny) row1 = row0;` ensures that if the `y+1` row is out of bounds, `row1` is made to point to the valid `y` row instead. This is a common technique for handling boundary conditions in block-based image processing, often called 'clamping' or 'edge replication'.\n\nBecause of these explicit boundary checks, the source pointer `row1` will always point to a valid location within the allocated `scratch` buffer from which 4 `uint16_t`s can be safely read. Therefore, this is not a triggerable out-of-bounds bug."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 432,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The source pointer `row0` for the `memcpy` is calculated by offsetting a base pointer `scratch` by `y * nx`. The variables `y` and `nx` are both of type `int`. If the channel dimensions `nx` (width) and `ny` (height), which are derived from the input file, are sufficiently large (e.g., `nx = 65536` and `y` reaches `32768`), the multiplication `y * nx` will overflow a 32-bit signed integer. This overflow results in a wildly incorrect offset, causing `row0` to point far outside the intended memory region within the `scratch` buffer. The subsequent `memcpy` will then read from this out-of-bounds address. While there are boundary checks for `x` and `y` to handle the edges of the 4x4 blocks, these checks do not mitigate the integer overflow in the address calculation itself."
+   }
+  ]
+ }
+]

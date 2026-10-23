@@ -1,0 +1,61 @@
+[
+ {
+  "id": "39226",
+  "project": "libpsl",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "domain_to_punycode",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 579 is guarded by `if (outlen + labellen + (e != NULL) >= outsize) return 1;`. This check ensures that the destination buffer `out` has enough space to copy `labellen` bytes from `label`, taking into account the current `outlen` and an optional separator. The size expr `i64 %33` is `labellen`, which is explicitly checked against `outsize - outlen - (e != NULL)` before the `memcpy` occurs."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 257 copies `sizeof(psl_entry_t)` bytes from `elem` to `elemp`. The destination `elemp` is allocated with `malloc(sizeof(psl_entry_t))` just before the memcpy. Therefore, the destination buffer `elemp` is exactly large enough to hold the `sizeof(psl_entry_t)` bytes being copied, which serves as a sufficient bounds check. The source `elem` is a `const psl_entry_t *` parameter to `vector_add`, and we are not evaluating the source's bounds here."
+   },
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 579 is `memcpy(out + outlen, label, labellen);`. The `src-ptr` operand is `label`, and the `size` operand is `labellen`. Before this `memcpy`, there's a check: `if (outlen + labellen + (e != NULL) >= outsize) return 1;`. This check ensures that the destination buffer `out` has enough space to copy `labellen` bytes from `label`, considering the current `outlen` and an optional dot (represented by `(e != NULL)`). Therefore, `label` cannot be read out-of-bounds, as `labellen` is derived from `strlen(label)` or `e - label` which are within the bounds of `domain` (which is `label`). The `labellen` will never exceed the actual length of the `label` string."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation at line 257 copies `sizeof(psl_entry_t)` bytes from `elem` to `elemp`. The destination `elemp` is allocated just before with `malloc(sizeof(psl_entry_t))`. This means the buffer is exactly the size required for the copy. There is no out-of-bounds write to `elemp`. The `elem` pointer is an input to the `vector_add` function, and while it's input-derived, the size of the copy is fixed based on the structure definition, not on the input value itself. Therefore, as long as `elem` points to a valid `psl_entry_t` (which is an assumption for correct function usage), there is no out-of-bounds read from `elem` or write to `elemp`."
+   }
+  ]
+ }
+]

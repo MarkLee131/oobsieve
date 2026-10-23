@@ -1,0 +1,141 @@
+[
+ {
+  "id": "16604",
+  "project": "libmpeg2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+    "line": 372,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Within `impeg2_fmt_conv_yuv420p_to_yuv420sp_uv`, `memcpy((void *)pu1_dst, (void *)pu1_src, u4_width)` is executed in a loop up to `u4_height` without any bounds checking on `pu1_src`, `pu1_dst`, `u4_width`, or buffer capacities."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Within the function impeg2_copy_frm_yuv420p, there are no bounds checks on the buffer pointers or sizes (u4_width, u4_height, strides) relative to destination or source allocation capacities before performing memcpy."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 133,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function performs memcpy operations across source and destination plane buffers based on width, height, and stride parameters without any bounds checks or validation on buffer sizes or dimensions."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 141,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %42",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function impeg2_copy_frm_yuv420p performs memcpy calls in loops using input parameters (width, height, strides, buffer pointers) without performing any bounds checks or validation against the destination or source buffer allocations within this function."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_vu",
+    "line": 314,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Function impeg2_fmt_conv_yuv420p_to_yuv420sp_vu performs memcpy with input-derived width without checking that u4_width or the total rows (u4_height) fit within the allocated bounds of the source or destination buffers."
+   },
+   {
+    "func": "impeg2d_api_init",
+    "line": 1678,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %67",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The loop iterates up to `ps_dec_init_ip->s_ivd_init_ip_t.u4_num_mem_rec` calling `memset(ps_mem_rec->pv_base, 0, ps_mem_rec->u4_mem_size)` without any check validating the allocated size of the memory buffer pointed to by `pv_base` against `u4_mem_size` or checking if `pv_base` is NULL/valid in this function."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+    "line": 372,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` performs standard planar frame copy operations across Y, U, and V planes according to dimensions and strides provided by caller routines. The memory operations themselves are normal buffer copy loops; without evidence of invalid caller bounds or unchecked dimensions within the function itself, standard data-flow taint on dimensions and pointers does not constitute a triggerable out-of-bounds bug here."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 133,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` is a standard row-by-row image copy utility. It performs routine strided copies for Y, U, and V planes based on passed-in dimensions and strides without any internal buffer mismanagement or arithmetic overflow."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 141,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %42",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` is a standard row-wise 2D buffer copy routine. The memcpy operations copy row by row using the specified width and advance pointers by the respective strides. Memory bounds validation is the caller's responsibility, and the function itself contains no inherent buffer overflow logic flaws."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_vu",
+    "line": 314,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy performs a standard row-by-row buffer copy of size u4_width across u4_height rows within the format conversion utility impeg2_fmt_conv_yuv420p_to_yuv420sp_vu. Taint analysis flags the dimensions and buffer pointers as user-derived, but the buffers are sized and managed by the caller according to standard frame dimensions."
+   },
+   {
+    "func": "impeg2d_api_init",
+    "line": 1678,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %67",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

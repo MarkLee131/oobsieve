@@ -1,0 +1,341 @@
+[
+ {
+  "id": "56456",
+  "project": "libdwarf",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 19,
+  "recall": "hit",
+  "gt_func": "dwarf_gdbindex_cuvector_inner_attributes",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 3,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "dwarf_gdbindex_cuvector_inner_attributes",
+    "line": 524,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %17",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function checks `if ((base+fieldlen) >= end)` before advancing `base` by `fieldlen + innerindex*fieldlen`. There is no subsequent bounds check ensuring that `base + innerindex*fieldlen + fieldlen <= end`, allowing an out-of-bounds read in READ_GDBINDEX."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 177,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before the memcpy of sizeof(struct gi_fileheader_s) (which is 4*6 = 24 bytes) from dbg->de_debug_gdbindex.dss_data, there is an explicit bounds check: `if (dbg->de_debug_gdbindex.dss_size < sizeof(struct gi_fileheader_s)) { return DW_DLV_ERROR; }`."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 190,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before the read, the code verifies that dbg->de_debug_gdbindex.dss_size is at least sizeof(struct gi_fileheader_s), which is 24 bytes (4 * 6). Each READ_GDBINDEX access reads 4 bytes (DWARF_32BIT_SIZE) at offsets within the 24-byte header (offsets 0, 4, 8, 12, 16, and 20), so the access is fully covered by this bounds check."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 193,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before accessing dbg->de_debug_gdbindex.dss_data, the code checks if `dbg->de_debug_gdbindex.dss_size < sizeof(struct gi_fileheader_s)`. The file header struct is at least 24 bytes (6 * 4 bytes), which fully covers the 4-byte read at this offset."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 196,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before the READ_GDBINDEX operations (which expand to memcpy with size 4 / DWARF_32BIT_SIZE), the code explicitly checks `if (dbg->de_debug_gdbindex.dss_size < sizeof(struct gi_fileheader_s))` and returns DW_DLV_ERROR. Since `sizeof(struct gi_fileheader_s)` (which consists of at least 6 32-bit fields, i.e., >= 24 bytes) exceeds the 4-byte read offset within the header, this check covers the access."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 199,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks that `dbg->de_debug_gdbindex.dss_size >= sizeof(struct gi_fileheader_s)`. Since `struct gi_fileheader_s` contains all the header fields (6 * 4-byte fields = 24 bytes), reading 4 bytes (DWARF_32BIT_SIZE) from offsets 0 to 5 * DWARF_32BIT_SIZE (up to 24 bytes) via `READ_GDBINDEX` is fully covered and within bounds."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 202,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks that `dbg->de_debug_gdbindex.dss_size >= sizeof(struct gi_fileheader_s)`. `struct gi_fileheader_s` is 24 bytes (consisting of six 4-byte fields), which sufficiently guards all six 4-byte `READ_GDBINDEX` reads spanning bytes [0, 24) of `dbg->de_debug_gdbindex.dss_data`."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 205,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks `if (dbg->de_debug_gdbindex.dss_size < sizeof(struct gi_fileheader_s))` immediately prior to reading the header. Furthermore, the file header consists of 6 32-bit words (24 bytes), which is >= 4 bytes (DWARF_32BIT_SIZE), so the size of the section buffer is explicitly verified to be at least `sizeof(struct gi_fileheader_s)` bytes before copying/reading."
+   },
+   {
+    "func": "dwarf_gdbindex_culist_entry",
+    "line": 319,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dwarf_gdbindex_culist_entry",
+    "line": 322,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %36",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks that `entryindex < max` where `max = gdbindexptr->gi_culisthdr.dg_count`. Because `set_base` validated the bounds of the culist header (`dg_count = section_len / dg_entry_length`), the check `entryindex >= max` ensures that `base + entryindex * dg_entry_length + fieldlen` resides within the validated section buffer, guarding the READ_GDBINDEX access."
+   },
+   {
+    "func": "dwarf_gdbindex_types_culist_entry",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dwarf_gdbindex_types_culist_entry",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %39",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `dwarf_gdbindex_types_culist_entry`, there is only a check on `entryindex >= max`. There is no bounds check verifying that `base + (2 * fieldlen) + fieldlen` does not exceed the buffer/section bounds before `READ_GDBINDEX` copies data from `base`."
+   },
+   {
+    "func": "dwarf_gdbindex_types_culist_entry",
+    "line": 370,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %47",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function dwarf_gdbindex_types_culist_entry only checks that entryindex < max (gi_typesculisthdr.dg_count), but does not verify that base + 2*fieldlen + fieldlen remains within the bounds of the underlying section/buffer before performing the read/memcpy."
+   },
+   {
+    "func": "dwarf_gdbindex_addressarea_entry",
+    "line": 413,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks `if (entryindex >= max)` against `gdbindexptr->gi_addressareahdr.dg_count`, which bounds the calculated `base` pointer offset within the validated bounds of the address area table established during index header parsing."
+   },
+   {
+    "func": "dwarf_gdbindex_addressarea_entry",
+    "line": 416,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks that `entryindex < max` where `max = gdbindexptr->gi_addressareahdr.dg_count` before calculating `base = dg_base + entryindex * dg_entry_length`, ensuring `entryindex` is within the valid pre-validated address area bounds."
+   },
+   {
+    "func": "dwarf_gdbindex_addressarea_entry",
+    "line": 419,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check verifying that the calculated offset `base + (2*sizeof(gdbindex_64))` plus `DWARF_32BIT_SIZE` (4 bytes) stays within the section buffer boundaries; only `entryindex >= max` is checked."
+   },
+   {
+    "func": "dwarf_gdbindex_cuvector_inner_attributes",
+    "line": 524,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %17",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 177,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before the memcpy of sizeof(struct gi_fileheader_s) (24 bytes) from dbg->de_debug_gdbindex.dss_data, there is an explicit bounds check verifying that dbg->de_debug_gdbindex.dss_size >= sizeof(struct gi_fileheader_s). Therefore, the memory copy is properly guarded against out-of-bounds access."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 190,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function explicitly verifies that `dbg->de_debug_gdbindex.dss_size >= sizeof(struct gi_fileheader_s)` (24 bytes) before reading from `dbg->de_debug_gdbindex.dss_data`. Since the read of size 4 fits within this verified length, this is a guarded access and not an out-of-bounds bug."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 193,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before accessing dbg->de_debug_gdbindex.dss_data, the code checks that dss_size >= sizeof(struct gi_fileheader_s) (which is at least 6 * 4 = 24 bytes). The subsequent READ_GDBINDEX macros read 4 bytes at offsets 0, 4, 8, 12, 16, and 20, all of which fall strictly within the bounds guaranteed by the sizeof(struct gi_fileheader_s) check."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 196,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before accessing the gdbindex header fields, the code explicitly validates that `dbg->de_debug_gdbindex.dss_size >= sizeof(struct gi_fileheader_s)`. The 4-byte reads (via `READ_GDBINDEX`) read up through offset 20+4=24, which is within the bounds checked against `sizeof(struct gi_fileheader_s)`."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 199,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before the READ_GDBINDEX operations (which expand to memcpy of 4 bytes), the code explicitly validates that dbg->de_debug_gdbindex.dss_size is at least sizeof(struct gi_fileheader_s) (which is 24 bytes, covering all 6 32-bit header fields). Therefore, reading 4 bytes at offset 0 through 5*DWARF_32BIT_SIZE is fully within bounds."
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 202,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dwarf_gdbindex_header",
+    "line": 205,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function explicitly verifies that `dbg->de_debug_gdbindex.dss_size >= sizeof(struct gi_fileheader_s)` before performing the header reads (macro `READ_GDBINDEX`, which copies 4 bytes at fixed offsets 0 through 5 * DWARF_32BIT_SIZE). Since `sizeof(struct gi_fileheader_s)` covers all header fields, the source pointer accesses within the header remain safely within the allocated section bounds."
+   },
+   {
+    "func": "dwarf_gdbindex_culist_entry",
+    "line": 319,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function checks that `entryindex < max`, where `max` (gi_culisthdr.dg_count) was computed in `set_base` based on the section boundaries and entry size. As long as entryindex is within [0, max - 1], the offset calculation remains within the valid range of the section data."
+   },
+   {
+    "func": "dwarf_gdbindex_culist_entry",
+    "line": 322,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %36",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function checks that `entryindex < max` where `max` is `gi_culisthdr.dg_count`. The count and boundaries of the section were verified when initializing the header via `set_base`, guaranteeing that `base + entryindex * dg_entry_length + fieldlen` stays within the mapped section bounds."
+   },
+   {
+    "func": "dwarf_gdbindex_types_culist_entry",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function dwarf_gdbindex_types_culist_entry performs bounds checking on entryindex against gi_typesculisthdr.dg_count, which is validated upon index structure initialization (set_base/gdbindex setup). READ_GDBINDEX expands to a fixed-size read/copy based on fieldlen (typically sizeof(Dwarf_Unsigned) or 4/8 bytes) within the allocated and verified section bounds."
+   },
+   {
+    "func": "dwarf_gdbindex_types_culist_entry",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %39",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dwarf_gdbindex_types_culist_entry",
+    "line": 370,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %47",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dwarf_gdbindex_addressarea_entry",
+    "line": 413,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function explicitly validates that `entryindex < max` where `max` is the pre-computed count (`gi_addressareahdr.dg_count`) verified during section header parsing. As long as `entryindex` is strictly less than `max`, the computed `base` pointer and subsequent 8-byte reads remain within the bounds of the validated address area buffer."
+   },
+   {
+    "func": "dwarf_gdbindex_addressarea_entry",
+    "line": 416,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dwarf_gdbindex_addressarea_entry",
+    "line": 419,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function performs bounds checking on entryindex against gi_addressareahdr.dg_count, and base pointers and counts are validated upon parsing the gdb_index section."
+   }
+  ]
+ }
+]

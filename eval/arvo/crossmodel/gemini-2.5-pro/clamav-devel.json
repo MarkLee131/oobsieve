@@ -1,0 +1,41 @@
+[
+ {
+  "id": "23499",
+  "project": "clamav-devel",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "cli_codepage_to_utf8",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The safety of the `memcpy` at line 256 depends on the allocated buffer `b->data` (of size `b->size`) being large enough for an access of size `len` at offset `b->len`. This requires `b->len + len <= b->size`. The code attempts to ensure this by checking `if (b->size < b->len + (off_t)len)` before the `memcpy`. If this check is false, it proceeds to the copy without reallocation. However, this check is flawed due to a type mismatch. The input `len` is an unsigned `size_t`, while `b->len` and `b->size` are signed `off_t`. When a large value for `len` (e.g., greater than `OFF_T_MAX`) is passed, the cast `(off_t)len` can overflow and result in a negative number. This can cause the expression `b->len + (off_t)len` to evaluate to a small or negative value. As a result, the check `b->size < b->len + (off_t)len` can be false, while the actual required size `b->len + len` is much larger than `b->size`. This bypasses the reallocation logic, leading to a heap buffer overflow in the `memcpy`. Because the guard is susceptible to integer overflow and does not cover all input ranges, it is insufficient."
+   },
+   {
+    "func": "blobAddData",
+    "line": 256,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The vulnerability lies in an integer overflow within the size check that is supposed to prevent a buffer overflow. The function `blobAddData` takes a `size_t len` argument, which is unsigned. The blob structure, however, uses `off_t` for `b->size` (allocated size) and `b->len` (current length), which is a signed type.\n\nThe critical check is `if (b->size < b->len + (off_t)len)`. An attacker can provide a large value for `len` (e.g., greater than `OFF_T_MAX`). When this large `size_t` is cast to a signed `off_t`, it wraps around and becomes a negative number. \n\nThis can cause the sum `b->len + (off_t)len` to be smaller than `b->size`, even if `b->len + len` would arithmetically be much larger than `b->size`. As a result, the `if` condition evaluates to false, the reallocation logic is skipped, and the code proceeds to the `memcpy`.\n\nThe `memcpy` call, `memcpy(&b->data[b->len], data, len)`, uses the original, large, unsigned `len`. Since the buffer was not resized, this copy will write far beyond the allocated bounds of `b->data`, causing a heap-based buffer overflow."
+   }
+  ]
+ }
+]

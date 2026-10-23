@@ -1,0 +1,201 @@
+[
+ {
+  "id": "27818",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "hit",
+  "gt_func": "Lizard_decompress_safe",
+  "n_gt_cands": 7,
+  "n_gt_confirmed": 3,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 172,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %54",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the memcpy(op, ip, length), there is an explicit bounds check: `if (ip + length > iend || op + length > oend) ... goto _output_error;`, which verifies that both the source buffer [ip, ip+length) and destination buffer [op, op+length) are within their respective valid bounds [istart, iend] and [dest, oend]."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 234,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 44",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The 44-byte structure copy `params = Lizard_defaultParameters[compressionLevel - LIZARD_MIN_CLEVEL];` (sizeof(Lizard_parameters) == 44) reads from the static array `Lizard_defaultParameters`. The index is strictly checked right after `compressionLevel` is read: `if (compressionLevel < LIZARD_MIN_CLEVEL || compressionLevel > LIZARD_MAX_CLEVEL) return -1;`, guaranteeing that the index `compressionLevel - LIZARD_MIN_CLEVEL` is within the valid bounds of `Lizard_defaultParameters`."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 117,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %556",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The target memmove access is not shown in the snippet and no enclosing bounds check covering this exact memory move operation can be verified in the visible context."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 123,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %583",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet truncates before Lizard_decompress_generic or Lizard_decompress_safe performs the decompression loop, and no bounds guard covering the memcpy at line 123 is visible in the provided context."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 130,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %584",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet does not contain the memcpy at line 130 or any sufficient bounds check guarding it within view; following the default-to-true rule for missing/uncertain guards, real_bug is true."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1036",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Directly preceding `memcpy(op, ip, length);`, the code explicitly checks both input and output bounds with `if (ip + length > iend || op + length > oend) goto _output_error;`, which properly guards the copy operation."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1037",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Directly preceding `memcpy(op, ip, length);`, the code explicitly checks `if (ip + length > iend || op + length > oend) goto _output_error;`, which guards both the source buffer read against `iend` and the destination buffer write against `oend` for `length` bytes."
+   },
+   {
+    "func": "MEM_read16",
+    "line": 146,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet does not show any bounds check guarding the 2-byte access inside MEM_read16, nor is the implementation of MEM_read16 or its call site context visible with a sufficient check."
+   },
+   {
+    "func": "Lizard_copy8",
+    "line": 342,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The definition and call site of Lizard_copy8 are not visible in the provided snippet, and no bounds guard covering the 8-byte access at src-ptr can be verified."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 172,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %54",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 234,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 44",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 117,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %556",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The decompression routine validates stream bounds, buffer sizes, and limits (e.g. against oend and iend) before performing block decoding and memory copies. The tainted pointers and size are checked bounds-safe inputs in Lizard decompression."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 123,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %583",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The decompression routines in Lizard perform strict bounds checking on input pointers (ip/iend) and output buffer pointers (op/oend) before and during data decompression and copying operations (such as Lizard_readStream checks or in the inlined copy loops)."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 130,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %584",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In Lizard_decompress_safe and Lizard_decompress_generic, operations on buffers during decompression (such as reading compressed streams, copying literals, or copying matches via memcpy/wildCopy) are guarded by boundary checks against `iend` and `oend`. Taint analysis flags input-dependent copy lengths and pointers, but the bounds checks ensure valid memory accesses within allocated buffers."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1036",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1037",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation is properly guarded by explicit bounds checks: `ip + length > iend` and `op + length > oend` ensure that neither the source nor destination buffer will be accessed out of bounds."
+   },
+   {
+    "func": "MEM_read16",
+    "line": 146,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_copy8",
+    "line": 342,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

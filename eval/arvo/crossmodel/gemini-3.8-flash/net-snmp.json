@@ -1,0 +1,260 @@
+[
+ {
+  "id": "14481",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 8,
+  "recall": "hit",
+  "gt_func": "agentx_parse_string",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 7,
+  "n_other_confirmed": 4,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "agentx_parse_string",
+    "line": 1248,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %23",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `agentx_parse_string`, `memmove(string->buf, data + 4, len)` is executed before checking whether `*length` is sufficient to contain the string data. The bounds check `if (*length < len + 4)` occurs *after* the `memmove` operation, allowing an out-of-bounds read from `data + 4` if `len` exceeds the remaining buffer length."
+   },
+   {
+    "func": "agentx_realloc_build_string",
+    "line": 311,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %5",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks and grows the buffer before writing: `while ((*out_len + 4 + (4 * ((string_len + 3) / 4))) >= *buf_len)` ensures that `buf` has at least 4 bytes for the int length plus rounded-up space for `string_len`. `agentx_realloc_build_int` advances `*out_len` by 4, leaving at least `(4 * ((string_len + 3) / 4)) >= string_len` remaining bytes in `*buf`, which covers `memmove((*buf + *out_len), string, string_len)`."
+   },
+   {
+    "func": "agentx_parse_int",
+    "line": 1047,
+    "sink": "memmove",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `agentx_parse_int` takes `data` without any accompanying buffer length or bounds check before calling `memmove(&value, data, 4)`. No bounds checks covering `data + 4` are present inside the function."
+   },
+   {
+    "func": "agentx_parse_int",
+    "line": 1053,
+    "sink": "memmove",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In agentx_parse_int, data is read directly via memmove(&value, data, 4) without any bounds check or buffer length parameter passed to the function to verify that at least 4 bytes remain."
+   },
+   {
+    "func": "agentx_parse_short",
+    "line": 1080,
+    "sink": "memmove",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Within agentx_parse_short, `data` is dereferenced via `memmove(&value, data, 2)` without any bounds or buffer length check verifying that `data` contains at least 2 readable bytes."
+   },
+   {
+    "func": "agentx_parse_short",
+    "line": 1086,
+    "sink": "memmove",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Within `agentx_parse_short`, `memmove(&value, data, 2)` dereferences 2 bytes from `data` without checking any buffer length or boundary. There is no visible guard or length parameter in the function to ensure `data` has at least 2 bytes accessible."
+   },
+   {
+    "func": "agentx_parse_opaque",
+    "line": 1311,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access `memcpy(&fu.c[0], &buf[3], sizeof(float))` is directly guarded by the check `if (opaque_buf->used != 3 + sizeof(float) || (buf[2] != sizeof(float))) return cp;`, which ensures `opaque_buf->used` is exactly 3 + sizeof(float) (7 bytes), so accessing 4 bytes at offset 3 of `buf` is safely within bounds."
+   },
+   {
+    "func": "agentx_parse_opaque",
+    "line": 1324,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before executing `memcpy(&fu.c[0], &buf[3], sizeof(double));`, the code checks `if (opaque_buf->used != 3 + sizeof(double) || (buf[2] != sizeof(double))) return cp;`. This explicitly ensures that `opaque_buf->used` equals 3 + sizeof(double) (11 bytes), which guarantees that reading 8 bytes starting at offset 3 from `buf` is completely within bounds."
+   },
+   {
+    "func": "agentx_parse_string",
+    "line": 1248,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %23",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "agentx_realloc_build_string",
+    "line": 311,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %5",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "agentx_parse_int",
+    "line": 1047,
+    "sink": "memmove",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "agentx_parse_int is an internal helper function that reads a 4-byte integer from an AgentX buffer. Callers in the Net-SNMP AgentX parser ensure that the buffer contains sufficient remaining bytes before parsing fields. The taint analysis flagged the input-derived packet data buffer pointer, but this is expected deserialization rather than an unguarded out-of-bounds read."
+   },
+   {
+    "func": "agentx_parse_int",
+    "line": 1053,
+    "sink": "memmove",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "agentx_parse_int is a standard helper in Net-SNMP used to decode a 4-byte integer from an AgentX buffer. Callers of agentx_parse_int check length boundaries before invoking it (or ensure at least 4 bytes remain). Reading 4 bytes via memmove from a tainted network buffer is normal parsing, not an out-of-bounds bug by itself."
+   },
+   {
+    "func": "agentx_parse_short",
+    "line": 1080,
+    "sink": "memmove",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "agentx_parse_short is a standard low-level deserialization helper that reads a 2-byte integer from the provided buffer pointer. Callers in the Net-SNMP AgentX parsing implementation validate packet length bounds before reading fields."
+   },
+   {
+    "func": "agentx_parse_short",
+    "line": 1086,
+    "sink": "memmove",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "agentx_parse_short is an internal helper function that reads 2 bytes from a buffer. Callers in net-snmp's AgentX parser ensure that the buffer has at least 2 remaining bytes before parsing fields (or validate packet/header lengths). The memmove of 2 bytes is standard deserialization and not inherently an out-of-bounds read."
+   },
+   {
+    "func": "agentx_parse_opaque",
+    "line": 1311,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before executing the memcpy, the function explicitly validates that opaque_buf->used == 3 + sizeof(float). Since opaque_buf has at least 3 + sizeof(float) bytes allocated and initialized by agentx_parse_string, reading sizeof(float) bytes starting at &buf[3] is safely in-bounds."
+   },
+   {
+    "func": "agentx_parse_opaque",
+    "line": 1324,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code strictly guards the access by verifying `opaque_buf->used != 3 + sizeof(double)` and `buf[2] != sizeof(double)` before executing `memcpy(&fu.c[0], &buf[3], sizeof(double));`. Since `opaque_buf->used` is exactly 3 + 8 = 11, `buf` contains at least 11 bytes, so reading 8 bytes from `&buf[3]` is completely safe and in bounds."
+   }
+  ]
+ },
+ {
+  "id": "37564",
+  "project": "net-snmp",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "miss",
+  "gt_func": "snmp_add_var",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "snmpv3_packet_realloc_rbuild",
+    "line": 2627,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %6",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the memcpy, a while loop ensures the buffer capacity is sufficient (`while ((*pkt_len - *offset) < pdu_data_len)`), reallocating `pkt` via `asn_realloc` until there is enough space. Once sufficient, `*offset += pdu_data_len;` is performed and the data is copied to `*pkt + *pkt_len - *offset`, which is within bounds."
+   },
+   {
+    "func": "snmpv3_packet_build",
+    "line": 2756,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %5",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy(cp, pdu_data, pdu_data_len) is immediately guarded by `if (cp + pdu_data_len > spdu_buf + sizeof(spdu_buf)) { return -1; }`, which ensures that copying `pdu_data_len` bytes into destination `cp` will not exceed the bounds of `spdu_buf`."
+   },
+   {
+    "func": "snmp_sess_select_info2_flags",
+    "line": 6594,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check or length guard covering the memory copy operation on the path reaching line 6594."
+   },
+   {
+    "func": "snmpv3_packet_realloc_rbuild",
+    "line": 2627,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %6",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "snmpv3_packet_build",
+    "line": 2756,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %5",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code explicitly bounds-checks the destination buffer before the memcpy operation: `if (cp + pdu_data_len > spdu_buf + sizeof(spdu_buf))` returns -1 on overflow, preventing an out-of-bounds write to `spdu_buf`."
+   },
+   {
+    "func": "snmp_sess_select_info2_flags",
+    "line": 6594,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation of size 16 (sizeof(struct timeval) on 64-bit platforms) corresponds to copying or assigning a struct timeval (such as earliest, rp->expireM, or timeout). These are fixed-size structs allocated on the stack or within established internal request structures. Taint analysis flags the timeval as derived from input/network session activity, but fixed-size copying of valid struct timeval objects (16 bytes) is bounded and safe."
+   }
+  ]
+ }
+]

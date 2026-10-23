@@ -1,0 +1,440 @@
+[
+ {
+  "id": "61902",
+  "project": "libxaac",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "iusace_estimate_scfs_chan",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 2,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "iusace_estimate_scfs_chan",
+    "line": 1586,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The destination buffer of the `memset` at line 1586 is `str_qc_out_chan[idx].scalefactor`. Looking up the definition of `ia_qc_out_chan_struct`, this array has a fixed size of `MAX_NUM_GROUPED_SFB` elements. The size argument of the `memset` is `sizeof(...) * pstr_psy_out[ch].sfb_count`, meaning it intends to write `pstr_psy_out[ch].sfb_count` elements. The problem states that `sfb_count` is input-derived and not checked. For the `memset` to be safe, `pstr_psy_out[ch].sfb_count` must be less than or equal to `MAX_NUM_GROUPED_SFB`. Within the visible code of the function `iusace_estimate_scfs_chan`, there is no conditional check to ensure that `pstr_psy_out[ch].sfb_count` is within this bound before the `memset` operation is performed. The function trusts the value provided in its arguments. Since no guarding check is visible on the execution path leading to the `memset`, a malicious input could provide a large `sfb_count` value, causing a heap-based buffer overflow."
+   },
+   {
+    "func": "iusace_calc_form_fac_per_chan",
+    "line": 946,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_calc_form_fac_per_chan` performs a `memset` on the destination buffer `ptr_sfb_num_relevant_lines`. The destination pointer is derived from an input struct `pstr_scratch` via `pstr_scratch->ptr_sfb_num_relevant_lines[i_ch]`. The size of the `memset` is calculated as `sizeof(FLOAT32) * pstr_psy_out_chan->sfb_count`, where `pstr_psy_out_chan` is another function argument. There is no visible check within the function `iusace_calc_form_fac_per_chan` or the provided code context to ensure that the allocated size of the buffer pointed to by `ptr_sfb_num_relevant_lines` is greater than or equal to the size calculated from the input `pstr_psy_out_chan->sfb_count`. The function implicitly trusts the caller to have allocated a sufficiently large buffer. If an inconsistent `pstr_psy_out_chan` is provided, this could lead to a heap buffer overflow. Since no covering guard is visible, the bug is considered real."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1186,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_improve_scf` takes a size parameter `sfb_width` and uses it in a `memcpy` operation: `memcpy(ptr_quant_spec, ptr_quant_spec_temp, sfb_width * sizeof(WORD16))`. There is no validation within this function to ensure that `sfb_width` is a safe size for the destination buffer `ptr_quant_spec` or the source buffer `ptr_quant_spec_temp`. The `memcpy` is inside a conditional block, but the conditions (`sfb_dist < best_sfb_dist`, which is part of a loop conditioned on `sfb_dist > (1.25 * threshold)`) relate to audio quality metrics, not to buffer sizes. An input-derived `sfb_width` could be larger than the allocated buffers, leading to a heap-based buffer overflow."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1204,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %63",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1204 copies a number of bytes determined by the `sfb_width` parameter, which is passed into the `iusace_improve_scf` function. Within the body of this function, there is no validation or check to ensure that `sfb_width` is within the allocated bounds of the destination buffer `ptr_quant_spec` or the source buffer `ptr_quant_spec_temp`. The code simply assumes that the caller has provided a `sfb_width` value that is safe for the sizes of the buffers. Given that the taint analysis has established `sfb_width` is input-derived and not clamped, this `memcpy` can lead to a heap-based buffer overflow if a malicious `sfb_width` is provided."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1225,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_improve_scf` receives `ptr_quant_spec`, `ptr_quant_spec_temp`, and `sfb_width` as parameters. The `memcpy` operation at line 1225 uses `sfb_width` to determine the size of the memory copy. There are no checks within this function to validate that `sfb_width` is within the allocated bounds of the destination buffer `ptr_quant_spec` or the source buffer `ptr_quant_spec_temp`. The code uses the `sfb_width` value directly, assuming it is safe. Given that the taint analysis confirms `sfb_width` and the pointers are input-derived and not checked, and no local guard is present, this represents a potential buffer overflow."
+   },
+   {
+    "func": "iusace_assimilate_multiple_scf",
+    "line": 1442,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1442 reads a fixed size of `MAX_NUM_GROUPED_SFB * sizeof(WORD16)` bytes from the source buffer `ptr_scf`. The effective size of the `ptr_scf` buffer is dictated by the variable `sfb_count`, which is derived from the input structure `pstr_psy_out->sfb_count`. The code iterates up to `sfb_count` in loops prior to the `memcpy`, suggesting `ptr_scf` is allocated to hold at least `sfb_count` elements. However, there is no visible check within the function to ensure that `sfb_count` is greater than or equal to `MAX_NUM_GROUPED_SFB`. If an input is provided where `pstr_psy_out->sfb_count` is less than `MAX_NUM_GROUPED_SFB`, the `memcpy` will read beyond the bounds of the `ptr_scf` buffer."
+   },
+   {
+    "func": "iusace_estimate_scfs_chan",
+    "line": 1586,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1586 writes to the `scalefactor` field of the `ia_qc_out_chan_struct` structure. The destination buffer, `str_qc_out_chan[idx].scalefactor`, is a fixed-size array, likely of size `MAX_NUM_GROUPED_SFB`. The size of the `memset` operation is calculated as `sizeof(...) * pstr_psy_out[ch].sfb_count`. The variable `pstr_psy_out[ch].sfb_count` is reported as being derived from input. If a malicious input can cause `sfb_count` to be larger than the actual size of the `scalefactor` array (`MAX_NUM_GROUPED_SFB`), this `memset` will result in a heap-based buffer overflow. The function itself does not perform any validation to ensure that `sfb_count` is within the bounds of the destination array. This lack of an explicit bounds check on an input-controlled size for a memory operation is a common and serious vulnerability pattern, especially in media codecs that parse complex bitstreams."
+   },
+   {
+    "func": "iusace_calc_form_fac_per_chan",
+    "line": 946,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted size operand is `pstr_psy_out_chan->sfb_count`. This variable represents the number of Scale Factor Bands (SFBs) for the current audio frame in a USAC codec. In standards-compliant audio codecs like USAC, the number of SFBs is not an arbitrary value read from the bitstream. Instead, it is determined by looking up values in tables defined by the standard, based on validated configuration parameters like sampling rate and window sequence (long/short block). The scratch memory buffer, `ptr_sfb_num_relevant_lines`, is allocated at initialization time to accommodate the maximum possible SFB count across all valid configurations (e.g., `MAX_SFB_LONG`). The `sfb_count` for any given frame will be less than or equal to this maximum allocated size. The `memset` is therefore clearing a portion of the buffer that is guaranteed to be within its bounds. The taint analysis correctly identifies that `sfb_count` depends on input data (the frame configuration), but it likely misses the crucial step where this input is used to select a pre-defined, bounded value from a table. The code structure, which uses `sfb_count` to access multiple arrays, relies on this value being valid, indicating that its validation is handled upstream as part of the system's design."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1186,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation uses `sfb_width` to determine the number of bytes to copy. The function `iusace_improve_scf` takes `sfb_width`, a destination pointer `ptr_quant_spec`, and a source pointer `ptr_quant_spec_temp` as arguments. Throughout this function and the functions it calls (like `iusace_calc_sfb_dist`), `sfb_width` is consistently used as the upper bound for loops that access these buffers. This indicates that `sfb_width` is the intended size of the relevant data within the buffers. While `sfb_width` might be derived from user input, the buffers `ptr_quant_spec` and `ptr_quant_spec_temp` are almost certainly allocated by the caller to be large enough. Typically, in such audio codec code, these buffers are allocated to hold an entire frame's worth of data (e.g., 1024 or 2048 samples), and `sfb_width` represents the size of a smaller sub-band, which is guaranteed to be less than the total frame size. The code is internally consistent and follows a safe and common programming pattern for processing sub-regions of a larger buffer. An out-of-bounds write would only occur if the caller violates the function's precondition by passing a `sfb_width` that is larger than the allocated buffer sizes, which is unlikely and would be a bug in the caller, not in this specific `memcpy` line."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1204,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %63",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The `memcpy` copies `sfb_width * sizeof(WORD16)` bytes from `ptr_quant_spec_temp` to `ptr_quant_spec`. The parameter `sfb_width` is derived from scale factor band (SFB) tables, which are selected based on the sampling rate specified in the input audio stream. While `ptr_quant_spec` points to a sufficiently large buffer, the source buffer `ptr_quant_spec_temp` is typically a fixed-size array allocated on the stack in the caller function, with a size of `MAX_SFB_WIDTH`. Analysis of the SFB tables used by the codec reveals that for certain configurations (e.g., a sampling rate of 64kHz), the value of `sfb_width` can be as large as 128. However, the constant `MAX_SFB_WIDTH` is defined as 112. When an input stream triggers a configuration where `sfb_width` is 128, the `memcpy` will attempt to read `128 * sizeof(WORD16)` bytes from a stack buffer of size `112 * sizeof(WORD16)`, resulting in a stack-based buffer over-read. Furthermore, before this `memcpy`, the function `iusace_calc_sfb_dist` is called, which performs an out-of-bounds write to the same `ptr_quant_spec_temp` buffer, corrupting the stack. Therefore, this is a genuine and triggerable out-of-bounds vulnerability."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1225,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %88",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `iusace_improve_scf` and its callee `iusace_calc_sfb_dist` use the `sfb_width` parameter to control the size of memory operations, including a loop that writes to `ptr_quant_spec_temp` and a `memcpy` that writes to `ptr_quant_spec`. The value of `sfb_width` is passed in as an argument and is not validated within the function. The taint analysis indicates that `sfb_width` is derived from user input. If a malicious input can provide an `sfb_width` value that is larger than the allocated sizes of the buffers pointed to by `ptr_quant_spec` and `ptr_quant_spec_temp`, a heap-based buffer overflow will occur. The code completely trusts the caller to provide a safe `sfb_width`, which is a common but dangerous pattern that frequently leads to vulnerabilities. The absence of any bounds checking on `sfb_width` makes this a triggerable out-of-bounds write vulnerability."
+   },
+   {
+    "func": "iusace_assimilate_multiple_scf",
+    "line": 1442,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'memcpy' at line 1442 copies data from 'ptr_scf' to a local stack array 'scf_temp'. The destination 'scf_temp' is declared as 'WORD16 scf_temp[MAX_NUM_GROUPED_SFB]', so its size is exactly the size of the copy, preventing a destination buffer overflow. The source pointer 'ptr_scf' is a parameter to the function 'iusace_assimilate_multiple_scf'. Looking at the call site in the parent function 'iusace_find_best_grouping', the argument passed for 'ptr_scf' is a local array declared as 'WORD16 scf[MAX_NUM_GROUPED_SFB]'. Since the source buffer has a size of 'MAX_NUM_GROUPED_SFB' elements and the memcpy reads exactly 'MAX_NUM_GROUPED_SFB' elements, there is no out-of-bounds read from the source. The code is safe."
+   }
+  ]
+ },
+ {
+  "id": "61998",
+  "project": "libxaac",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 14,
+  "recall": "hit",
+  "gt_func": "iusace_estimate_scfs_chan",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 13,
+  "n_other_confirmed": 12,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 3,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "iusace_estimate_scfs_chan",
+    "line": 1587,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1587 writes to the `scalefactor` field of the `str_qc_out_chan` struct. The size of this destination buffer is fixed at compile time, likely defined as `MAX_NUM_GROUPED_SFB`. The size of the memory write, however, is determined by `pstr_psy_out[ch].sfb_count`, which is flagged as being derived from an untrusted input. There is no visible check within the function `iusace_estimate_scfs_chan` on the path to the `memset` that validates or clamps `pstr_psy_out[ch].sfb_count` to be less than or equal to the capacity of the `scalefactor` buffer. If an attacker can control `sfb_count` to be larger than `MAX_NUM_GROUPED_SFB`, this `memset` will cause a buffer overflow."
+   },
+   {
+    "func": "iusace_calc_form_fac_per_chan",
+    "line": 947,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 947 writes to a destination buffer `ptr_sfb_num_relevant_lines` whose size is not known or checked within this function. The size of the write is determined by `pstr_psy_out_chan->sfb_count`, which is a field from a different input structure. There is no visible check in the function `iusace_calc_form_fac_per_chan` that ensures the allocated size of the destination buffer (`pstr_scratch->ptr_sfb_num_relevant_lines[i_ch]`) is large enough to accommodate `pstr_psy_out_chan->sfb_count` elements. This creates a potential for a buffer overflow if a caller provides a scratch buffer that is smaller than what is required by the `sfb_count`."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_improve_scf` takes `ptr_quant_spec`, `ptr_quant_spec_temp`, and `sfb_width` as parameters. The `memcpy` at line 1187 uses `sfb_width` to determine the number of bytes to copy between these two buffers. However, within the body of `iusace_improve_scf`, there are no checks to validate that `sfb_width` is within the allocated bounds of either the source buffer `ptr_quant_spec_temp` or the destination buffer `ptr_quant_spec`. The function trusts that the caller provides a valid size, which is a common pattern for buffer overflows if the caller can be influenced by external input."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1205,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %63",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_improve_scf` receives the destination pointer `ptr_quant_spec`, source pointer `ptr_quant_spec_temp`, and a size-related parameter `sfb_width` from its caller. The `memcpy` at line 1205 uses a size of `sfb_width * sizeof(WORD16)`. There are no checks within the body of `iusace_improve_scf` to validate that `sfb_width` is within the allocated bounds of either `ptr_quant_spec` or `ptr_quant_spec_temp`. The safety of this memory operation is entirely dependent on the caller providing valid arguments, but no such calling context or check is visible within the provided code. Therefore, an input-derived `sfb_width` could lead to a buffer overflow."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1226,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_improve_scf` receives `ptr_quant_spec`, `ptr_quant_spec_temp`, and `sfb_width` as parameters. The `memcpy` at line 1226 uses `sfb_width` to calculate the number of bytes to copy. Within the visible code for this function, there are no checks to validate that `sfb_width` is within the allocated bounds of the source buffer `ptr_quant_spec_temp` or the destination buffer `ptr_quant_spec`. The safety of this memory operation is entirely dependent on the caller providing a correctly bounded `sfb_width`, but no such check is visible on the execution path leading to the `memcpy`. Since the taint analysis confirms `sfb_width` is input-derived and not sanitized, and there is no visible guard, this is a potential buffer overflow."
+   },
+   {
+    "func": "iusace_assimilate_multiple_scf",
+    "line": 1443,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function reads a size `sfb_count` from an input structure `pstr_psy_out`. It then proceeds to access the input buffer `ptr_scf` in a loop that iterates up to `sfb_count`. This implies that the intended size of `ptr_scf` is `sfb_count`. Later in the function, a `memcpy` operation is performed which reads a fixed size of `MAX_NUM_GROUPED_SFB * sizeof(WORD16)` bytes from `ptr_scf`. There is no check on the path to this `memcpy` to ensure that the buffer pointed to by `ptr_scf` is large enough, for example by checking if `sfb_count >= MAX_NUM_GROUPED_SFB`. If a crafted input provides a `sfb_count` that is smaller than `MAX_NUM_GROUPED_SFB`, this will lead to an out-of-bounds read."
+   },
+   {
+    "func": "iaace_calc_form_fac_per_chan",
+    "line": 60,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %9",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iaace_calc_form_fac_per_chan` receives the destination pointer `ptr_sfb_ld_energy` and the structure `pstr_psy_out_chan` (which contains the size multiplier `sfb_count`) as arguments. There are no checks within this function's body before the `memset` at line 60 to validate that the size of the allocated buffer `ptr_sfb_ld_energy` is at least `sizeof(FLOAT32) * pstr_psy_out_chan->sfb_count`. The size of the write is directly determined by the input-derived value `pstr_psy_out_chan->sfb_count` without any preceding guard."
+   },
+   {
+    "func": "iaace_calc_form_fac_per_chan",
+    "line": 63,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %14",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iaace_calc_form_fac_per_chan` receives the destination pointer `ptr_sfb_ld_energy` and a structure `pstr_psy_out_chan` as arguments. The size of the `memset` operation at line 63 is calculated using `pstr_psy_out_chan->sfb_count`, which is an input-derived value. There are no checks within this function to validate that the allocated size of the buffer pointed to by `ptr_sfb_ld_energy` is sufficient to handle the write of `sizeof(*ptr_sfb_ld_energy) * pstr_psy_out_chan->sfb_count` bytes. The function trusts the caller to provide a correctly-sized buffer. Without a visible guard, an attacker could potentially control `pstr_psy_out_chan->sfb_count` to cause a heap buffer overflow."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 646,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %21",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` operation at line 646 writes to the buffer `pstr_qc_out_chan[ch].quant_spec`. The size of this write is determined by the function parameter `frame_len_long`, which is input-derived. The destination buffer `quant_spec` is a fixed-size array within the `ixheaace_qc_out_channel` struct. Based on the declarations of other local arrays like `quant_spec_temp[FRAME_LEN_1024]`, the size of `quant_spec` is `FRAME_LEN_1024`. The function `iaace_estimate_scfs_chan` does not perform any validation to ensure that `frame_len_long` is less than or equal to the capacity of the destination buffer (`FRAME_LEN_1024`). The absence of such a check on the path to the `memset` means that a large input value for `frame_len_long` can cause a buffer overflow."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 647,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %25",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The size of the `memset` operation is determined by the function parameter `frame_len_long`. The destination buffer, `pstr_qc_out_chan[ch].quant_spec`, is a fixed-size array member of a struct. There are no checks visible within the function `iaace_estimate_scfs_chan` that validate or clamp `frame_len_long` to ensure it does not exceed the compile-time size of the `quant_spec` buffer. Given the taint analysis has confirmed `frame_len_long` is input-derived and unchecked, a large value can be passed, causing a buffer overflow."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 648,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %29",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` takes an integer `frame_len_long` as an argument. This argument is used as a multiplier to calculate the size for a `memset` operation on the stack-allocated buffer `ptr_mdct_spec`. The buffer `ptr_mdct_spec` is declared with a fixed size of `FRAME_LEN_1024`. There is no check within the function to ensure that `frame_len_long` is less than or equal to `FRAME_LEN_1024`. If a caller provides a value for `frame_len_long` greater than `FRAME_LEN_1024`, the `memset` will write past the end of the `ptr_mdct_spec` buffer, causing a stack buffer overflow. No visible guard on the path to the `memset` mitigates this."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 654,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` contains multiple `memset` calls to fixed-size stack buffers where the size is determined by an unchecked, input-derived parameter. For example, at line 645, `memset(pstr_qc_out_chan[ch].scalefactor, 0, sizeof(*pstr_qc_out_chan[ch].scalefactor) * pstr_psy_out[ch].sfb_count);` writes to `pstr_qc_out_chan[ch].scalefactor`, which is a fixed-size array (`MAXIMUM_GROUPED_SCALE_FACTOR_BAND`). The size of the write is determined by `pstr_psy_out[ch].sfb_count`, which is derived from an input structure. There is no visible check in the function to ensure that `pstr_psy_out[ch].sfb_count` is less than or equal to `MAXIMUM_GROUPED_SCALE_FACTOR_BAND` before this `memset` call. A similar issue exists for other `memset` calls in the same function using the `frame_len_long` parameter to write to buffers of size `FRAME_LEN_1024`. This lack of a bounds check can lead to a stack buffer overflow."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 656,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 656 writes to the destination buffer `pstr_qc_out_chan[ch].quant_spec`. This buffer is a field within the `ixheaace_qc_out_channel` struct, which is defined with a fixed size, likely `FRAME_LEN_1024`. The size of the `memset` is determined by the `frame_len_long` parameter, which is passed into the function. The provided context shows no validation or clamping of `frame_len_long` to ensure it does not exceed the buffer's capacity (`FRAME_LEN_1024`). As the taint analysis states `frame_len_long` is input-derived and not checked, a value greater than the buffer's capacity could be passed, leading to a heap-based buffer overflow."
+   },
+   {
+    "func": "iaace_assimilate_multiple_scf",
+    "line": 517,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source pointer of the `memcpy`, `ptr_scf`, is an argument to the function `iaace_assimilate_multiple_scf`. Analysis of the call site in `iaace_quantize_and_code_spec` shows that the argument passed is `pstr_psy_out->scf`. The `pstr_psy_out` variable is a pointer to a `ixheaace_psy_out_channel` struct. The definition of this struct shows that the `scf` member is a fixed-size array: `WORD16 scf[MAXIMUM_GROUPED_SCALE_FACTOR_BAND];`. The `memcpy` at line 517 reads `MAXIMUM_GROUPED_SCALE_FACTOR_BAND * sizeof(*ptr_scf)` bytes. This size is exactly equal to the size of the source buffer `pstr_psy_out->scf`. Therefore, the `memcpy` reads from a buffer of a known, sufficient size, and the access is safe. The safety is guaranteed by the program's data structure definition."
+   },
+   {
+    "func": "iusace_estimate_scfs_chan",
+    "line": 1587,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The destination buffer `str_qc_out_chan[idx].scalefactor` is a field in a struct, and its size is almost certainly determined by a compile-time constant like `MAX_NUM_GROUPED_SFB`. The size of the `memset` is `pstr_psy_out[ch].sfb_count`, which is a variable field derived from the input stream. This is a very common and safe programming pattern where a buffer is allocated to hold the maximum possible number of elements, and a variable tracks the actual number of elements used for a given frame. An overflow would only occur if `pstr_psy_out[ch].sfb_count` were larger than the allocated size of the `scalefactor` array. In a codec implementation, it is standard practice to validate such parameters against their defined maximums (e.g., `MAX_NUM_GROUPED_SFB`) during parsing, long before this processing function is called. Therefore, it is highly probable that `sfb_count` is bounded and will not exceed the buffer's capacity."
+   },
+   {
+    "func": "iusace_calc_form_fac_per_chan",
+    "line": 947,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation clears a scratch buffer `ptr_sfb_num_relevant_lines` for a given channel `i_ch`. The size of the `memset` is determined by `pstr_psy_out_chan->sfb_count`, which is the number of scale factor bands for the current channel's data. The destination buffer `ptr_sfb_num_relevant_lines` is part of a larger scratch memory structure (`pstr_scratch`) that is likely allocated to handle the maximum possible `sfb_count` for the given codec configuration. The value `pstr_psy_out_chan->sfb_count` represents the *actual* number of SFBs for the current frame, which should be less than or equal to the allocated maximum. The code consistently uses `sfb_count` as the upper bound for loops and array accesses related to SFB processing, indicating it's a trusted, core parameter for the frame's geometry. A mismatch between the allocated size of the scratch buffer and the `sfb_count` value used here would imply a fundamental architectural inconsistency, which is improbable. This is a common pattern in signal processing code where scratch buffers are allocated for a worst-case size and then used with the actual size for the current processing unit."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1205,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %63",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation copies `sfb_width * sizeof(WORD16)` bytes. The size of the copy, `sfb_width`, is the width of a scalefactor band (SFB). While this value is derived from input configuration, it is not an arbitrary value. In AAC and related codecs, SFB tables (containing widths and offsets) are standardized and selected based on a small, validated set of configuration parameters like sample rate and frame length. The source `ptr_quant_spec_temp` points to a temporary buffer that, in the calling context, is typically allocated to hold a full frame of data (e.g., `FRAME_LEN_LONG` which is 1024 or 2048). The SFB width is, by definition, a partition of the full frame and thus will be significantly smaller than the total frame length. The destination `ptr_quant_spec` is a pointer into a similarly sized buffer for the final quantized spectrum. The logic of partitioning a frame into SFBs ensures that the offset plus the width does not exceed the total frame buffer size. The code relies on these strong invariants which are fundamental to the codec's design. While not locally guarded, the overall architecture makes an out-of-bounds access highly unlikely, as it would require a fundamental flaw in the codec's static configuration tables."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1226,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size of the `memcpy` is `sfb_width * sizeof(WORD16)`. The source pointer is `ptr_quant_spec_temp` and the destination is `ptr_quant_spec`. Before this `memcpy` is executed, the function `iusace_calc_sfb_dist` is called with `ptr_quant_spec_temp` as an argument and `sfb_width` as the size. Inside `iusace_calc_sfb_dist`, there is a loop that iterates up to `sfb_width`, writing to the `ptr_quant_spec_temp` buffer. This means that if `sfb_width` were larger than the allocated size of `ptr_quant_spec_temp`, an out-of-bounds write would have already occurred in the preceding call to `iusace_calc_sfb_dist`. Similarly, at the beginning of the `iusace_improve_scf` function, `iusace_calc_sfb_dist` is called with `ptr_quant_spec`, ensuring it too is accessed up to `sfb_width`. The `memcpy` is therefore copying a number of bytes that have just been successfully written to the source buffer into a destination buffer that has also been successfully written to earlier with the same size. The code is internally consistent, and the `memcpy` itself is not the source of a unique out-of-bounds write vulnerability; it is guarded by preceding operations that use the same size parameter."
+   },
+   {
+    "func": "iusace_assimilate_multiple_scf",
+    "line": 1443,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 1443 copies `MAX_NUM_GROUPED_SFB * sizeof(WORD16)` bytes from `ptr_scf` to `scf_temp`. The destination buffer, `scf_temp`, is a local array declared as `WORD16 scf_temp[MAX_NUM_GROUPED_SFB]`, so its size matches the copy size, preventing a destination overflow. The source pointer, `ptr_scf`, is an argument to the function. Tracing its usage, it's passed from a caller, which typically provides the `scf` field of an `ia_psy_mod_out_data_struct` structure. The definition of this structure contains the field `WORD16 scf[MAX_NUM_GROUPED_SFB]`. Therefore, the source pointer `ptr_scf` points to a buffer that is guaranteed to be at least `MAX_NUM_GROUPED_SFB` elements large. Since the `memcpy` reads exactly this number of elements, it does not perform an out-of-bounds read. The code correctly uses a compile-time constant for both the buffer allocation and the copy size, ensuring they match."
+   },
+   {
+    "func": "iaace_calc_form_fac_per_chan",
+    "line": 60,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %9",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The destination pointer `ptr_sfb_ld_energy` points to a stack-allocated buffer of size `MAX_SFB` floats in the caller function `iaace_psy_main`. The size of the `memset` operation is determined by `pstr_psy_out_chan->sfb_count`. This `sfb_count` value, while dependent on input stream parameters like sampling rate and block type, is not directly taken from the input. Instead, it is looked up in static, constant tables (ROM data) based on those parameters. A review of these tables shows that the maximum possible value for `sfb_count` is `MAX_SFB_LONG` (51), which is precisely the value of `MAX_SFB`. Therefore, the size of the memory operation (`sfb_count * sizeof(FLOAT32)`) can never exceed the allocated size of the destination buffer (`MAX_SFB * sizeof(FLOAT32)`), preventing an out-of-bounds write."
+   },
+   {
+    "func": "iaace_calc_form_fac_per_chan",
+    "line": 63,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %14",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size of the `memset` operation is determined by `pstr_psy_out_chan->sfb_count`. While this value is derived from the input audio configuration (e.g., sample rate, block type), it is not arbitrarily controllable. In AAC encoders, `sfb_count` (the number of scale factor bands) is determined by looking up values in static, trusted tables defined by the AAC standard. The buffers being written to, such as `ptr_sfb_ld_energy`, are typically allocated (statically or dynamically at initialization) to a maximum size (`MAX_SFB`) that is large enough to accommodate the highest possible `sfb_count` for any valid configuration. The value of `pstr_psy_out_chan->sfb_count` is therefore guaranteed by the encoder's logic to be less than or equal to the allocated size of the destination buffer `ptr_sfb_ld_energy`. This is a common and safe design pattern in signal processing codecs. The taint analysis correctly identifies the data flow from input configuration to the size parameter, but it misses the semantic constraint that bounds the value to a safe range."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 646,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %21",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` declares several fixed-size arrays on the stack, such as `WORD16 quant_spec_temp[FRAME_LEN_1024]`, `FLOAT32 ptr_exp_spec[FRAME_LEN_1024]`, and `FLOAT32 ptr_mdct_spec[FRAME_LEN_1024]`. The size of these arrays is hardcoded to `FRAME_LEN_1024` (1024 elements).\n\nThe function then proceeds to initialize these arrays using `memset`, with the size of the write operation determined by the `frame_len_long` parameter, which is passed into the function. For example: `memset(quant_spec_temp, 0, frame_len_long * sizeof(quant_spec_temp[0]));`.\n\nThe taint analysis indicates that the `frame_len_long` parameter is derived from external input, which is common for parameters like frame dimensions in a media codec. The function itself performs no validation to ensure that `frame_len_long` does not exceed the allocated size of the stack buffers (`FRAME_LEN_1024`).\n\nIf an attacker provides a crafted input file that specifies a `frame_len_long` value greater than 1024, the `memset` call will write beyond the bounds of the `quant_spec_temp` array on the stack. This is a classic stack-based buffer overflow, which can corrupt the stack frame, overwrite the return address, and lead to arbitrary code execution. The same vulnerability exists for the other stack arrays and for the heap-allocated `pstr_qc_out_chan[ch].quant_spec` array, which is also cleared using `frame_len_long`. The absence of any bounds checks makes this a genuine and triggerable vulnerability."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 647,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %25",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The analysis has flagged the `size` operand of a `memset` operation as being derived from tainted input. The specific call appears to be `memset(pstr_qc_out_chan[ch].scalefactor, 0, sizeof(*pstr_qc_out_chan[ch].scalefactor) * pstr_psy_out[ch].sfb_count);` within the function `iaace_estimate_scfs_chan`.\n\nThe destination buffer is `pstr_qc_out_chan[ch].scalefactor`. Based on common definitions for the `ixheaace_qc_out_channel` struct, this is an array sized with the constant `MAXIMUM_GROUPED_SCALE_FACTOR_BAND`.\n\nThe size of the memory write is proportional to `pstr_psy_out[ch].sfb_count`. An out-of-bounds write would occur if `pstr_psy_out[ch].sfb_count` were greater than `MAXIMUM_GROUPED_SCALE_FACTOR_BAND`.\n\nHowever, `sfb_count` (the number of scale factor bands) in an AAC encoder is not an arbitrary user-controlled value. It is determined by the encoder's configuration, specifically the audio sampling rate and the frame length. These configurations map to standardized, static tables that define the SFB structure. The constant `MAXIMUM_GROUPED_SCALE_FACTOR_BAND` is used throughout the codebase to size arrays that hold SFB-related data, precisely because it represents the maximum possible number of scale factor bands across all valid AAC configurations. The value of `pstr_psy_out[ch].sfb_count` is derived from these tables and is therefore implicitly bounded to be less than or equal to `MAXIMUM_GROUPED_SCALE_FACTOR_BAND`. The code is safe by design, and this is a false positive."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 648,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %29",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` takes a `frame_len_long` parameter which is used to determine the size of several `memset` operations. The target buffer for the `memset` at line 648 is `pstr_qc_out_chan[ch].quant_spec`. The definition of the `ixheaace_qc_out_channel` struct shows that `quant_spec` is a fixed-size array of `FRAME_LEN_1024` elements. The size of the `memset` is `sizeof(*pstr_qc_out_chan[ch].quant_spec) * frame_len_long`. An out-of-bounds write will occur if `frame_len_long` is greater than `FRAME_LEN_1024`. There are no checks within this function to validate that `frame_len_long` is within the expected bounds. If an attacker can control the input that determines `frame_len_long` (e.g., from a malformed audio stream header), they could provide a value larger than `FRAME_LEN_1024`, leading to a buffer overflow. The lack of an explicit bounds check on this input-derived size parameter makes this a potential vulnerability."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 654,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `iaace_estimate_scfs_chan` uses the parameter `frame_len_long` to specify the size for several `memset` operations. The destination buffers, including `pstr_qc_out_chan[ch].quant_spec` and several stack-allocated arrays (`quant_spec_temp`, `ptr_exp_spec`, `ptr_mdct_spec`), are sized with the compile-time constant `FRAME_LEN_1024`. While there is no explicit check within this function to ensure `frame_len_long <= FRAME_LEN_1024`, this is a common pattern in performance-critical code like audio codecs. The variable name `frame_len_long` suggests it represents the length of a standard long AAC frame, which is typically 1024 or 960 samples. It is expected that this value is derived from codec configuration and validated at a higher level before being passed to this low-level processing function. Re-validating the parameter in every function would be redundant and inefficient. The taint analysis correctly identifies that `frame_len_long` is derived from input configuration, but it is highly probable that its value is constrained to a set of safe, standard frame sizes, making an overflow untriggerable."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 656,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %56",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` declares several fixed-size arrays on the stack, for example, `WORD16 quant_spec_temp[FRAME_LEN_1024]`. The size of these arrays is `FRAME_LEN_1024`, which is a compile-time constant (likely 1024). Immediately after, the function performs a `memset` on this array: `memset(quant_spec_temp, 0, frame_len_long * sizeof(quant_spec_temp[0]))`. The size of the memory write is determined by the `frame_len_long` parameter, which is passed into the function. The taint analysis indicates that `frame_len_long` is derived from user input. There is no validation within this function to ensure that `frame_len_long` is less than or equal to `FRAME_LEN_1024`. If an input can cause `frame_len_long` to be greater than 1024, the `memset` will write past the end of the `quant_spec_temp` buffer, resulting in a stack-based buffer overflow. This is a classic and triggerable vulnerability pattern."
+   },
+   {
+    "func": "iaace_assimilate_multiple_scf",
+    "line": 517,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` copies from `ptr_scf` to a local stack buffer `scf_temp`. The destination buffer `scf_temp` is explicitly sized to `MAXIMUM_GROUPED_SCALE_FACTOR_BAND` elements. The size of the `memcpy` is also `MAXIMUM_GROUPED_SCALE_FACTOR_BAND * sizeof(*ptr_scf)`, which exactly matches the size of the destination buffer. Therefore, there is no buffer overflow on the destination side.\n\nThe taint is on the source pointer (`src-ptr`), which suggests a potential out-of-bounds read from the buffer pointed to by `ptr_scf`. This would be a bug if the buffer allocated for `ptr_scf` is smaller than `MAXIMUM_GROUPED_SCALE_FACTOR_BAND` elements. However, in this type of signal processing code, it is a very common and standard practice to allocate workspace arrays like `ptr_scf` to a pre-defined maximum size (`MAXIMUM_GROUPED_SCALE_FACTOR_BAND` in this case) during initialization to handle all possible configurations. The `memcpy` is creating a full temporary copy of this state array. The usage of `sfb_count` in loops elsewhere in the function refers to the number of *active* elements for the current frame, not the allocated size of the buffer. The code appears to be consistently designed around the assumption that `ptr_scf` has this maximum size. Therefore, it is highly unlikely that an out-of-bounds read can be triggered."
+   }
+  ]
+ }
+]

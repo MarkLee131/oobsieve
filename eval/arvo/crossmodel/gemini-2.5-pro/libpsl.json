@@ -1,0 +1,61 @@
+[
+ {
+  "id": "39226",
+  "project": "libpsl",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "domain_to_punycode",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `vector_add` takes a pointer `elem` as an argument and uses it as the source for a `memcpy` operation. There are no checks within this function to validate that `elem` points to a buffer of sufficient size (at least `sizeof(psl_entry_t)` bytes) before the copy is performed. The code directly dereferences the tainted `elem` pointer, assuming the caller has provided a valid object. This lack of a protective guard on the path to the `memcpy` makes it vulnerable to an out-of-bounds read if an attacker can control the `elem` pointer."
+   },
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code iterates through dot-separated labels of an input `domain` string. For each label, it calculates its length (`labellen`) and its starting address (`label`). The source pointer of the `memcpy`, `label`, is a pointer into the input `domain` string. The size of the `memcpy`, `labellen`, is calculated either by `e - label` (where `e` is the result of `strchr(label, '.')`) or `strlen(label)`. In both cases, the calculated `labellen` corresponds to a valid length within the bounds of the source string starting at `label`. Therefore, the `memcpy` will only read data that is within the bounds of the input `domain` string. Additionally, there is a check `if (outlen + labellen + (e != NULL) >= outsize)` before the `memcpy` to prevent an out-of-bounds write to the destination buffer `out`. The code appears to be safe."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `vector_add` takes a pointer `elem` of type `const psl_entry_t *` and copies `sizeof(psl_entry_t)` bytes from it. The taint analysis indicates that the `elem` pointer is derived from user input. There are no checks within this function to validate that the memory buffer pointed to by `elem` is actually large enough to hold a `psl_entry_t` struct (144 bytes). If a caller, influenced by malicious input, passes a pointer to a buffer smaller than 144 bytes, this `memcpy` will result in an out-of-bounds read. This could lead to a crash (denial of service) or potentially information disclosure. The vulnerability lies in the trust this function places in its caller to provide a valid `elem` pointer, which is a trust that cannot be guaranteed when the pointer's value is derived from external input."
+   }
+  ]
+ }
+]

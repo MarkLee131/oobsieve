@@ -1,0 +1,521 @@
+[
+ {
+  "id": "52006",
+  "project": "lldpd",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "cdp_decode",
+  "n_gt_cands": 18,
+  "n_gt_confirmed": 3,
+  "n_other_sampled": 7,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "cdp_decode",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks that the frame length is at least `2 * ETHER_ADDR_LEN + sizeof(u_int16_t) + 8 + 4` bytes (at least 26 bytes) at the start before any PEEK macro or 2-byte access is executed on the packet."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 356,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The initial bounds check verifies that `length` is at least `2 * ETHER_ADDR_LEN + sizeof(u_int16_t) + 8 + 4` (26 bytes). The subsequent PEEK operations up to and including the 2-byte access (such as `len_eth = PEEK_UINT16` or `proto = PEEK_UINT16`) consume at most 22 bytes from `frame`, which is fully covered by that guard."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 384,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code snippet cuts off before line 384, so the memcpy operation and any potential bounds check directly guarding it are not visible."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 391,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "In lldpd, the packet buffer parsing uses PEEK_* macros and length tracking. Prior to processing any TLV data, `length < 4` is checked for the TLV header and `(tlv_len < 0) || (length < tlv_len)` bounds-checks the TLV body length against the remaining packet buffer length. Any 1-byte read or copy from the TLV payload is properly guarded."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 403,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The operation at line 403 is not visible in the provided code snippet, and no bounds guard covering that specific 2-byte access can be identified."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 436,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access in CDP_TLV_ADDRESSES is guarded by CHECK_TLV_SIZE(4, \"Address\") and the preceding checks on `length < 4` and `tlv_len` within `length`, ensuring at least 4 bytes are available to be read."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 448,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before the memcpy, `tlv_len` is verified with `if ((tlv_len < 0) || (length < tlv_len))` to ensure it is non-negative and within packet length. Furthermore, `chassis->c_name` is allocated with `tlv_len + 1` and `chassis->c_id` with `tlv_len`, ensuring the read of `tlv_len` bytes from `chassis->c_name` is strictly within bounds."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 459,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 473,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before parsing the TLV, `tlv_len` is validated against available buffer size with `if ((tlv_len < 0) || (length < tlv_len)) goto malformed;`. Furthermore, sub-length checks (`CHECK_TLV_SIZE` and checks on `addresses_len`) ensure the accesses within the frame are within bounds."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before parsing the address fields, `addresses_len` is explicitly checked against the subframe lengths (`addresses_len < 2`, `addresses_len < address_len + 2`, and `addresses_len < address_len`), and `PEEK_RESTORE(pos_address)` jumps back into the verified region. The subsequent checks ensure sufficient bytes exist in the buffer before reading."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 475,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The macro PEEK_UINT16 (which performs a 2-byte memcpy from the packet buffer) lacks an explicit bounds check for this access after PEEK_RESTORE(pos_address). The preceding validation only guaranteed enough bytes for the dynamic fields parsed in the first pass, which can be shorter than the 5 bytes consumed here (or allow reading out of bounds if the earlier length checks do not align with the fixed 5-byte sequence)."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Prior to PEEK_RESTORE(pos_address), the code performs a validation pass over the address subframe, verifying that addresses_len contains at least 2 bytes header + proto_len + 2 bytes address length header + address_len bytes. When re-reading, it checks that proto_len == 1 and address length (PEEK_UINT16) == sizeof(struct in_addr) (4 bytes), ensuring the 4 bytes read by PEEK_BYTES are within the validated bounds."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access corresponds to `PEEK_BYTES(&addr, sizeof(struct in_addr))` (4 bytes). Prior to restoring `pos_address`, the subframe's lengths are strictly verified: `addresses_len` is checked against the protocol length and the address length (`address_len = PEEK_UINT16`, with `if (addresses_len < address_len) goto malformed;`). In the extraction branch, it ensures `PEEK_UINT16 == sizeof(struct in_addr)` (4), which guarantees that the 4-byte read is safely within the validated buffer boundaries."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 563,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Under CDP_TLV_PORT, port->p_descr is allocated with size tlv_len + 1 and filled via PEEK_BYTES(port->p_descr, tlv_len), which ensures bounds on reading from the packet buffer. Next, port->p_id is allocated with calloc(1, tlv_len), and memcpy(port->p_id, port->p_descr, tlv_len) copies exactly tlv_len bytes from port->p_descr to port->p_id. Both buffers are sized to hold tlv_len bytes, so the access is strictly in-bounds."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 581,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_send",
+    "line": 79,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 6",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Line 79 corresponds to `POKE_BYTES(&hardware->h_lladdr, ETHER_ADDR_LEN)`. The macro POKE_BYTES internally checks available buffer bounds (testing remaining space in `packet` against the size `ETHER_ADDR_LEN` / 6, jumping to `toobig` on overflow), and `hardware->h_lladdr` is a fixed-size hardware ethernet address buffer of size `ETHER_ADDR_LEN` (6 bytes). Hence, the access is fully guarded."
+   },
+   {
+    "func": "cdp_send",
+    "line": 101,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %180",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation is protected by the POKE_* macros (specifically POKE_BYTES / POKE_START_CDP_TLV) which check remaining buffer capacity against the length before copying and jump to 'toobig' on failure."
+   },
+   {
+    "func": "cdp_send",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_send",
+    "line": 139,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %352",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "In lldpd, packet construction uses the POKE_* macro family (specifically POKE_BYTES / POKE_START_CDP_TLV), which encapsulates `memcpy` inside bounds-checking macros verifying that `pos + len <= packet + length` (or `packet + hardware->h_mtu`). If the check fails, it evaluates to false, jumping to `toobig`."
+   },
+   {
+    "func": "cdp_send",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %580",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The packet serialization uses POKE_* macros (e.g., POKE_BYTES, POKE_START_CDP_TLV, POKE_END_CDP_TLV) which check available buffer space against the allocated MTU length before writing/memcpying and branch to 'goto toobig' if the bounds would be exceeded."
+   },
+   {
+    "func": "cdp_send",
+    "line": 188,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %633",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The packet serialization in lldpd uses marshalling macros (POKE_BYTES, POKE_START_CDP_TLV, etc.) that check remaining buffer space against packet size and jump to 'toobig' on overflow before or during the write, ensuring bounds checking is performed."
+   },
+   {
+    "func": "cdp_guess",
+    "line": 694,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "In `cdp_guess`, there is an explicit bounds check at the entry: `if (length < 2 * ETHER_ADDR_LEN + sizeof(u_int16_t) + 8 + 4) return 0;`, checking for at least 26 bytes before any PEEK operations are performed, which sufficiently covers the read."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The frame length check ensures that the frame contains sufficient data (at least 2 * ETHER_ADDR_LEN + sizeof(u_int16_t) + 8 + 4 bytes) before parsing the header fields, and PEEK_UINT16 operations are guarded by length checks. There is no triggerable out-of-bounds read at this point."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 356,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before parsing the Ethernet and LLC headers, the function checks that the frame length is at least `2 * ETHER_ADDR_LEN + sizeof(u_int16_t) + 8 + 4` (26 bytes). The 2-byte read performed around this line (likely via a `PEEK_UINT16` macro expansion) occurs within the first 22 bytes of the frame, which is safely within the validated boundary."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 384,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The parser in lldpd checks frame bounds and remaining length before reading (e.g. length < 4 checks, PEEK_* macros decrement length and check bounds), ensuring 1-byte memory accesses on input-derived pointers remain within valid buffer limits."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 391,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The frame decoding logic thoroughly checks buffer boundaries (`length`) before parsing headers and each TLV (`if (tlv_len < 0 || length < tlv_len)`), ensuring that 1-byte reads/copies from the packet buffer are within bounds."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code validates packet bounds before extraction (checking minimum frame size, 802.3 length, and remaining length before reading TLV headers via `if (length < 4)`). Reading 2 bytes (such as via PEEK_UINT16) is guarded by these checks, preventing out-of-bounds reads."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 403,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code validates packet bounds at each parsing step: it checks the overall frame length, verifies that `length >= 4` before consuming the TLV header (type and length), and explicitly checks that `tlv_len >= 0` and `length >= tlv_len`. The `PEEK_*` macros and subsequent memory operations operate within verified packet boundaries, making out-of-bounds access properly guarded."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 436,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code performs explicit bounds checks on the frame and TLV sizes (e.g., `CHECK_TLV_SIZE(4, ...)` and verification against `length`/`tlv_len`) before reading bytes from the packet buffer. Tainted buffer pointers are adequately guarded against out-of-bounds access."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 448,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `tlv_len` bytes from `chassis->c_name` into `chassis->c_id`. Preceding this, `chassis->c_name` is allocated with `tlv_len + 1` bytes and populated via `PEEK_BYTES(chassis->c_name, tlv_len)`, and `chassis->c_id` is allocated with `tlv_len` bytes. The bounds and length checks (`(tlv_len < 0) || (length < tlv_len)`) guarantee that both the source and destination buffers are of sufficient size (`tlv_len`), so no out-of-bounds read or write occurs."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 459,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 473,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In the CDP_TLV_CHASSIS case, chassis->c_name is allocated with calloc(1, tlv_len + 1) and populated via PEEK_BYTES with tlv_len bytes. Then chassis->c_id is allocated with malloc(tlv_len). The memcpy copies tlv_len bytes from chassis->c_name to chassis->c_id. Both source and destination buffers are of size at least tlv_len, making the copy bounds-safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies tlv_len bytes from chassis->c_name to chassis->c_id. Both buffers were allocated with sizes sufficient for tlv_len (calloc(1, tlv_len + 1) and malloc(tlv_len) respectively), and tlv_len is properly bounds-checked against the remaining frame length (tlv_len < 0 || length < tlv_len). Therefore, the operation is completely safe and bounds-checked."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 475,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code validates TLV boundaries and subframe lengths (specifically ensuring addresses_len has enough bytes before peeking or discarding). The peek/restore logic checks that the address length matches sizeof(struct in_addr) and bounded by previous checks before reading the address bytes, so the 2-byte read/memcpy operations remain within the verified buffer bounds."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The address parsing performs bounds and structure checks before reading. Specifically, it validates that addresses_len accommodates the fields and checks that the address protocol is IPv4 with a length matching sizeof(struct in_addr) (4 bytes) before invoking PEEK_BYTES(&addr, sizeof(struct in_addr)). The buffer reads are sufficiently guarded against out-of-bounds access."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before extracting the IPv4 address with PEEK_BYTES, the loop performs a validation pass over the address structure, verifying that addresses_len contains sufficient bytes for both the protocol identifier and the address itself. It specifically validates that the address length matches sizeof(struct in_addr) (4 bytes) before reading into &addr."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 563,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In CDP_TLV_PORT, port->p_descr is allocated with size `tlv_len + 1` and populated with `tlv_len` bytes via `PEEK_BYTES`, and port->p_id is allocated with `tlv_len` bytes via `calloc(1, tlv_len)`. The memcpy copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. Both buffers are appropriately sized for `tlv_len` bytes, so no out-of-bounds read or write occurs."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source buffer `port->p_descr` is allocated with `tlv_len + 1` bytes, and the destination `port->p_id` is allocated with `tlv_len` bytes. The `memcpy` copies exactly `tlv_len` bytes from `port->p_descr` into `port->p_id`, which is fully within the bounds of both buffers."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 581,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_send",
+    "line": 79,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 6",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand src-ptr refers to copying hardware->h_lladdr (Ethernet MAC address, length ETHER_ADDR_LEN / 6 bytes) or mcastaddr into the packet buffer via POKE_BYTES. hardware->h_lladdr is a standard fixed-size MAC address buffer of size ETHER_ADDR_LEN (6 bytes), and the size copied is fixed at ETHER_ADDR_LEN (6). There is no out-of-bounds access."
+   },
+   {
+    "func": "cdp_send",
+    "line": 101,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %180",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_send",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation copies sizeof(struct in_addr) (4 bytes) from &mgmt->m_addr when mgmt->m_family is LLDPD_AF_IPV4. The management address structure/union contains sufficient storage (at least 4 bytes for IPv4), so reading 4 bytes is safe and within bounds."
+   },
+   {
+    "func": "cdp_send",
+    "line": 139,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %352",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory copy is performed via the POKE_BYTES macro, which checks that the destination pointer plus the specified length does not exceed the packet buffer bounds before executing memcpy and branches to `toobig` if bounds would be exceeded."
+   },
+   {
+    "func": "cdp_send",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %580",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The serialization uses POKE_* macros (such as POKE_BYTES) which verify that the write does not exceed the allocated packet length before executing memcpy, jumping to the 'toobig' error handler if bounds checks fail."
+   },
+   {
+    "func": "cdp_send",
+    "line": 188,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %633",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code uses lldpd's POKE_* buffer-serialization macros (such as POKE_BYTES), which perform internal bounds checks against the remaining buffer capacity and return false/0 if the operation would exceed the buffer, branching to `goto toobig`. Therefore, the copy operations are guarded against buffer overflow."
+   },
+   {
+    "func": "cdp_guess",
+    "line": 694,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function cdp_guess explicitly checks at the beginning that length >= 2 * ETHER_ADDR_LEN + sizeof(u_int16_t) + 8 + 4 (total at least 26 bytes). The subsequent PEEK operations advance the pointer by 6 (CMP), 6 (DISCARD), 2 (DISCARD_UINT16), 8 (DISCARD), and then read 1 byte (PEEK_UINT8), totaling 23 bytes read/skipped. Because the length check enforces at least 26 bytes, any memory access inside cdp_guess is safely within bounds."
+   }
+  ]
+ }
+]

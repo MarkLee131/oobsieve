@@ -1,0 +1,61 @@
+[
+ {
+  "id": "33240",
+  "project": "wasm3",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "miss",
+  "gt_func": "ParseSection_Type",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation is a structure copy (`*o_info = i_runtime->error;` compiled to memcpy of size 56 bytes, which is `sizeof(M3ErrorInfo)`). The source pointer `&i_runtime->error` is an embedded field of `i_runtime`, which is fully allocated within `i_runtime` (guarded by `if (i_runtime)`), ensuring valid bounds for 56 bytes."
+   },
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation *o_info = i_runtime->error is a standard struct assignment of type M3ErrorInfo (56 bytes on 64-bit platforms). Both i_runtime->error and *o_info are validly sized struct storage, and i_runtime is checked for null. There is no out-of-bounds access."
+   }
+  ]
+ }
+]

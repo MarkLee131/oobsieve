@@ -1,0 +1,359 @@
+[
+ {
+  "id": "14331",
+  "project": "libarchive",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "miss",
+  "gt_func": "parse_file_extra_owner",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1163,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately prior to memcpy, `read_ahead(a, hash_size, &p)` checks and guarantees that at least `hash_size` bytes are available in the buffer pointed to by `p`, returning `ARCHIVE_EOF` if the read cannot be satisfied."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2352,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `parse_block_header` directly performs `memcpy(hdr, p, sizeof(struct compressed_block_header))` on input buffer pointer `p` without verifying that `p` points to at least `sizeof(struct compressed_block_header)` readable bytes within the current buffer/scope."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2104,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `sizeof(decode_pos_clone)` (64 bytes = 16 * sizeof(uint32_t)) from `table->decode_pos` to `decode_pos_clone`. `decode_pos_clone` is declared as `uint32_t decode_pos_clone[rar5_countof(table->decode_pos)]`, which matches the fixed-size array `table->decode_pos` (16 elements). The bounds and size are fixed struct/array member sizes and completely safe."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 501,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Within `circular_memcpy`, `memcpy` is invoked using operands derived from `start`, `end`, and `mask` without validating that the destination buffer `dst` has sufficient capacity for `(end - start)` bytes, nor is there any bounds check on `dst` within this function or covering path."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %27",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1163,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The pointer `p` is obtained via `read_ahead(a, hash_size, &p)`, which ensures that at least `hash_size` bytes are available in the buffer before returning success. The `memcpy` copies exactly `hash_size` bytes (`sizeof(rar->file.blake2sp)`), so there is no out-of-bounds read or write."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2352,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In libarchive's RAR reader, callers of parse_block_header ensure sufficient bytes are available in the input buffer (via __archive_read_ahead or similar buffer checks) before passing the buffer pointer p to parse_block_header. The 2-byte memcpy into struct compressed_block_header does not read past the validated read-ahead buffer."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2104,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sizeof(decode_pos_clone) bytes from table->decode_pos into decode_pos_clone, which is an array defined specifically as uint32_t decode_pos_clone[rar5_countof(table->decode_pos)]. Both buffers have identical bounds (16 elements / 64 bytes), making this a safe buffer clone."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 501,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "circular_memcpy is a helper function designed to copy data out of a circular window buffer of size (mask + 1). The condition checks if the range wraps around: if (start & mask) > (end & mask), it splits into two memcpy calls; otherwise it performs a single memcpy of length (end - start). When callers pass valid window offsets and bounds within the window size, the operations stay within the bounds of window and destination."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %27",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "In circular_memcpy, if (end - start) is greater than mask + 1 (or if end - start can be larger than the buffer size while (start & mask) <= (end & mask)), or more specifically, if start and end span across full window rotations without wrapping the condition `(start & mask) > (end & mask)`, the size copied in the else branch `(size_t)(end - start)` can exceed the window size or destination buffer capacity. Additionally, in libarchive RARv5 (CVE-2019-1000019 / CVE-2020-9308 / similar issues), improper bounds checks on filter start/end positions allow circular_memcpy to trigger out-of-bounds reads/writes."
+   }
+  ]
+ },
+ {
+  "id": "14574",
+  "project": "libarchive",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "circular_memcpy",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %12",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function `circular_memcpy` splits the copy across the circular buffer boundaries defined by `mask`. In the wrapped case, `(start & mask) > (end & mask)`, `len1 = mask + 1 - (start & mask)` and `len2 = end & mask`, copying `&window[start & mask]` up to the end of the window (size `mask + 1`), and `window[0]` up to `len2`. In the unwrapped case, `(start & mask) <= (end & mask)`, `(size_t)(end - start)` is within bounds because `(end & mask) - (start & mask) <= mask + 1 - (start & mask)`. All slices into `window` are inherently masked and bounded by `mask + 1`."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 507,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Prior to the memcpy of size `hash_size` (sizeof(rar->file.blake2sp), which is 32 bytes) from `p`, the function executes `if(!read_ahead(a, hash_size, &p)) return ARCHIVE_EOF;`, which ensures at least `hash_size` bytes are available and bounds-checked."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2495,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "No bounds check on pointer `p` is visible before the memcpy in parse_block_header to ensure `p` contains at least sizeof(struct compressed_block_header) bytes."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2233,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The destination `decode_pos_clone` is declared as `uint32_t decode_pos_clone[rar5_countof(table->decode_pos)];` and the copy size is `sizeof(decode_pos_clone)`, matching the exact size and element count of the source array `table->decode_pos` (16 uint32_t elements = 64 bytes). The access is fully bounded and safe."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 507,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "circular_memcpy is a helper designed to copy a slice from a circular/ring buffer (`window`) into `dst`. In callers such as `read_filter_data`, `end - start` is a constant 4 bytes into a 4-byte buffer. The arithmetic `len1 = mask + 1 - (start & mask)` and `len2 = end & mask` handles wrap-around within window bounds (where `mask + 1` is the window size power of two). The copy length stays within destination and window bounds for valid window ranges."
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before calling memcpy, read_ahead(a, hash_size, &p) is called to verify that at least hash_size bytes are available in the buffer. If read_ahead fails, the function returns ARCHIVE_EOF and the memcpy is not executed. The destination buffer is properly sized (sizeof(rar->file.blake2sp) == hash_size), so the read and write operations are bounded and safe."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2495,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source pointer `p` is provided by caller functions via buffer read-ahead (`__archive_read_ahead`), which ensures that at least `sizeof(struct compressed_block_header)` (2 bytes) are available before `parse_block_header` is invoked. Therefore, this 2-byte `memcpy` does not read out-of-bounds."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2233,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sizeof(decode_pos_clone) bytes from table->decode_pos into decode_pos_clone. Since decode_pos_clone is defined with the same element count (rar5_countof(table->decode_pos)) and element type (uint32_t) as table->decode_pos, both buffers have identical sizes (16 * 4 = 64 bytes). There is no buffer overflow or out-of-bounds access."
+   }
+  ]
+ },
+ {
+  "id": "13435",
+  "project": "libarchive",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "circular_memcpy",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `circular_memcpy`, the bounds of destination buffer `dst` are not checked against the copied length `(end - start)` or `len1 + len2`, nor is `(end - start)` validated to ensure `dst` has sufficient capacity."
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 507,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %27",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In circular_memcpy, no bounds check verifies that the destination buffer dst has sufficient capacity to hold the copied bytes (whether len1, len2, or end - start), nor are the bounds of dst checked prior to calling memcpy."
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1166,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The call to read_ahead(a, hash_size, &p) immediately precedes the memcpy and verifies that at least hash_size (sizeof(rar->file.blake2sp), which is 32 bytes) are available in the buffer p before copying."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "No bounds check on pointer `p` or verification of available buffer size is visible prior to the memcpy operation in parse_block_header."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2116,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 504,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "circular_memcpy",
+    "line": 507,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %27",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "circular_memcpy is a helper function designed to copy a slice of a circular ring buffer (window) of size `mask + 1` into a contiguous destination buffer `dst`. In both branches, `start & mask` and `end & mask` are properly constrained to the window buffer by `& mask`. The function itself safely wraps around the circular window buffer."
+   },
+   {
+    "func": "parse_file_extra_hash",
+    "line": 1166,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The pointer `p` is obtained via `read_ahead(a, hash_size, &p)`, which ensures that at least `hash_size` bytes are available in the buffer before returning success. The `memcpy` only copies `hash_size` (sizeof(rar->file.blake2sp), which is 32 bytes) from `p` into `&rar->file.blake2sp`, so no out-of-bounds read or write occurs."
+   },
+   {
+    "func": "parse_block_header",
+    "line": 2364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies a fixed size (sizeof(struct compressed_block_header), which is 2 bytes) from the input buffer `p`. Callers of `parse_block_header` in libarchive (specifically in the RAR reader) ensure sufficient bytes are available in the buffer before parsing block headers, so reading 2 bytes is not an out-of-bounds read."
+   },
+   {
+    "func": "create_decode_tables",
+    "line": 2116,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies table->decode_pos into decode_pos_clone with size sizeof(decode_pos_clone). Since decode_pos_clone is defined with rar5_countof(table->decode_pos) elements of type uint32_t, both arrays have identical bounds and types (16 uint32_t elements = 64 bytes). The operation is entirely within stack and struct bounds and cannot cause an out-of-bounds read or write."
+   }
+  ]
+ }
+]

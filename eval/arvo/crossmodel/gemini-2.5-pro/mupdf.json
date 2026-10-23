@@ -1,0 +1,61 @@
+[
+ {
+  "id": "9325",
+  "project": "mupdf",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "next_null",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "next_null",
+    "line": 70,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %104",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The size argument of `memmove` at line 70 is `nbytes_in_buffer`, which is directly assigned from `state->extras`. The taint analysis indicates that `state->extras` is input-derived and not clamped. The destination buffer is `state->buffer`, which is a fixed-size array of 4096 bytes within the `null_filter` struct. There is no check on the path to the `memmove` to ensure that `nbytes_in_buffer` (i.e., `state->extras`) is less than or equal to the size of `state->buffer` (4096). An attacker who can control the value of `state->extras` could set it to a value larger than 4096, causing a heap-based buffer overflow when `memmove` is called. The only check present is `if (nbytes_in_buffer)`, which merely prevents a zero-size copy but does not provide any upper-bound protection."
+   },
+   {
+    "func": "fz_open_null_n_terminator",
+    "line": 152,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "next_null",
+    "line": 70,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %104",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "fz_open_null_n_terminator",
+    "line": 152,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

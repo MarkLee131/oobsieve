@@ -1,0 +1,399 @@
+[
+ {
+  "id": "22967",
+  "project": "opensc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "tcos_decipher",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 4,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "tcos_decipher",
+    "line": 626,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The arguments to the `memcpy` are validated by the preceding logic. \n1. `size_t len= (apdu.resplen>outlen) ? outlen : apdu.resplen;` (line 620). This line computes `len` as the minimum of the available source data size (`apdu.resplen`) and the destination buffer capacity (`outlen`). This ensures that any operation on the first `len` bytes is safe for both source (`apdu.resp`) and destination (`out`) buffers.\n2. The calculation of `offset` (lines 622-624) is designed to operate within this safe `len` boundary. The loop `while(offset<len && apdu.resp[offset]!=0)` explicitly prevents reading `apdu.resp` beyond the `len` limit. \n3. The subsequent line `offset=(offset<len-1) ? offset+1 : 0;` handles cases where the parsing loop terminates (either by finding a zero or hitting the `len` boundary). If parsing fails to find a valid terminator before `len-1`, `offset` is reset to 0, a safe default.\n4. As a result of this logic, the invariant `0 <= offset <= len` holds true when the `memcpy` is reached.\n\nThe `memcpy(out, apdu.resp+offset, len-offset)` is therefore safe:\n- The source read size is `len-offset`, starting at `apdu.resp+offset`. The highest byte accessed is `apdu.resp + offset + (len-offset) - 1 = apdu.resp + len - 1`. Since `len <= apdu.resplen` (from step 1), this read is within the bounds of the valid data in `apdu.resp`.\n- The destination write size is `len-offset`. Since `offset >= 0`, `len-offset <= len`. Since `len <= outlen` (from step 1), the write is within the bounds of the destination buffer `out`."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 638,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %139",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The size argument of memcpy, `len-offset`, can become a very large positive number due to an integer underflow, leading to a buffer overflow. The variable `len` is calculated as `min(apdu.resplen, outlen)`. If the card returns 0 bytes, `apdu.resplen` will be 0, and thus `len` will be 0. If the code then enters the `if(tcos3 ...)` block, `offset` is initialized to 2. The `while` loop condition `offset<len` (i.e., `2<0`) is false. The code then executes `offset=(offset<len-1) ? offset+1 : 0;`. With `len=0`, `len-1` underflows to `SIZE_MAX`. The condition `2 < SIZE_MAX` is true, so `offset` is set to `2+1=3`. Finally, the `memcpy` is called with a size of `len-offset`, which is `0-3`. This subtraction on unsigned types underflows, resulting in `SIZE_MAX-2`, a huge value that causes a massive buffer overflow when writing to `out`."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `tcos_select_file` copies `in_path->len` bytes from `in_path->value` into a local stack buffer `pathbuf` of size `SC_MAX_PATH_SIZE`. The `memcpy` at line 344 happens immediately after function entry and some variable declarations. There is no prior bounds check to ensure that `in_path->len` does not exceed `SC_MAX_PATH_SIZE`. If a tainted `in_path` object with `len > SC_MAX_PATH_SIZE` is passed to this function, the `memcpy` will cause a stack-based buffer overflow."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 402 copies `in_path->len` bytes from the `in_path->value` buffer. The source buffer `in_path->value` is a field within the `sc_path_t` struct, which is defined to have a fixed size of `SC_MAX_PATH_SIZE`. For this operation to be safe, `in_path->len` must be less than or equal to `SC_MAX_PATH_SIZE`. However, there is no check within the function `tcos_select_file` to validate the value of `in_path->len` before the `memcpy` is executed. If a caller passes an `sc_path_t` struct where `len` is larger than `SC_MAX_PATH_SIZE`, this `memcpy` will read past the end of the `in_path->value` buffer. Since no covering guard is visible on the path to the `memcpy`, this is a potential buffer over-read vulnerability."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 675,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 675 reads `sizeof(*serial)` bytes from the source pointer `&card->serialnr`. The `card` pointer is a function argument, and the taint analysis has determined that the source pointer derived from it is input-derived. The function `tcos_get_serialnr` does not perform any explicit bounds check to validate that the `card` pointer actually points to a memory object large enough to contain the `serialnr` field. The code implicitly trusts that the caller provides a valid, fully-allocated `sc_card_t` object. While accesses like `card->serialnr.len` happen before the `memcpy`, they are not guards but rather accesses themselves that rely on the same unchecked assumption. In the absence of a visible, explicit guard that ensures the read is within the bounds of the allocated object for `*card`, a sound analysis would flag this as a potential vulnerability. Following the rule to default to `true` when no sufficient guard is visible, this is classified as a real bug."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 687,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted source pointer for the `memcpy` is `&card->serialnr`, where `card` is a pointer argument to the function `tcos_get_serialnr`. The code does not perform any validation to ensure that the `card` pointer points to a memory buffer that is large enough to contain the `sc_card_t` struct, specifically up to and including the `serialnr` member. The check `if (card->serialnr.len)` precedes the `memcpy`, but this is a dereference of the potentially invalid pointer, not a bounds check that guards the access. It reads a value from the memory region to make a control flow decision. If `card` points to an undersized buffer, both the check `card->serialnr.len` and the subsequent `memcpy` from `&card->serialnr` would result in an out-of-bounds read. No other checks are visible on the path to the operation."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 626,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The vulnerability exists in the `tcos_decipher` function at the `memcpy` on line 626: `memcpy(out, apdu.resp+offset, len-offset);`.\n\nThe variable `len` is calculated as `min(apdu.resplen, outlen)`, where `outlen` is the size of the caller-provided output buffer and `apdu.resplen` is the size of the response from the smart card. A caller can provide `outlen = 0`, which results in `len = 0`.\n\nThe variable `offset` is calculated within a conditional block. If the conditions are met (card type is TCOS3, PKCS1 padding is used, and the card response starts with `0x00, 0x02`), the logic to calculate `offset` is flawed when `len` is 0.\n\nSpecifically, the code does:\n1. `unsigned int offset = 0;`\n2. Inside the `if` block: `offset = 2;`\n3. The `while` loop condition `offset < len` is `2 < 0`, which is false. The loop does not execute.\n4. The final `offset` calculation is `offset = (offset < len - 1) ? offset + 1 : 0;`\n5. With `len = 0` (a `size_t`), `len - 1` underflows to `SIZE_T_MAX`. The condition becomes `2 < SIZE_T_MAX`, which is true.\n6. `offset` is then set to `offset + 1`, making it `3`.\n7. The `memcpy` size argument `len - offset` becomes `0 - 3`. Since both are unsigned types, this underflows to a very large positive value (`SIZE_T_MAX - 2`).\n\nThis large size value causes a massive buffer overflow on the destination buffer `out` and a massive out-of-bounds read on the source buffer `apdu.resp`. The bug is triggerable by calling the function with `outlen = 0` and using a (potentially malicious) smart card that returns a response that satisfies the `if` condition."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 638,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %139",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size argument to `memcpy` is `len-offset`. The value of `len` is calculated as `min(apdu.resplen, outlen)`. `apdu.resplen` is the size of the data received from the card, which is bounded by the size of the receive buffer `rbuf`. `outlen` is the size of the destination buffer `out`. Therefore, `len` is safely bounded by the size of both the source and destination buffers.\nThe `offset` is calculated based on the content of the `apdu.resp` buffer. It is initialized to 0. Inside an `if` block, it can be updated. A `while` loop increments `offset` but is strictly bounded by `offset < len`. After the loop, `offset` is either incremented by one or reset to zero. The logic ensures that `offset` is always less than or equal to `len`. Specifically, the post-loop assignment is `offset=(offset<len-1) ? offset+1 : 0;`. If the loop ran until `offset == len`, the new offset becomes 0. If the loop stopped with `offset < len-1`, the new offset becomes `offset+1`, which is still less than `len`. If the loop stopped with `offset == len-1`, the new offset becomes 0. In all cases, the final `offset <= len`. Consequently, the size `len-offset` cannot be negative (it won't underflow for unsigned types) and will not cause an out-of-bounds read from the source `apdu.resp+offset` (total read is up to `apdu.resp+offset+(len-offset) = apdu.resp+len`, which is safe) or an out-of-bounds write to the destination `out` (total write is `len-offset <= len <= outlen`). The code appears to be safe from buffer overflows."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` copies `in_path->len` bytes from `in_path->value` to the local buffer `path`. The destination buffer `path` (an alias for `pathbuf`) has a size of `SC_MAX_PATH_SIZE`. The source `in_path` is of type `sc_path_t`. Looking at the definition of `sc_path_t`, the `value` field is an array of size `SC_MAX_PATH_SIZE`. The `len` field is meant to represent the used length within this fixed-size array. Library functions responsible for creating `sc_path_t` objects, such as `sc_build_path`, ensure that `len` does not exceed `SC_MAX_PATH_SIZE`. Therefore, this code relies on the invariant that `in_path->len` will always be less than or equal to `SC_MAX_PATH_SIZE`. As the source buffer, destination buffer, and copy length are all bounded by the same constant `SC_MAX_PATH_SIZE`, no out-of-bounds write can occur. The bug is not triggerable through correct API usage."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `tcos_select_file` copies data into a local stack buffer `pathbuf` of size `SC_MAX_PATH_SIZE`. The `memcpy` at line 402 uses `in_path->len` as the size of the copy. The `in_path` parameter is controlled by the caller, and its `len` field is not validated to be less than or equal to `SC_MAX_PATH_SIZE` before the `memcpy` is called. If a caller provides an `sc_path_t` object where `in_path->len` is greater than `SC_MAX_PATH_SIZE` (which is typically a small constant like 64), this will result in a classic stack-based buffer overflow."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 675,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged `memcpy` is `memcpy(serial, &card->serialnr, sizeof(*serial));`. The source of the copy is the `card->serialnr` struct, which is a member of the `card` object. The size of the copy is `sizeof(*serial)`, which is `sizeof(sc_serial_number_t)`. Since `card->serialnr` is also of type `sc_serial_number_t`, the size of the memory being read is exactly the size of the source object. This is a standard, safe way to copy a struct. The source pointer `&card->serialnr` is a valid pointer to a struct member, and the size of the read is determined by the `sizeof` operator, which is a compile-time constant. Therefore, an out-of-bounds read is not possible at this location. The taint analysis likely flagged this because the contents of `card->serialnr` are populated with data from an external source (the smart card) via the `sc_parse_ef_gdo` function, but the `memcpy` operation itself is perfectly bounded and safe."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 687,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ },
+ {
+  "id": "32202",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "sc_pkcs15emu_oberthur_add_pubkey",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "sc_pkcs15emu_oberthur_add_pubkey",
+    "line": 631,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %118",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The tainted size `len` and source pointer `info_blob + offs + 2` are checked immediately before the `memcpy` at line 631. The `if` statement at lines 625-627 contains two crucial checks: `len > sizeof(key_info.id.value)` which ensures the copy does not overflow the destination buffer, and `offs + 2 + len > info_len` which ensures the copy does not read past the end of the source buffer `info_blob`. If either of these conditions is true, the function returns, preventing the `memcpy` from being executed with unsafe parameters. This is a sufficient guard."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_prvkey",
+    "line": 849,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %207",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The tainted size `len` is derived from the input buffer `info_blob` at line 845. The code then performs two checks before the `memcpy` at line 849. First, `if (len + offs + 2 > info_len)` at line 847 checks that the source read of `len` bytes from `info_blob + offs + 2` will not read past the end of the `info_blob` buffer. Second, `else if (len > sizeof(kinfo.id.value))` at line 848 checks that the write of `len` bytes will not overflow the destination buffer `kinfo.id.value`. Since both the source and destination accesses are guarded by these checks, the `memcpy` is safe."
+   },
+   {
+    "func": "sc_oberthur_parse_tokeninfo",
+    "line": 375,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function `sc_oberthur_parse_tokeninfo` takes a buffer `buff` and its length `len` as arguments. At line 370, there is an explicit check `if (!buff || len < 0x24)`. This check ensures that the buffer `buff` is not null and its length `len` is at least `0x24` (36) bytes. The subsequent `memcpy` at line 375 reads `0x20` (32) bytes from `buff`. Since 32 is less than the guaranteed minimum size of 36, the read is safely within the bounds of the buffer `buff`."
+   },
+   {
+    "func": "sc_oberthur_parse_containers",
+    "line": 434,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 36",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside a `for` loop. The loop's continuation condition is `for (offs=0; offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len;)`. This expression simplifies to `offs + 52 <= len`. The `memcpy` source operand is `ptr + 2`. Tracing the value of `ptr` from its initialization (`buff + offs + 2`) through the six `ptr += 2` increments, we find that at the time of the `memcpy`, `ptr` is `buff + offs + 14`. Therefore, the `memcpy` source is `buff + offs + 16`. The access is `memcpy(..., buff + offs + 16, 36)`. To be safe, we must ensure `offs + 16 + 36 <= len`, which simplifies to `offs + 52 <= len`. This is precisely the condition checked by the `for` loop before entering the loop body. Thus, the access is fully covered by this bounds check."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_cert",
+    "line": 717,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %124",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_pubkey",
+    "line": 631,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %118",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted size `len` is read from the input buffer `info_blob`. However, before the `memcpy` at line 631 is executed, the code performs a series of checks on `len` inside an `if` statement (lines 626-630). Specifically, it checks `len > sizeof(key_info.id.value)` which prevents a destination buffer overflow, and it checks `offs + 2 + len > info_len` which prevents an out-of-bounds read from the source buffer `info_blob`. The offset `offs` is also validated to be within `info_len` before `len` is even read. These checks correctly sanitize the input-derived size and prevent any memory corruption."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_prvkey",
+    "line": 849,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %207",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code reads a length value `len` from the input buffer `info_blob`. Before the `memcpy` at line 858 is executed, there are two crucial checks. First, `if (len + offs + 2 > info_len)` at line 851 ensures that the `memcpy` will not read past the end of the source buffer `info_blob`. Second, `if (len > sizeof(kinfo.id.value))` at line 854 ensures that the `memcpy` will not write past the end of the destination buffer `kinfo.id.value`. Since both the source read and the destination write are bounded by explicit checks against the input-derived length, this is not a triggerable out-of-bounds bug."
+   },
+   {
+    "func": "sc_oberthur_parse_tokeninfo",
+    "line": 375,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source buffer `buff` and its length `len` are checked at the beginning of the function: `if (!buff || len < 0x24)`. This ensures that `len` is at least 36 bytes. The `memcpy` reads a fixed size of `0x20` (32) bytes from `buff`. Since `32 < 36`, the read is always within the bounds of the source buffer. The destination buffer `label` has a size of `0x21` (33) bytes, which is also sufficient for the 32-byte copy. Therefore, no out-of-bounds access can occur."
+   },
+   {
+    "func": "sc_oberthur_parse_containers",
+    "line": 434,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 36",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code processes a buffer `buff` of length `len` inside a `for` loop. The loop condition is `for (offs=0; offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len;)`. This simplifies to `for (offs=0; offs + 52 <= len;)`. This check explicitly ensures that there are at least 52 bytes remaining in the buffer starting from the current offset `offs` before entering the loop body. Inside the loop, a pointer `ptr` is initialized to `buff + offs + 2` and then advanced by 12 bytes (`6 * 2`). The `memcpy` source operand is `ptr + 2`, which evaluates to `(buff + offs + 2) + 12 + 2`, i.e., `buff + offs + 16`. The `memcpy` copies 36 bytes. Therefore, the highest memory address accessed is `buff + offs + 16 + 35`, which is `buff + offs + 51`. Since the loop condition guarantees that `offs + 52 <= len`, the maximum index accessed (`offs + 51`) is always less than `len`, ensuring the read is within the bounds of the `buff` buffer. The check is sufficient to prevent an out-of-bounds read."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_cert",
+    "line": 717,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %124",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code performs several checks before the `memcpy` at line 717, which effectively prevent any out-of-bounds access. The variable `len` is derived from the input buffer `info_blob`. However, there are two crucial validation steps:\n1. `if (len + offs + 2 > info_len)`: This check ensures that the read operation on the source buffer (`info_blob`) will not go past its allocated size (`info_len`). It validates that the starting offset (`offs + 2`) plus the length to be copied (`len`) does not exceed the total buffer size.\n2. `else if (len > sizeof(cinfo.id.value))`: This check ensures that the write operation to the destination buffer (`cinfo.id.value`) will not exceed its capacity. It compares the input-derived length `len` with the fixed size of the destination buffer.\nSince both the source read and the destination write are bounded by these explicit checks, a buffer overflow is not possible."
+   }
+  ]
+ },
+ {
+  "id": "16614",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "decode_bit_string",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 2,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "decode_bit_string",
+    "line": 585,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `decode_bit_string` takes a destination buffer `outbuf` and a size `outlen` as parameters. It then performs `memset(outbuf, 0, outlen)`. The value of `outlen` is entirely controlled by the caller. There is no check in this function to validate that `outlen` is not larger than the actual allocated size of `outbuf`. The check `if (outlen < octets_left)` at line 577 is intended to ensure the output buffer is large enough for the subsequent decoding loop, but it does not guard the `memset`. Furthermore, this check itself is critically flawed as it uses the local variable `octets_left` before it is initialized, leading to undefined behavior. Even if this check were placed after `octets_left` is initialized (e.g., after `octets_left = inlen - 1`), it would only enforce a *minimum* size on `outlen`, not a *maximum* size, and thus would not prevent an overflow in the `memset` call if the caller passes a large `outlen` with a smaller `outbuf`."
+   },
+   {
+    "func": "sc_copy_asn1_entry",
+    "line": 148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 40",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `sc_copy_asn1_entry` copies an array of `sc_asn1_entry` structures. The loop that performs the copy (`while (src->name != NULL)`) terminates based on a sentinel value (a NULL `name` field) found in the content of the data being copied. The function does not take a size parameter and performs no bounds checking on the `src` pointer. The `src` pointer is advanced in each iteration (`src++`). If the input array pointed to by `src` (which is stated to be input-derived) is missing the NULL terminator, the loop will read past the end of the allocated buffer. The structure assignment `*dest = *src` (which is implemented as a `memcpy`) will then read 40 bytes from an out-of-bounds memory location. No guard is visible in the function to prevent this."
+   },
+   {
+    "func": "sc_asn1_sig_value_sequence_to_rs",
+    "line": 2071,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `sc_asn1_sig_value_sequence_to_rs` takes a buffer `buf` and its size `buflen` as arguments from a caller. It then uses `buflen` as the size for a `memset` operation on `buf`. There is no check within this function to verify that the provided `buflen` is less than or equal to the actual allocated size of `buf`. The function implicitly trusts the caller. The existing check `if (halflen < r_len || halflen < s_len)` is for the subsequent `memcpy` operations and ensures the decoded data fits within the provided buffer size, but it does not guard the `memset` call itself from writing past the end of `buf` if `buflen` is larger than `buf`'s true capacity."
+   },
+   {
+    "func": "sc_asn1_decode_utf8string",
+    "line": 882,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 882 copies `inlen` bytes from `inbuf` to `out`. The line immediately preceding it, `if (inlen+1 > *outlen)`, is a bounds check. This check ensures that the capacity of the destination buffer `out`, given by `*outlen`, is large enough to hold `inlen` bytes plus a null terminator. Since `inlen + 1 <= *outlen` must be true for the `memcpy` to be reached, it is guaranteed that `inlen <= *outlen`. This directly covers the write operation of the `memcpy`, preventing a buffer overflow on the destination `out`."
+   },
+   {
+    "func": "asn1_encode_path",
+    "line": 1121,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "asn1_encode_p15_object",
+    "line": 1339,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2776",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "decode_bit_string",
+    "line": 585,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "sc_copy_asn1_entry",
+    "line": 148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 40",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `sc_copy_asn1_entry` copies an array of `sc_asn1_entry` structures from a source `src` to a destination `dest`. The loop termination condition is `src->name != NULL`, meaning it expects a sentinel entry with a NULL name to mark the end of the array. The function signature does not include any size parameters, so there is no bounds checking. The taint analysis indicates that the `src` pointer is derived from external input. If an attacker provides malformed input that leads to the creation of an `sc_asn1_entry` array without the terminating NULL-named entry, the `while` loop will read past the end of the `src` buffer. This constitutes an out-of-bounds read vulnerability. The line `*dest = *src;` (which the compiler implements as a `memcpy`) will read 40 bytes from an out-of-bounds memory location pointed to by `src` in each iteration after the buffer boundary has been crossed."
+   },
+   {
+    "func": "sc_asn1_sig_value_sequence_to_rs",
+    "line": 2071,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `sc_asn1_sig_value_sequence_to_rs` receives a buffer `buf` and its size `buflen` as arguments. The `memset` call at line 2071, `memset(buf, 0, buflen)`, uses these arguments directly. This is a standard and expected C programming pattern. The function itself cannot know the allocated size of `buf` beyond what the caller provides in `buflen`. A bug would exist if a caller provides a `buflen` that is larger than the actual size of `buf`, but that bug would be in the calling code, not in this function. The function `sc_asn1_sig_value_sequence_to_rs` performs several checks that indicate careful programming: it checks for `!buf` or `!buflen` at the beginning, and later it validates the lengths `r_len` and `s_len` (derived from the input `in`) against `buflen` before performing `memcpy` operations. The use of `memset` is consistent with the function's API contract. Therefore, this is not considered a bug within the analyzed function."
+   },
+   {
+    "func": "sc_asn1_decode_utf8string",
+    "line": 882,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function checks if the destination buffer `out` is large enough using `if (inlen+1 > *outlen)`. However, this check is vulnerable to an integer overflow. `inlen` is of type `size_t`. If an attacker can provide an input where `inlen` is `SIZE_MAX`, the expression `inlen+1` will wrap around to 0. The check becomes `0 > *outlen`, which is false for any non-negative `*outlen`. The code then proceeds to call `memcpy(out, inbuf, inlen)` with `inlen` being `SIZE_MAX`, causing a massive heap-based buffer overflow on the `out` buffer, which was assumed to be small."
+   },
+   {
+    "func": "asn1_encode_path",
+    "line": 1121,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code demonstrates a standard and safe pattern for handling data from an untrusted source. \n1. A local buffer `path_value` is allocated on the stack with a fixed size `SC_MAX_PATH_SIZE`.\n2. A size variable `path_len` is initialized with the capacity of this buffer: `size_t path_len = sizeof(path_value);`.\n3. The buffer and a pointer to the size variable are passed to the `asn1_decode` function.\n4. The `asn1_decode` function is expected to parse the input data, write it into `path_value`, and update `path_len` to the actual length of the parsed data. Crucially, a correctly implemented `asn1_decode` will not write more than the initial value of `path_len` (i.e., `SC_MAX_PATH_SIZE`) into the buffer.\n5. The `memcpy` in question, `memcpy(path->value, path_value, path_len);`, is called after `asn1_decode`. At this point, `path_len` holds the validated length of the data in `path_value`, which is guaranteed to be less than or equal to `SC_MAX_PATH_SIZE`.\n6. The destination buffer, `path->value`, is part of the `sc_path_t` struct, which also has a size of `SC_MAX_PATH_SIZE`.\n\nBecause the copy size `path_len` is constrained by the size of both the source and destination buffers, an out-of-bounds access is prevented, assuming the `asn1_decode` function is correctly implemented. This looks like a deliberate defensive programming pattern, not a bug."
+   },
+   {
+    "func": "asn1_encode_p15_object",
+    "line": 1339,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2776",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

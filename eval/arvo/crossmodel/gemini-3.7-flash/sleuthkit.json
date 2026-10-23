@@ -1,0 +1,320 @@
+[
+ {
+  "id": "24895",
+  "project": "sleuthkit",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "miss",
+  "gt_func": "hfs_load_extended_attrs",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 9,
+  "n_other_confirmed": 4,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 2,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1557,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation copies `sizeof(key.parent_cnid)` (4 bytes) from `thread.parent_cnid` to `key.parent_cnid`. Both `key` and `thread` are stack-allocated structs of types `hfs_btree_key_cat` and `hfs_thread`, respectively, and the source buffer `thread.parent_cnid` is a fixed 4-byte array fully contained within `hfs_thread`, safely populated by `hfs_cat_read_thread_record`."
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1559,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 512",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check visible on the path before `memcpy((char *) &key.name, (char *) &thread.name, sizeof(key.name));` to ensure that `thread.name` contains the full 512 bytes copied."
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1600,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "No bounds check or guard macro covering the source buffer size or offset is visible in the provided function prior to the memcpy access."
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1608,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 248",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1612,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 520",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source operand is a local stack buffer (`record` or `thread`, e.g. `sizeof(hfs_thread)` is 520 bytes) populated safely by `hfs_cat_read_thread_record` / `hfs_cat_read_file_folder_record`, and the destination is a struct field `entry->thread` / `entry->cat` matching the size of the type, so the fixed-size structure copy does not read or write out of bounds."
+   },
+   {
+    "func": "hfs_dinode_copy",
+    "line": 2337,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source operand &(a_entry->file.data) / &(a_entry->file.resource) is a struct member inside `a_hfs_entry->cat` of type `hfs_file_folder` / `HFS_ENTRY`, which is a fixed-size struct in memory (sizeof(hfs_fork) is 80 bytes). The check `tsk_getu16(fs->endian, std->rec_type) == HFS_FILE_RECORD` guards access to file record fields, ensuring the record is processed as a file record whose fields are part of the statically-sized catalog structure."
+   },
+   {
+    "func": "hfs_dinode_copy",
+    "line": 2338,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source operand &(a_entry->file.data) / &(a_entry->file.resource) is a struct member inside the HFS_ENTRY catalog record struct (a_hfs_entry->cat of fixed type hfs_file/hfs_file_folder). sizeof(hfs_fork) is 80 (0x50) bytes, which matches the sizeof of the hfs_fork struct in HFS+, and the memory is part of a fully allocated HFS_ENTRY structure."
+   },
+   {
+    "func": "hfs_parse_resource_fork",
+    "line": 4619,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %615",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code calculates `name = nameListBegin + nameOffset` and copies `nameLen` bytes (`memcpy(nameBuffer, name + 1, nameLen)`), where `nameOffset` is read directly from file data (`item->resNameOffset`) and `nameLen` is read from `name[0]`. There are no bounds checks verifying that `nameOffset`, `name + 1`, or `name + 1 + nameLen` stay within the allocated `map` buffer bounds (`map` to `map + mapLength`), leading to potential out-of-bounds heap read."
+   },
+   {
+    "func": "hfs_parse_resource_fork",
+    "line": 4670,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check ensuring that `typeListOffset` or `tlItem` (derived from `typeList->type[mindx]`) falls within the allocated bounds of the `map` buffer (`mapLength`) before reading `tlItem->type`."
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1557,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sizeof(key.parent_cnid) (4 bytes) from thread.parent_cnid to key.parent_cnid. Both thread (type hfs_thread) and key (type hfs_btree_key_cat) are validly allocated local stack structures whose parent_cnid fields are arrays/fields of size 4 bytes. While thread contents come from disk/input, the source pointer points to a validly allocated stack buffer with sufficient bounds (4 bytes), so this memory copy cannot cause an out-of-bounds read or write."
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1559,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 512",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Both key.name and thread.name are instances of the fixed-size structure hfs_uni_str (512 bytes). Copying sizeof(key.name) from &thread.name is fully within bounds of the stack-allocated hfs_thread structure."
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1600,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source operand is a local stack variable (`record` or `thread`), populated by `hfs_cat_read_file_folder_record` or `hfs_cat_read_thread_record`. The size copied corresponds to standard fixed-size struct definitions (`sizeof(hfs_folder)`, `sizeof(hfs_file)`, or `sizeof(hfs_thread)`), and the source buffer `record` is a union or sufficiently sized local struct `hfs_file_folder`. There is no out-of-bounds read from the local stack variable."
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1608,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 248",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source `record` is a local stack-allocated union/structure sized to hold catalog records (such as `hfs_file` and `hfs_folder`), and the destination `entry->cat` is similarly sized to hold catalog data. The `memcpy` copies a fixed `sizeof(hfs_file)` (248 bytes) from a buffer sufficiently large to hold it. The operand was flagged solely because its contents derive from disk data, not due to an out-of-bounds access."
+   },
+   {
+    "func": "hfs_cat_file_lookup",
+    "line": 1612,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 520",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operands (such as `thread`, `record`, and `key`) are local stack structures defined with fixed sizes matching their types (e.g., `hfs_btree_key_cat`, `hfs_file`, `hfs_folder`, `hfs_thread`). The `memcpy` operations copy fixed `sizeof(...)` bytes between buffers allocated with those exact types/sizes, so no buffer overflow occurs."
+   },
+   {
+    "func": "hfs_dinode_copy",
+    "line": 2337,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source pointer is the address of an embedded struct field `a_entry->file.data` (or `resource`), which is defined as a fixed-size `hfs_fork` (80 bytes) within the catalog entry struct. The memcpy copies `sizeof(hfs_fork)` from this field into the allocated meta content buffer; the source operand is fully within the bounds of the `HFS_ENTRY` structure."
+   },
+   {
+    "func": "hfs_dinode_copy",
+    "line": 2338,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 80",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source pointer is a fixed-size struct member (`a_entry->file.data` or `a_entry->file.resource`) within the `hfs_file` structure of `a_hfs_entry`. While its contents are derived from disk input, copying `sizeof(hfs_fork)` (80 bytes) stays within the bounds of the struct member and its enclosing structure."
+   },
+   {
+    "func": "hfs_parse_resource_fork",
+    "line": 4619,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %615",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "In `hfs_parse_resource_fork`, `nameOffset` is read from untrusted input and added to `nameListBegin` (`map + nameListOffset`) without bounds checking against `mapLength`. Furthermore, `nameLen` is read directly from `name[0]` and `memcpy(nameBuffer, name + 1, nameLen)` is executed without checking whether `name + 1 + nameLen` stays within the bounds of the allocated `map` buffer. An attacker-controlled resource fork map can cause an out-of-bounds read."
+   },
+   {
+    "func": "hfs_parse_resource_fork",
+    "line": 4670,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function calculates `typeList` using `typeListOffset` and iterates `numTypes` times (`tlItem = &(typeList->type[mindx])`), accessing `tlItem->type` without checking whether `typeListOffset`, `numTypes`, or the resulting pointer `tlItem` lies within the bounds of the allocated `map` buffer of size `mapLength`. A corrupted or malicious resource fork map can specify an out-of-bounds `typeListOffset` or large `numTypes`, causing `memcpy(rsrc->type, tlItem->type, 4)` to read beyond the end of the `map` allocation."
+   }
+  ]
+ },
+ {
+  "id": "38872",
+  "project": "sleuthkit",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "ext2fs_dinode_copy",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "ext2fs_dinode_copy",
+    "line": 905,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1993",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Prior to reaching the memset, the buffer fs_meta->content_ptr is ensured to be of size fs_meta->content_len (via the check `if (fs_meta->content_len != EXT2FS_FILE_CONTENT_LEN) { fs_meta = tsk_fs_meta_realloc(fs_meta, EXT2FS_FILE_CONTENT_LEN); }`), and `memset(fs_meta->content_ptr, 0, fs_meta->content_len)` clears exactly the allocated capacity `fs_meta->content_len`."
+   },
+   {
+    "func": "ext2fs_imap_load",
+    "line": 431,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %269",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no explicit bounds check or guard validating the size against the allocated capacity of ext2fs->imap_buf prior to the memset call."
+   },
+   {
+    "func": "ext4_load_attrs_inline",
+    "line": 667,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target memset clears `resident_data` of size `fs_meta->size`. Immediately preceding it, `resident_data` is allocated via `tsk_malloc(fs_meta->size)` and checked for NULL (`if ((resident_data = (uint8_t*)tsk_malloc(fs_meta->size)) == NULL) return 1;`). The allocated buffer precisely matches `fs_meta->size`, so the memset does not exceed bounds."
+   },
+   {
+    "func": "ext4_load_attrs_extents",
+    "line": 1920,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access `extents[i]` (copy of 12-byte `ext2fs_extent`) inside the loop `for (i = 0; i < num_entries; i++)` is guarded immediately preceding it by `if ((fs_meta->content_len < sizeof(ext2fs_extent_header)) || (num_entries > (fs_meta->content_len - sizeof(ext2fs_extent_header)) / sizeof(ext2fs_extent))) return 1;`, ensuring all `num_entries` extents fit within `content_len`."
+   },
+   {
+    "func": "ext2fs_make_data_run_extent_index",
+    "line": 1674,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access `extents[i]` (12-byte `ext2fs_extent`) is protected by the preceding check ensuring `num_entries <= (fs_blocksize - sizeof(ext2fs_extent_header)) / sizeof(ext2fs_extent)`, which guarantees all `num_entries` extent structs reside within the allocated `fs_blocksize` buffer."
+   },
+   {
+    "func": "ext2fs_dinode_copy",
+    "line": 905,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %1993",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before the memset call, fs_meta is checked and resized using tsk_fs_meta_realloc(fs_meta, EXT2FS_FILE_CONTENT_LEN), ensuring fs_meta->content_ptr points to an allocated buffer of fs_meta->content_len bytes. Zeroing fs_meta->content_len bytes does not exceed the buffer bounds."
+   },
+   {
+    "func": "ext2fs_imap_load",
+    "line": 431,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %269",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "ext2fs->imap_buf is allocated with size fs->block_size using tsk_malloc(fs->block_size). The subsequent memset uses fs->block_size as the length, matching the allocated buffer size. Therefore, there is no out-of-bounds write."
+   },
+   {
+    "func": "ext4_load_attrs_inline",
+    "line": 667,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The buffer resident_data is allocated with `tsk_malloc(fs_meta->size)` and immediately zeroed with `memset(resident_data, 0, fs_meta->size)`. The size of the allocation matches the size passed to memset, so this memset cannot cause an out-of-bounds write."
+   },
+   {
+    "func": "ext4_load_attrs_extents",
+    "line": 1920,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function explicitly verifies that fs_meta->content_len is large enough to contain the header and all num_entries elements before accessing `extents[i]` (sizeof(ext2fs_extent) is 12 bytes). The bounds check `(fs_meta->content_len < sizeof(ext2fs_extent_header)) || (num_entries > (fs_meta->content_len - sizeof(ext2fs_extent_header)) / sizeof(ext2fs_extent))` prevents any out-of-bounds read."
+   },
+   {
+    "func": "ext2fs_make_data_run_extent_index",
+    "line": 1674,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code explicitly validates that `fs_blocksize >= sizeof(ext2fs_extent_header)` and `num_entries <= (fs_blocksize - sizeof(ext2fs_extent_header)) / sizeof(ext2fs_extent)`. As a result, accessing `extents[i]` for `i < num_entries` is strictly within the bounds of `buf`."
+   }
+  ]
+ }
+]

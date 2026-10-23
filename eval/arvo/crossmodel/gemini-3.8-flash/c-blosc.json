@@ -1,0 +1,200 @@
+[
+ {
+  "id": "23794",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "miss",
+  "gt_func": "blosclz_compress",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "get_run_16",
+    "line": 139,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check covering the destination operand of the memset operation; the only conditional check present (`ip < (ip_bound - sizeof(int64_t))`) evaluates `ip` and `ip_bound`, not the target buffer."
+   },
+   {
+    "func": "get_run_16",
+    "line": 159,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target memset writes to the local stack variable `&value` of type `__m128i` (size 16 bytes) with size `sizeof(__m128i)` (16 bytes), which completely fits in the stack allocation and is guarded by the loop condition `ip < (ip_bound - sizeof(__m128i))`."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 634,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %127",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Prior to `memset(op, b, len + 3)`, there is an explicit bounds check `if (BLOSCLZ_UNEXPECT_CONDITIONAL(op + len + 3 > op_limit)) return 0;`, which ensures `op + len + 3` does not exceed `op_limit` (the output buffer capacity)."
+   },
+   {
+    "func": "wild_copy",
+    "line": 566,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `wild_copy` performs 8-byte copies in a loop (`do { memcpy(d, s, 8); d += 8; s += 8; } while (d < e);`) without checking whether `s` (derived from input) has at least 8 bytes available or if it exceeds the input buffer boundaries."
+   },
+   {
+    "func": "get_run_16",
+    "line": 139,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset target is the address of a local 64-bit integer variable (`int64_t value`), and the size is 8 bytes, which precisely matches `sizeof(int64_t)`. There is no out-of-bounds memory access."
+   },
+   {
+    "func": "get_run_16",
+    "line": 159,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "`memset` is called on the address of a local variable `value` of type `__m128i` with size `sizeof(__m128i)` (16 bytes). The destination buffer is exactly 16 bytes, so there is no buffer overflow."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 634,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %127",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation `memset(op, b, len + 3)` is properly bounds-checked immediately prior by `if (BLOSCLZ_UNEXPECT_CONDITIONAL(op + len + 3 > op_limit)) return 0;` and `ref - 1 < (uint8_t*)output` check ensuring valid memory boundaries within the output buffer."
+   },
+   {
+    "func": "wild_copy",
+    "line": 566,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ },
+ {
+  "id": "38313",
+  "project": "c-blosc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 4,
+  "recall": "hit",
+  "gt_func": "blosclz_compress",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 3,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "blosclz_compress",
+    "line": 473,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %47",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check on clevel or the computed hashlog size prior to the memset call to ensure that (1U << hashlog) * sizeof(uint32_t) does not exceed the allocated size of htab."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 738,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %120",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Directly prior to the memset call, there is a strict bounds check `if (BLOSCLZ_UNLIKELY(op + len > op_limit)) return 0;` ensuring that writing `len` bytes to `op` will not exceed `op_limit` (the output buffer boundary). Additionally, `ref` is checked via `if (BLOSCLZ_UNLIKELY(ref - 1 < (uint8_t*)output)) return 0;` ensuring `ref` dereferencing is safe."
+   },
+   {
+    "func": "wild_copy",
+    "line": 672,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `wild_copy` performs an unconditional 8-byte copy in a `do ... while (d < e)` loop without checking whether `s` (the source pointer) or `s + 8` stays within the input buffer bounds."
+   },
+   {
+    "func": "get_run",
+    "line": 121,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memset target is local stack variable `value` of type `int64_t` (8 bytes) with size 8, so it is writing directly into a buffer of exact size 8 on the stack; no out-of-bounds access can occur."
+   },
+   {
+    "func": "blosclz_compress",
+    "line": 473,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %47",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset initializes `htab`, which is allocated with size `(1U << HASH_LOG) * sizeof(uint32_t)`. The size argument to memset is `(1U << hashlog) * sizeof(uint32_t)`. `hashlog` is derived from `hashlog_[clevel]`, where `hashlog_` contains values that are at most `HASH_LOG`. Therefore, the size being cleared never exceeds the allocated buffer size of `htab`."
+   },
+   {
+    "func": "blosclz_decompress",
+    "line": 738,
+    "sink": "memset",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operation is properly bounds-checked: immediately prior to the memset call, `op + len > op_limit` and `ref - 1 < (uint8_t*)output` are checked and return 0 on out-of-bounds, ensuring `op` and `op + len` stay strictly within the destination buffer."
+   },
+   {
+    "func": "wild_copy",
+    "line": 672,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "get_run",
+    "line": 121,
+    "sink": "memset",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "`value` is a local 64-bit integer (`int64_t`), which is exactly 8 bytes in size. `memset(&value, x, 8)` correctly writes 8 bytes into the stack variable to broadcast `x`, with no out-of-bounds memory access."
+   }
+  ]
+ }
+]

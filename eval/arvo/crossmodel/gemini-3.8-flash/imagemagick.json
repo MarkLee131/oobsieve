@@ -1,0 +1,1539 @@
+[
+ {
+  "id": "18696",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "TraceStrokePolygon",
+  "n_gt_cands": 12,
+  "n_gt_confirmed": 7,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 9,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7163,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The snippet provided does not show line 7163 or the memcpy operation and its surrounding checks, so no sufficient bounds check covering the memcpy operation is visible."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7169,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet for TraceStrokePolygon shows initialization up to reading primitive_info->coordinates, and the specified memcpy at line 7169 is not visible in the snippet nor is there any bounds guard shown covering it."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7194,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The struct assignment `polygon_primitive[number_vertices]=primitive_info[1];` (lowered to a 48-byte memcpy) accesses `primitive_info[1]` without verifying that `number_vertices` (derived from `primitive_info->coordinates`) is at least 2. There is no bounds check guarding this access against an input with fewer than 2 coordinates."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7396,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The assignments to `box_p[4]` and `box_q[4]` (structure copy of size 16 bytes, compiled as memcpy) read from local fixed-size stack arrays `box_p[1]` and `box_q[1]` which have already been initialized and are strictly within the bounds of the local `box_p` / `box_q` array bounds (each having at least 5 elements). There is no out-of-bounds access on `src-ptr`."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7469,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The visible code only guards the destination path buffer via CheckPathExtent. There is no visible bounds check covering the tainted source pointer/index reaching this 16-byte copy operation."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7514,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check visible on the source buffer/index (such as polygon_primitive[n] or box pointers) covering this 48-byte read; CheckPathExtent only checks/reallocates the destination path buffer."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7515,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The visible checks, such as CheckPathExtent, only verify and reallocate capacity for destination buffers (path_p and path_q). There is no bounds check guarding the source pointer operand before the 16-byte copy operation."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7519,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "No bounds check or guard validating the bounds of the source operand before the copy operation at line 7519 is visible in the provided code path."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7525,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The allocation `stroke_polygon = AcquireQuantumMemory((size_t)(p + q + 2UL * closed_path + 2UL), sizeof(*stroke_polygon))` allocates space for at least `p` elements, and the subsequent loop / structure assignment copies exactly `p` elements (`path_p`) and `q` elements (`path_q`) into `stroke_polygon` where each element of `PrimitiveInfo` (size 48 bytes) is within the bounds of the allocated buffer."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7526,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The assignments `box_p[1]`, `box_p[2]`, `box_p[4]` etc. are structure copies (16 bytes, PointInfo with two doubles `x` and `y`) from local stack arrays `box_p` and `box_q` which have fixed size (e.g., `PointInfo box_p[5], box_q[5]`), and the indices 0 through 4 are fixed compile-time constants within the array bounds."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7530,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The loop assigns `stroke_polygon[i]=polygon_primitive[0];` (represented as a 48-byte struct copy / memcpy of PrimitiveInfo) where `stroke_polygon` is allocated with capacity `p + q + 2*closed_path + 2`, and the loop is strictly bounded by `i < (ssize_t) p`, so the destination is within allocated bounds, and reading `polygon_primitive[0]` is safe as `polygon_primitive` contains at least one primitive when stroked."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7534,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The copy `stroke_polygon[i]=polygon_primitive[0]` copies a single PrimitiveInfo structure (sizeof 48 bytes) from `polygon_primitive[0]`. `polygon_primitive` is the input polygon array passed to `TraceStrokePolygon` which is non-empty upon entering the stroke tracing logic, so index 0 is valid and within bounds."
+   },
+   {
+    "func": "GetDrawInfo",
+    "line": 5848,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation in GetDrawInfo is copying or initializing known fixed-size internal structures (such as AffineMatrix or PixelInfo via internal helpers or struct assignment/initialization) of static size (88 bytes corresponds to a struct like PixelInfo or AffineMatrix layout) where the source is a valid initialized or cloned struct, not an unbounded buffer read."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 290,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a NULL check (`draw_info == NULL`) before the field copies; there is no bounds or buffer capacity check guarding the access of `draw_info`."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 291,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function only checks if draw_info is NULL before copying struct members (such as clone_info->affine = draw_info->affine, an aggregate copy of size 48), with no bounds or allocation size guard covering the access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 293,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a NULL check on draw_info (`if (draw_info == (DrawInfo *) NULL)`), and no bounds check verifying the allocation size or valid memory extent of the source buffer before copying the 88-byte structure."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 294,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a null pointer check (draw_info == NULL) before accessing members of draw_info; no length or buffer bounds check covering the 88-byte read exists on this execution path."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 332,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a null pointer check on draw_info (`if (draw_info == (DrawInfo *) NULL)`), and no bounds or buffer capacity check covering the memory read/copy operation."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 333,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation copying 88 bytes is a struct assignment (such as copying a PixelPacket/PixelInfo member like clone_info->fill = draw_info->fill or border_color/undercolor) from a valid DrawInfo struct pointer `draw_info`. The function explicitly checks `if (draw_info == (DrawInfo *) NULL) return(clone_info);` before accessing any struct members of `draw_info`, which is a fixed-size struct type."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 349,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %249",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The length `(x+1)` is determined by scanning `draw_info->dash_pattern` until a sentinel value `< MagickEpsilon` is found, and `memcpy` copies exactly `(x+1)*sizeof(*clone_info->dash_pattern)` bytes from `draw_info->dash_pattern` into a newly allocated buffer sized `(2*x+2)*sizeof(...)`. The access is covered by the loop scan of the null/sentinel-terminated array."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 352,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 152",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %288",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check verifying the length or capacity of the source buffer (`draw_info->dash_pattern` or `draw_info->gradient.stops`) before the `memcpy`."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The structure copy operations (`clone_info->affine = draw_info->affine`, `clone_info->bounds = draw_info->bounds`, etc.) or internal fixed-size struct copies (such as `clone_info->bounds` or `clone_info->affine`, each 32 bytes) operate on valid fields of `DrawInfo`, a known structured type whose pointer `draw_info` is validated to be non-NULL via `if (draw_info == (DrawInfo *) NULL) return(clone_info);`. Any fixed-size 32-byte memcpy generated by the compiler for struct assignment accesses fixed, valid member offsets within `DrawInfo`."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 370,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 192",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The copy `memcpy(clone_info->gradient.stops, draw_info->gradient.stops, (size_t) number_stops * sizeof(*clone_info->gradient.stops))` copies `number_stops` elements of type StopInfo. `clone_info->gradient` was initialized via struct copy from `draw_info->gradient` (`clone_info->gradient = draw_info->gradient;`), so `number_stops` directly corresponds to `draw_info->gradient.number_stops`, the valid allocated element count of the source array `draw_info->gradient.stops`."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2031,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet truncates before line 2031 and does not show any bounds check guarding the memcpy operation."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2091,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function accesses elements from gradient->stops without checking if gradient->stops is NULL or gradient->number_stops is zero / out of bounds, potentially reading beyond allocated stop buffers if number_stops is malformed or empty."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2094,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check ensuring gradient->number_stops > 0 before accessing gradient->stops[0].color (or sorting gradient->stops), so if number_stops is 0 or stops is NULL/empty, accessing gradient->stops[0] performs an out-of-bounds / invalid memory read."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7163,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function TraceStrokePolygon in ImageMagick uses dynamic buffer reallocation via CheckPathExtent macro to grow path_p, path_q, and the polygon primitive buffer as needed before appending points. The taint analysis flagged the memcpy due to input-derived stroke/vertex dimensions, but standard buffer bounds checks and dynamic resizing guard the copy operation."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7169,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In ImageMagick's TraceStrokePolygon, primitive_info represents polygon vertices validated earlier in the drawing pipeline. Memory operations copying PrimitiveInfo or PointInfo structures (size 48 corresponds to sizeof(PrimitiveInfo) or similar geometry struct) operate within validated bounds allocated for the stroke/path."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7194,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `number_vertices * sizeof(*polygon_primitive)` bytes from `primitive_info` to `polygon_primitive`, where `number_vertices` is taken directly from `primitive_info->coordinates`. The destination buffer is safely allocated with `number_vertices + 2UL` elements. In ImageMagick's design, `primitive_info` points to an array of PrimitiveInfo structs whose initial element specifies the count in its `coordinates` field, so reading `number_vertices` elements from `primitive_info` is within valid bounds."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7396,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 16-byte memcpy corresponds to a struct assignment of a `PointInfo` (consisting of two 8-byte doubles, `x` and `y`), such as `box_p[4] = box_p[1];`. The `box_p` and `box_q` buffers are fixed-size arrays of 5 elements, and index 1 is well within bounds and previously initialized. There is no out-of-bounds memory read."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7469,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 16-byte memcpy is a struct assignment of a PointInfo object (two 8-byte doubles). The source pointer accesses fixed-size local arrays (box_p/box_q of size 5) using constant indices (0 to 4), which are strictly within bounds."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7514,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 48-byte memcpy corresponds to a struct assignment (such as `box_p[0]=box_p[2]` or `path_p[p++]=...` for `PointInfo`), where `box_p` and `box_q` are fixed-size local stack arrays (size 5) and indices (0 to 4) are statically bounded within the array. Buffer growth for `path_p`/`path_q` is guarded by `CheckPathExtent`."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7515,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 16-byte copy corresponds to a PointInfo struct assignment (containing two 8-byte doubles, x and y) between fixed-size stack arrays (box_p/box_q) using constant indices. The coordinates are data-tainted from user input, but the memory offsets and source pointers are fixed and well within the bounds of the array."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7519,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code segment from ImageMagick's TraceStrokePolygon uses fixed-size local/stack arrays (box_p and box_q, which are 5-element PointInfo arrays) or struct assignments (size 48 corresponds to copying struct instances or fixed array elements like PointInfo / PrimitiveInfo). The memory operations and indexing into box_p/box_q are hardcoded with valid indices (0 to 4), and dynamic path growth is guarded by CheckPathExtent. There is no genuine out-of-bounds bug here."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7525,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7526,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 16-byte memory copy corresponds to assigning a PointInfo structure (two 8-byte doubles). The source operand comes from fixed-size PointInfo arrays box_p and box_q (typically sized at 5 elements), and all access indices (0 through 4) are statically valid and within bounds."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7530,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy is the compiler-generated struct copy for `stroke_polygon[i] = polygon_primitive[0]`. The source pointer is `polygon_primitive[0]`, a valid base element of the primitive list being traced, and the size corresponds to `sizeof(PrimitiveInfo)` (48 bytes). This is standard struct assignment and not an out-of-bounds access."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7534,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged operation is a structure assignment (`stroke_polygon[i] = polygon_primitive[0];` where `sizeof(PrimitiveInfo)` is 48 bytes), which compiles to a 48-byte memcpy. `polygon_primitive[0]` is a valid reference to the input primitive element and is not out-of-bounds."
+   },
+   {
+    "func": "GetDrawInfo",
+    "line": 5848,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation is a fixed-size structure copy (such as copying a PixelInfo struct of size 88 bytes) during DrawInfo initialization in GetDrawInfo, copying valid struct data rather than an out-of-bounds memory access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 290,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation is a field copy (structure assignment or fixed-size struct copy such as RectangleInfo or AffineMatrix) during the cloning of DrawInfo in CloneDrawInfo. The source structure `draw_info` is properly allocated and checked for NULL before member access, and the copy size matches the fixed-size structure member."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 291,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy or struct copy (such as copying affine/viewbox/stroke/fill structures of size 48 bytes) is standard member-by-member copying between valid DrawInfo structures in ImageMagick's CloneDrawInfo. The source pointer is a field within the valid input struct `draw_info`, which is checked for NULL. There is no out-of-bounds access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 293,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy is generated by the compiler for a struct assignment (e.g. copying a PixelInfo struct such as fill or stroke) from the valid draw_info parameter into clone_info. The pointer is checked against NULL, and the copy operates entirely within the boundaries of the valid DrawInfo structure."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 294,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy of 88 bytes is a compiler-generated structure copy (such as copying a PixelInfo struct field like fill or stroke from draw_info to clone_info). draw_info is checked for NULL before accessing its fields, and the copy is strictly within the bounds of the valid DrawInfo structure."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 332,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation corresponds to copying a fixed-size struct member (such as PixelInfo, which is commonly 88 bytes in ImageMagick 7) between two valid DrawInfo structures. The pointer is checked against NULL and points to valid struct fields, so this is not an out-of-bounds access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 333,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy with size 88 corresponds to a compiler-lowered struct assignment (such as copying a PixelInfo struct field like fill, stroke, or border_color) from draw_info to clone_info. Since draw_info is checked for NULL and is a valid DrawInfo pointer, this copy of an embedded struct within the DrawInfo object is completely safe and not an out-of-bounds memory access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 349,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %249",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 352,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 152",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The loop counts elements until the terminating element (where fabs < MagickEpsilon) at index x, confirming that draw_info->dash_pattern contains at least x + 1 valid double elements. The memcpy then copies exactly (x + 1) elements into a buffer allocated for (2*x + 2) elements, which is completely within bounds for both source and destination."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %288",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation is a fixed-size copy (32 bytes, corresponding to an internal struct field assignment such as PixelInfo or AffineMatrix, or properly sized buffer copy) between valid DrawInfo structures. The source and destination allocations have sufficient size, making this a false positive."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 370,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 192",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2031,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted data flagged is part of ImageMagick's gradient processing (DrawInfo/GradientInfo). While `gradient->stops` and its elements may be derived from input, the qsort and subsequent standard gradient color lookups / copies (such as copying PixelInfo or StopInfo structs of fixed size 32 bytes) operate on allocated structures properly sized according to `number_stops` or within bounded loop ranges. Without an out-of-bounds index or insufficient allocation, a 32-byte struct copy of a stop/pixel entry is normal structure assignment/copying and not an out-of-bounds read/write."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2091,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2094,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ },
+ {
+  "id": "10115",
+  "project": "imagemagick",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "DrawDashPolygon",
+  "n_gt_cands": 5,
+  "n_gt_confirmed": 4,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 10,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "DrawDashPolygon",
+    "line": 1770,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code snippet does not include line 1770 or the memcpy operation and its surrounding logic; therefore, no sufficient bounds check covering this exact access is visible."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1819,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The allocation of dash_polygon is fixed to (2*number_vertices+32) PrimitiveInfo elements, but the loop can generate arbitrary dash segments based on dash_pattern and coordinate distances without bounds checking or resizing dash_polygon before copying/assigning PrimitiveInfo elements."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1830,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check ensuring that the source buffer `primitive_info` contains valid elements before accessing or copying, particularly when `number_vertices` may be zero."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1849,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function does not receive a buffer limit for `primitive_info` and relies solely on finding an `UndefinedPrimitive` sentinel without checking against any capacity or bounds. There is no bounds check guarding `primitive_info` accesses against buffer overread."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1855,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "GetDrawInfo",
+    "line": 5747,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation in GetDrawInfo is copying or zeroing fixed-size structure members or passing a pointer to a struct of known static size (e.g., AffineMatrix or PixelInfo in `memset(draw_info, 0, sizeof(*draw_info))` or structure assignment of 88 bytes, which corresponds to sizeof(AffineMatrix) or PixelInfo). The buffer `draw_info` or sub-structure has a known fixed structure type and size that is fully allocated, with no bounds overrun possible."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 289,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a null pointer check (`if (draw_info == (DrawInfo *) NULL)`), but no buffer bounds or capacity check covering the memory read from the input-derived source operand."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 290,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code only performs a NULL check on draw_info (`if (draw_info == (DrawInfo *) NULL)`). There is no bounds or buffer capacity check covering the 48-byte struct copy access from the tainted pointer."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 292,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a NULL check (`draw_info == (DrawInfo *) NULL`) prior to copying fields like `fill` or `stroke` (size 88), with no bounds or buffer size check verifying that `draw_info` has sufficient allocated capacity."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 293,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation copies a struct member by value (e.g., `clone_info->fill = draw_info->fill` or `clone_info->stroke = draw_info->stroke` of PixelInfo/size 88) after verifying that `draw_info != NULL` via `if (draw_info == (DrawInfo *) NULL) return(clone_info);`. The src pointer is an internal member of a valid DrawInfo struct."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 331,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 332,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a null-pointer check (`if (draw_info == (DrawInfo *) NULL)`) prior to the memory copy/field assignment, with no bounds or buffer-capacity check covering the access of size 88."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 346,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %233",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 349,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 152",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The loop scans draw_info->dash_pattern until finding a value below MagickEpsilon at index x, but memcpy then copies (x+4) elements without verifying that draw_info->dash_pattern actually has at least (x+4) elements allocated."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 361,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %272",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In the dash_pattern handling, `for (x=0; fabs(draw_info->dash_pattern[x]) >= MagickEpsilon; x++) ;` scans the array until a value less than `MagickEpsilon` is found, but `memcpy` copies `(x+4)*sizeof(*clone_info->dash_pattern)` bytes. This reads 3 to 4 elements (`sizeof(double) == 8`, so 4 elements = 32 bytes) past the terminating element without verifying that `draw_info->dash_pattern` actually has space allocated beyond the sentinel."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 192",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy copies `(x+4)*sizeof(*clone_info->dash_pattern)` elements from `draw_info->dash_pattern`. The loop counting `x` stops at the first element where `fabs(draw_info->dash_pattern[x]) < MagickEpsilon`, but the memcpy unconditionally reads `x + 4` elements from `draw_info->dash_pattern` without checking if the buffer contains at least `x + 4` elements, causing an out-of-bounds read."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2015,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check guarding the memory operation in the provided code snippet."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2075,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet truncates inside the loop over gradient->stops and does not show the memcpy operation or any bounds check ensuring gradient->stops has elements or validating accesses to gradient->stops before/at line 2075. Per the instructions, defaulting to true when no sufficient guard is visible."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2078,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no guard ensuring gradient->number_stops > 0 before accessing gradient->stops[0]. If number_stops is 0, the loop terminating at i=0 immediately leaves i == 0, triggering the access gradient->stops[0].color without bounds verification."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1770,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `DrawDashPolygon` in ImageMagick calculates the number of vertices by scanning `primitive_info` until an `UndefinedPrimitive` sentinel is found, and allocates `(2 * number_vertices + 32) * sizeof(*dash_polygon)`. Standard copying of a PrimitiveInfo structure (size 48 bytes) from a valid index within bounds is safe and normal operation in this rendering routine."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1819,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory copy operation corresponds to copying a PrimitiveInfo element (such as `dash_polygon[0] = primitive_info[0]`). The input array `primitive_info` is already validated and traversed at the start of the function up to its terminating UndefinedPrimitive element, ensuring that the source element is within allocated bounds."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1830,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memory operation is a struct copy (sizeof(PrimitiveInfo) == 48) where the source pointer indexes into primitive_info. Because the loop bounds strictly constrain the index (i < number_vertices) and number_vertices was counted up to UndefinedPrimitive, primitive_info[i] and primitive_info[0] are always within allocated bounds."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1849,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The structure assignment (or compiler-lowered memcpy of 48 bytes, the size of PrimitiveInfo) copies primitive_info[i-1] or primitive_info[0] into dash_polygon. The loop runs for i from 1 to number_vertices - 1, and number_vertices was counted up to the UndefinedPrimitive sentinel in primitive_info. Accessing primitive_info[i-1] is strictly within the allocated/valid bounds [0, number_vertices - 1] of primitive_info."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1855,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The structure copy (sizeof(PrimitiveInfo) is 48 bytes) copies primitive_info[i] or primitive_info[i-1]. The loop index i is strictly bounded by number_vertices (for i=1; i < (ssize_t) number_vertices; i++), and primitive_info has at least number_vertices valid elements up to UndefinedPrimitive, as counted by the initial scan. The access primitive_info[i] is well within the allocated bounds of primitive_info."
+   },
+   {
+    "func": "GetDrawInfo",
+    "line": 5747,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In GetDrawInfo, the structure initialization performs safe operations such as memset, cloning ImageInfo, setting default properties, and copying structure fields of fixed types. The flagged memcpy (size 88, matching a struct member like PixelPacket or similar fixed-size structure/color compliance query) copies fixed-size data into the allocated draw_info structure and does not represent an out-of-bounds read/write."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 289,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation is a fixed-size struct copy (such as copying `viewbox` or another 32-byte struct member from `draw_info` to `clone_info`). The pointer `draw_info` is properly checked for NULL prior to dereferencing, and the copy size matches the type definition."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 290,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged operation is a structure copy / assignment (represented as memcpy of size 48, matching an internal struct such as AffineMatrix or PixelInfo/RectangleInfo) within ImageMagick's CloneDrawInfo. The source `draw_info` is a valid pointer to a DrawInfo structure passed by the caller, and the fields being copied have fixed, well-defined sizes matching the structure definition. This is a false positive from taint tracking flagging structure assignment of attacker-influenced drawing properties."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 292,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged operation is a structure copy or field assignment (compiled to memcpy of size 88 for a sub-struct such as PixelInfo or AffineMatrix) during the cloning of DrawInfo in CloneDrawInfo. The source pointer points to a valid member of the DrawInfo structure, which is allocated and initialized properly. There is no out-of-bounds read."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 293,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy of 88 bytes corresponds to a struct assignment (e.g. copying an embedded structure such as PixelInfo/AffineMatrix within DrawInfo). The pointer draw_info is checked against NULL and points to a fully allocated DrawInfo structure, so the copy is strictly within bounds."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 331,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy is a compiler-generated memory copy for a struct member assignment (such as PixelInfo, which is typically 88 bytes) within DrawInfo. Both source and destination pointers reference valid fields of properly allocated DrawInfo structures."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 332,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy corresponds to a struct assignment (such as copying a PixelInfo structure like fill or stroke, which is commonly 88 bytes in ImageMagick) between valid DrawInfo instances. The pointer is guarded against NULL and points to a fully allocated DrawInfo struct, so the copy stays strictly within bounds."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 346,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %233",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 349,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 152",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 361,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %272",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 192",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2015,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 32-byte memcpy corresponds to a struct assignment (e.g., copying a SegmentInfo or PointInfo structure of 32 bytes) from draw_info->gradient. The source is a fixed-size inline struct field within the fully-allocated DrawInfo structure, not an out-of-bounds memory access."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2075,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2078,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ },
+ {
+  "id": "20096",
+  "project": "imagemagick",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "TraceStrokePolygon",
+  "n_gt_cands": 12,
+  "n_gt_confirmed": 9,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 10,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7168,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 7168 and its enclosing logic are not visible in the provided snippet, so no covering bounds check can be verified on the path reaching this operation."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7174,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Line 7174 and the memory operation itself, along with any bounds check that might guard it, are not visible in the provided code snippet. Following the rule to default to true when no sufficient guard is visible, real_bug is true."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7199,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In TraceStrokePolygon, if (draw_info->linejoin == RoundJoin || draw_info->linejoin == MiterJoin) && closed_path != MagickFalse, `polygon_primitive[number_vertices] = primitive_info[1]` is executed (a 48-byte structure copy from `primitive_info + 1`). There is no check ensuring `number_vertices > 1` (or `>= 2`) before accessing `primitive_info[1]`, leading to an out-of-bounds read if `number_vertices` is 0 or 1."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7401,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The 16-byte copy corresponds to copying a PointInfo struct (e.g. `box_p[4]=box_p[1]` or element assignments to/from fixed-size local stack arrays box_p / box_q / path_p / path_q). Before the writes into path_p / path_q, the buffer capacity is explicitly checked and resized via `CheckPathExtent(6*BezierQuantum+360)`, ensuring sufficient capacity."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7474,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The assignments of structs (PointInfo, size 16) from local fixed-size array box_p / box_q or center into path_p / path_q are protected by the macro `CheckPathExtent(...)` which checks and reallocates/ensures sufficient capacity in path_p and path_q buffers before the stores."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7519,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check or guard validating the bounds of the source buffer prior to the 48-byte memory operation on this path."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7520,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check guarding the access to `polygon_primitive[n].point` or whichever input-derived source pointer is read by the 16-byte memory operation in the provided execution path."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7524,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The visible code snippet does not show the memcpy operation at line 7524 nor any bounds checking covering its source pointer operand or destination buffer at that point."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7530,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code snippet ends before line 7530 is visible, and in ImageMagick's TraceStrokePolygon, copying elements into stroke_polygon (or related structures via structure assignment/memcpy of size 48 bytes, the size of PrimitiveInfo or PointInfo) does not have a visible bounds check guarding the source pointer operand within the provided context."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7531,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check guarding the access; neither the accumulation into path_p/path_q across joins nor the subsequent read in the copy loop is sufficiently guarded by a path extent check."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The loop assigns `stroke_polygon[i]=polygon_primitive[0];` which compiles to a struct copy (memcpy of size 48 bytes, sizeof(PrimitiveInfo)). The source is `&polygon_primitive[0]`, where `polygon_primitive` is the input polygon array guaranteed to have valid elements, and the destination `stroke_polygon` is allocated with capacity `(size_t)(p+q+2UL*closed_path+2UL) * sizeof(*stroke_polygon)`, which is strictly greater than `p` elements. The loop bounds `i < (ssize_t) p` safely guard the access to `stroke_polygon[i]` and `polygon_primitive[0]` is a fixed offset (0)."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7539,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check or guard validating the capacity/length of the source buffer (`polygon_primitive`) prior to the 48-byte structure copy operation."
+   },
+   {
+    "func": "GetDrawInfo",
+    "line": 5852,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check or guard protecting the memory copy operation on the tainted source pointer along this path."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 290,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 291,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function checks only if draw_info is NULL via `if (draw_info == (DrawInfo *) NULL)`, but contains no bounds check or length verification covering the source memory range for the 48-byte structure copy."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 293,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a null pointer check (`draw_info == (DrawInfo *) NULL`), but no bounds check or length verification covering the memory access/copy of the structure field."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 294,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a NULL check on draw_info (`if (draw_info == (DrawInfo *) NULL)`), with no explicit bounds or size check covering the 88-byte struct copy."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 332,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a NULL pointer check for draw_info (`if (draw_info == (DrawInfo *) NULL)`) and no bounds guard verifying the allocation size or buffer capacity of the source struct/memory before the copy."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 333,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operand corresponds to copying fields/sub-structures of DrawInfo (or PixelPacket/element of fixed size 88 bytes) within CloneDrawInfo, where `draw_info` is a valid struct pointer checked for non-NULL (`if (draw_info == (DrawInfo *) NULL) return(clone_info);`). The source is a fixed-size struct field of the valid structure, not a dynamically bounded buffer overrun."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 349,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %249",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copies (x + 1) * sizeof(*clone_info->dash_pattern) elements from draw_info->dash_pattern. The length x is determined right before the memcpy by traversing draw_info->dash_pattern until reaching a terminator (< MagickEpsilon). Thus, the array draw_info->dash_pattern contains at least x + 1 valid elements up to and including the terminating value, covering the exact read bounds."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 352,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 152",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %288",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "For `dash_pattern`, the loop counts elements until the sentinel condition `fabs(...) >= MagickEpsilon` fails, and then copies `(x + 1) * sizeof(double)` elements into newly allocated memory of size `(2*x + 2) * sizeof(double)`. For `gradient.stops`, memory is allocated with `AcquireQuantumMemory(number_stops, sizeof(*stops))` and checked for NULL before `memcpy` of size `number_stops * sizeof(*stops)`. Both `memcpy` calls in `CloneDrawInfo` are properly bounded and sized according to the allocated and verified lengths."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code copies draw_info->gradient into clone_info->gradient, then checks if draw_info->gradient.stops != NULL, but uses clone_info->gradient.number_stops (or draw_info->gradient.number_stops) without any verification that the source buffer draw_info->gradient.stops actually contains number_stops elements or is valid up to number_stops * sizeof(StopInfo)."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 370,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 192",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The gradient stops memcpy relies directly on `number_stops` (which is copied directly from `draw_info->gradient.number_stops`) without any bounds check verifying that `draw_info->gradient.stops` actually contains `number_stops` elements or that `number_stops` corresponds to the allocated/valid size of the source buffer."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2031,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet does not include line 2031 or the referenced memcpy operation, and no bounds check guarding that access is visible in the context."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2091,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The target memcpy operation at line 2091 is not present in the provided snippet, and no bounds guard covering the access is visible."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2094,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "If gradient->number_stops is 0, gradient->stops may be NULL or empty, yet gradient->stops[0].color is accessed (copied via struct assignment/memcpy of size 88 bytes, which is sizeof(PixelInfo)) without verifying that number_stops > 0."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7168,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code excerpt is from ImageMagick's draw.c (TraceStrokePolygon). Dynamic allocations for path vertices and polygon primitives use careful capacity checks via the CheckPathExtent macro and ResizeQuantumMemory, and standard polygon stroke generation logic bounds all copies according to allocated capacities."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7174,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 48-byte memcpy corresponds to copying a single PrimitiveInfo structure (sizeof(PrimitiveInfo) is 48 bytes). The taint analysis flagged the source pointer because primitive coordinates originate from user/image input, but the pointer refers to a validly allocated PrimitiveInfo array element and is not out of bounds."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7199,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In ImageMagick's vector rendering pipeline, `primitive_info` is an array of `PrimitiveInfo` structs allocated to hold `primitive_info->coordinates` vertices. Copying `number_vertices * sizeof(*polygon_primitive)` bytes from `primitive_info` is within the allocated bounds of the primitive buffer, making this a false positive from taint analysis."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7401,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 16-byte memcpy corresponds to a struct assignment of a `PointInfo` object (consisting of two 8-byte `double` fields, `x` and `y`). The access is to local fixed-size array elements (such as `box_p[1]` or `box_q[1]` into `box_p[4]` / `box_q[4]`), which are statically sized and within bounds. The tainted data merely represents vertex coordinates, not an out-of-bounds memory bug."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7474,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 16-byte memcpy corresponds to a struct assignment of a PointInfo (two 8-byte doubles) from the local stack arrays box_p or box_q (which are allocated with at least 5 elements). All indices accessed (0 through 4) are constant, valid bounds, so the source pointer is not an out-of-bounds read."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7519,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7520,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 16-byte copy corresponds to copying a `PointInfo` structure (two 8-byte doubles, `x` and `y`). The arrays `box_p` and `box_q` are statically sized local arrays of 5 elements (indices 0 through 4), all of which are properly within bounds during these assignments. The def-use taint analysis merely flagged coordinate values originating from input data."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7524,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code snippet is from ImageMagick's TraceStrokePolygon function where path segments are tracked. The static analyzer flagged a struct copy (size 48 bytes, matching sizeof(PointInfo) or similar geometry struct) assignment or subsequent memcpy. The arrays box_p and box_q are fixed-size stack arrays of PointInfo structures, and assignments like `box_p[0] = box_p[2]` are bounded within the array bounds ([5] elements). Dynamic buffers are guarded with `CheckPathExtent`. There is no evidence of an out-of-bounds read or write."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7530,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7531,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 16",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged 16-byte memcpy corresponds to a struct assignment (e.g. PointInfo or PrimitiveInfo element assignment) from fixed-size arrays like box_p or polygon_primitive. The indices used are within bounds and the destination arrays are dynamically resized via CheckPathExtent/AcquireQuantumMemory."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 48-byte copy is a struct assignment (`stroke_polygon[i] = polygon_primitive[0]`, where `sizeof(PrimitiveInfo) == 48`). `polygon_primitive` contains valid PrimitiveInfo entries for the path being traced, so reading `polygon_primitive[0]` is in-bounds."
+   },
+   {
+    "func": "TraceStrokePolygon",
+    "line": 7539,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 48-byte copy corresponds to the structure assignment `stroke_polygon[i] = polygon_primitive[0];`, copying a `PrimitiveInfo` element. `polygon_primitive` is an existing valid array passed into `TraceStrokePolygon` with at least one element initialized, so reading `polygon_primitive[0]` is within bounds and not an out-of-bounds read."
+   },
+   {
+    "func": "GetDrawInfo",
+    "line": 5852,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand report in GetDrawInfo is a false positive. GetDrawInfo initializes a DrawInfo structure, often copying or setting fixed-size sub-structures (such as PixelInfo or AffineMatrix) of standard size (88 bytes corresponds to sizeof(PixelInfo) in ImageMagick). The memory operations inside GetDrawInfo copy into properly allocated or valid member addresses of DrawInfo from valid sources, with no user-controlled buffer overflow or out-of-bounds access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 290,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memory operation is a compiler-generated struct copy (assignment of fixed-size sub-structures such as AffineMatrix or PixelInfo within DrawInfo). The pointer draw_info is validated against NULL prior to access, and the size matches the struct field size, making an out-of-bounds access impossible."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 291,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged 48-byte copy corresponds to a fixed-size struct assignment (such as copying the 48-byte AffineMatrix or PixelInfo member from draw_info to clone_info). draw_info is checked for NULL beforehand, and copying a standard struct field of known size is not an out-of-bounds memory access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 293,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged 88-byte copy corresponds to the struct assignment of an internal field (likely PixelInfo, which is 88 bytes in ImageMagick 7) between valid DrawInfo structures. The null check on draw_info is properly performed prior to access, and the read is within struct boundaries."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 294,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy corresponds to a struct assignment (such as copying an embedded PixelInfo struct like fill or stroke, which is ~88 bytes in size) from `draw_info` to `clone_info`. The pointer `draw_info` is checked against NULL, and the struct fields are fixed-size embedded members within the allocated DrawInfo structure. This is standard structure copying and not an out-of-bounds read or write."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 332,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 88-byte memcpy corresponds to a struct assignment (e.g. PixelInfo fields like fill, stroke, undercolor, or border_color) between two properly allocated DrawInfo structures. This is a standard compiler-generated copy of a fixed-size struct member, not an out-of-bounds memory access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 333,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 88-byte memcpy corresponds to a struct assignment of a fixed-size member (such as a PixelInfo struct field like fill, stroke, undercolor, or border_color) from draw_info to clone_info. The source operand is a valid subfield inside a properly allocated DrawInfo structure, making this a false positive generated by taint tracking on struct copies."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 349,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %249",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 352,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 152",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The loop immediately preceding the memcpy scans draw_info->dash_pattern up to index x where the sentinel value (< MagickEpsilon) is found. Therefore, draw_info->dash_pattern contains at least x + 1 valid elements, matching the exact number of elements copied by memcpy."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %288",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 370,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 192",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2031,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 32-byte memcpy corresponds to copying a fixed-size struct (such as SegmentInfo, which contains four 8-byte double fields: x1, y1, x2, y2) from the valid draw_info gradient structure. Taint analysis flagged it because the struct contents originate from user input, but the source and destination buffers are statically sized and valid, resulting in no out-of-bounds access."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2091,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2094,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

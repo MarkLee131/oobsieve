@@ -1,0 +1,241 @@
+[
+ {
+  "id": "33991",
+  "project": "readstat",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 11,
+  "recall": "miss",
+  "gt_func": "readstat_convert",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 11,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "readstat_parse_sav",
+    "line": 1603,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function readstat_parse_sav reads the header into a local struct `header` via `io->read(&header, sizeof(sav_file_header_record_t), io->io_ctx)`. However, the code following the provided excerpt (where line 1603 performs `memcpy` of 64 bytes from input/header fields) lacks a visible bounds check covering the buffer size/length reaching the 64-byte `memcpy`."
+   },
+   {
+    "func": "sav_read_value_label_record",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds or buffer capacity check on vlabel->raw_value covering the 8-byte access prior to memcpy(&val_d, vlabel->raw_value, 8)."
+   },
+   {
+    "func": "sav_parse_machine_floating_point_record",
+    "line": 972,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function checks that parameters `size == 8` and `count == 3`, but does not verify the actual allocated or remaining buffer capacity of `data` itself against the 24-byte (`sizeof(sav_machine_floating_point_info_record_t)`) copy."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1108,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the memcpy (line 1108 for `memcpy(&value_len, data_ptr, sizeof(uint32_t))` or line 1098 for `memcpy(&label_count, ...)`), there is an explicit bounds check `if (data_ptr + sizeof(uint32_t) > data_end)` ensuring that at least 4 bytes remain within the buffer."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1123,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access is preceded immediately by the bounds check `if (data_ptr + sizeof(uint32_t) > data_end)`, which verifies that at least 4 bytes remain between `data_ptr` and `data_end`."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1152,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memory read is directly guarded by an explicit bounds check `if (data_ptr + sizeof(uint32_t) > data_end)` immediately preceding the memcpy operation."
+   },
+   {
+    "func": "sav_parse_long_string_missing_values_record",
+    "line": 1237,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately prior to the memcpy, there is an explicit bounds check `if (data_ptr + sizeof(uint32_t) > data_end)` which aborts parsing if fewer than 4 bytes remain."
+   },
+   {
+    "func": "sav_read_variable_missing_double_values",
+    "line": 265,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The loop runs for `i < info->n_missing_values`, and the preceding check verifies `io->read(info->missing_double_values, info->n_missing_values * sizeof(double), io->io_ctx) < info->n_missing_values * sizeof(double)` which ensures `info->missing_double_values` contains at least `info->n_missing_values * sizeof(double)` bytes. Reading 8 bytes (`sizeof(double)`) from `&info->missing_double_values[i]` is strictly bounded within the allocated and validated buffer range."
+   },
+   {
+    "func": "sav_read_pascal_string",
+    "line": 1038,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy reading sizeof(uint32_t) (4 bytes) from data_ptr into var_name_len is immediately preceded by the bounds check `if (data_ptr + sizeof(uint32_t) > data_end) { retval = READSTAT_ERROR_PARSE; goto cleanup; }`, where `data_end = data_ptr + data_ptr_len`, ensuring sufficient remaining bytes."
+   },
+   {
+    "func": "sav_process_row",
+    "line": 714,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The loop condition only checks `data_offset < buffer_len`, but the memcpy reads 8 bytes from `&buffer[data_offset]` without verifying that `data_offset + 8 <= buffer_len`, potentially causing an out-of-bounds read if fewer than 8 bytes remain."
+   },
+   {
+    "func": "sav_process_row",
+    "line": 744,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The loop condition only checks `data_offset < buffer_len`, but does not guarantee `data_offset + 8 <= buffer_len`. If `buffer_len - data_offset` is less than 8 (e.g., between 1 and 7), the access `memcpy(..., &buffer[data_offset], 8)` reads out of bounds of `buffer`."
+   },
+   {
+    "func": "readstat_parse_sav",
+    "line": 1603,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted data resides in the stack-allocated `sav_file_header_record_t` structure, which is fully read and validated to match `sizeof(sav_file_header_record_t)`. The fixed-size 64-byte copy corresponds to fixed-size fields within the header record (e.g., file label or string attributes), and does not exceed the allocation bounds."
+   },
+   {
+    "func": "sav_read_value_label_record",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The src-ptr `vlabel->raw_value` is a fixed 8-byte buffer within `value_label_t` that is populated by reading 8 bytes from the file. The `memcpy` copies exactly 8 bytes into `val_d` (a `double`, also 8 bytes). There is no out-of-bounds read or write; the static analysis flagged it solely because the contents of `raw_value` are derived from input."
+   },
+   {
+    "func": "sav_parse_machine_floating_point_record",
+    "line": 972,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In `sav_parse_machine_floating_point_record`, there is an explicit guard check `if (size != 8 || count != 3) return READSTAT_ERROR_PARSE;` before copying. Since size is 8 and count is 3, the available data is guaranteed to be 24 bytes, which matches `sizeof(sav_machine_floating_point_info_record_t)` (3 doubles / 24 bytes). There is no buffer overflow."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1108,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Immediately before the memcpy operation (`memcpy(&value_len, data_ptr, sizeof(uint32_t));`), the code explicitly checks bounds via `if (data_ptr + sizeof(uint32_t) > data_end) { retval = READSTAT_ERROR_PARSE; goto cleanup; }`, preventing any out-of-bounds read."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1123,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before each memcpy of size sizeof(uint32_t) (4 bytes) from data_ptr, the code performs explicit bounds checking (e.g., `if (data_ptr + sizeof(uint32_t) > data_end)`). Even with the unconditional `data_ptr += sizeof(uint32_t);` skip before reading label_count, it checks `if (data_ptr + sizeof(uint32_t) > data_end)` immediately before the `memcpy(&label_count, data_ptr, sizeof(uint32_t));`. Therefore, the 4-byte read does not exceed `data_end`."
+   },
+   {
+    "func": "sav_parse_long_string_value_labels_record",
+    "line": 1152,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "sav_parse_long_string_missing_values_record",
+    "line": 1237,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Immediately before the memcpy of sizeof(uint32_t) bytes, there is an explicit bounds check `if (data_ptr + sizeof(uint32_t) > data_end)` that ensures `data_ptr` has at least 4 bytes remaining before `data_end`."
+   },
+   {
+    "func": "sav_read_variable_missing_double_values",
+    "line": 265,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "sav_read_pascal_string",
+    "line": 1038,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy of 4 bytes is preceded by an explicit bounds check `if (data_ptr + sizeof(uint32_t) > data_end)` which ensures there are at least 4 bytes remaining in the buffer before copying."
+   },
+   {
+    "func": "sav_process_row",
+    "line": 714,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The loop condition checks `data_offset < buffer_len`, but processing consumes 8 bytes (`&buffer[data_offset]`, reading up to `data_offset + 8`). If `buffer_len - data_offset < 8` (i.e. remaining buffer is between 1 and 7 bytes), `memcpy` will read out-of-bounds past the end of `buffer`."
+   },
+   {
+    "func": "sav_process_row",
+    "line": 744,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

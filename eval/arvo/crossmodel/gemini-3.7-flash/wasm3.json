@@ -1,0 +1,61 @@
+[
+ {
+  "id": "33240",
+  "project": "wasm3",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "miss",
+  "gt_func": "ParseSection_Type",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 1,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation is a direct struct assignment `*o_info = i_runtime->error` (compiled to memcpy of size sizeof(M3ErrorInfo) = 56). The source operand `&i_runtime->error` is an inline member of the valid struct `i_runtime`, guarded by `if (i_runtime)` immediately before the assignment."
+   },
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "segmentOffset is a signed 32-bit integer (i32). If segmentOffset is negative, casting it to size_t ((size_t) segmentOffset) results in a huge positive value, but if segmentOffset is negative and (segmentOffset + segment->size) wraps around or when calculating dest = m3MemData(...) + segmentOffset, it results in an out-of-bounds pointer before the buffer. Furthermore, if segmentOffset is negative, `m3MemData(...) + segmentOffset` computes an address before the allocated buffer, yet more directly: if (size_t) segmentOffset + segment->size wraps in 32-bit/64-bit or if negative segmentOffset is cast to size_t, wait: on 64-bit systems, a negative i32 sign-extends to a very large size_t, which would fail `(size_t) segmentOffset + segment->size <= length`. However, on 32-bit architectures, or if segmentOffset is negative and `(size_t)segmentOffset + segment->size` wraps around 0 (e.g. offset = -10, size = 10, sum = 0 <= length), dest = base - 10, resulting in an out-of-bounds memcpy before linear memory."
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation is a structure assignment `*o_info = i_runtime->error` (lowered to memcpy of 56 bytes, sizeof(M3ErrorInfo)). `i_runtime->error` is an internal field of the runtime structure with a fixed size matching `*o_info`. There is no out-of-bounds read or write."
+   }
+  ]
+ }
+]

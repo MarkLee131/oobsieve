@@ -1,0 +1,61 @@
+[
+ {
+  "id": "9325",
+  "project": "mupdf",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "next_null",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "next_null",
+    "line": 70,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %104",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check verifying that `nbytes_in_buffer` (derived from `state->extras`) does not exceed the size of `state->buffer` (4096 bytes) or the readable bounds of `stm->rp` before calling `memmove`."
+   },
+   {
+    "func": "fz_open_null_n_terminator",
+    "line": 152,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "In `fz_open_null_n_terminator`, memory is allocated with `fz_calloc(ctx, nranges, sizeof(*ranges))` immediately prior to `memcpy(state->ranges, ranges, nranges * sizeof(*ranges))`. The destination buffer size exactly matches the copy size `nranges * sizeof(*ranges)`, safely bounded under the condition `nranges > 0`."
+   },
+   {
+    "func": "next_null",
+    "line": 70,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %104",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memmove operation moves `state->extras` bytes from `stm->rp` to `state->buffer`. `state->extras` tracks remaining unread extra bytes from a prior read into `state->buffer` when scanning for an endstream marker. Because `state->buffer` is sized 4096 bytes and the maximum read into `buffer` is constrained to `sizeof(state->buffer)`, `state->extras` and the remaining bytes at `stm->rp` do not exceed the buffer bounds."
+   },
+   {
+    "func": "fz_open_null_n_terminator",
+    "line": 152,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In `fz_open_null_n_terminator`, `state->ranges` is allocated via `fz_calloc(ctx, nranges, sizeof(*ranges))` immediately prior to the `memcpy`. The destination buffer is appropriately sized to hold `nranges * sizeof(*ranges)` bytes from the `ranges` input array, making this a standard buffer allocation and copy pattern rather than an out-of-bounds bug."
+   }
+  ]
+ }
+]

@@ -1,0 +1,760 @@
+[
+ {
+  "id": "16804",
+  "project": "libhevc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "ihevcd_parse_slice_data",
+  "n_gt_cands": 3,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 3,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 2785,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1005",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `sizeof(ps_codec->s_parse.s_cabac.au1_ctxt_models)` bytes between fixed-size internal CABAC context arrays (`au1_ctxt_models` to `au1_ctxt_models_sync`) within the internal codec structure `s_cabac`. The size is a fixed `sizeof(...)` of the source/destination array, fully bounded and not an out-of-bounds access."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3268,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2295",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The target pointer computation for pu4_vert_bs / pu4_horz_bs and subsequent memset uses input-derived values without sufficient bounds checks covering the destination buffer boundaries against overflow."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3269,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2302",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The destination pointer `pu4_vert_bs` / `pu4_horz_bs` is calculated using input-derived CTB indices (`i4_ctb_x`, `i4_ctb_y`) and strides without a visible bounds check against the allocated boundary strength buffer capacity before calling memset."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1510,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1529,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %51",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately prior to `memset(pv_buf, 0, size);`, the buffer is allocated with size `size` via `pf_aligned_alloc`, and a null check `RETURN_IF((NULL == pv_buf), IV_FAIL);` ensures allocation succeeded. The memset writes exactly `size` bytes into the newly allocated `size`-byte buffer, so it is strictly bounded by the allocation size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1538,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1547,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %78",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Every memset in `ihevcd_allocate_dynamic_bufs` immediately follows an allocation call `pv_buf = ps_codec->pf_aligned_alloc(..., size)` and a `RETURN_IF((NULL == pv_buf), IV_FAIL)` check, which verifies that the buffer was successfully allocated with size `size`. Thus, the memset strictly writes exactly the allocated size into `pv_buf` and is bounded by the allocation."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1556,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %93",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The buffer `pv_buf` is dynamically allocated via `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` immediately prior to the memset with that exact size, and guarded by `RETURN_IF((NULL == pv_buf), IV_FAIL);`. The memset sets `size` bytes of a newly allocated buffer of size `size`, which is correctly sized and cannot overflow the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1567,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %112",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target buffer `pv_buf` is dynamically allocated immediately prior to `memset` using `ps_codec->pf_aligned_alloc(..., size)`. A NULL check is executed (`RETURN_IF((NULL == pv_buf), IV_FAIL);`), ensuring `pv_buf` points to a freshly allocated buffer of exactly `size` bytes, so `memset(pv_buf, ..., size)` does not exceed the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1617,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %176",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the `memset(pv_buf, ..., size)` calls, `pv_buf` is allocated with `pf_aligned_alloc(..., size)` and checked for NULL with `RETURN_IF((NULL == pv_buf), IV_FAIL);`. Since the buffer was just allocated with the exact byte size passed to `memset`, the memory access is bounded by the allocated buffer size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1624,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %187",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1633,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %203",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target buffer `pv_buf` is dynamically allocated immediately prior via `pf_aligned_alloc` with the exact same `size` argument, checked for non-NULL with `RETURN_IF((NULL == pv_buf), IV_FAIL)`, making `memset(pv_buf, ..., size)` fully bounded by the allocated buffer size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1642,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check visible on the path reaching this memory operation to validate or constrain the operation against buffer boundaries."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %319",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target buffer `pu1_buf` is allocated immediately prior with size `size` via `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The allocation return is checked with `RETURN_IF((NULL == pu1_buf), IV_FAIL)`, and then `memset(pu1_buf, 0, size)` zeroes exactly the newly allocated memory up to the allocated size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1833,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %565",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the memset, `pu1_buf` is allocated with `size` via `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` followed by a check `RETURN_IF((NULL == pu1_buf), IV_FAIL);`. Therefore, the allocated destination buffer has capacity exactly equal to `size`, covering the `memset(pu1_buf, 0, size)` operation."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1882,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %687",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target buffer `pu1_buf` (or `pv_buf`) is allocated immediately prior via `pf_aligned_alloc` with the exact size `size`, followed by a NULL check (`RETURN_IF((NULL == pu1_buf), IV_FAIL);`). Therefore, `memset` writes exactly `size` bytes into a buffer allocated to hold `size` bytes."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1900,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %713",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check or validation against overflow or maximum buffer capacity guarding the size computation or the memset access."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1924,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %757",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check or upper-limit validation on width/height or the calculated size variable prior to allocation and memset."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 2785,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1005",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies between fixed-size internal CABAC context model buffers (au1_ctxt_models to au1_ctxt_models_sync) using sizeof(au1_ctxt_models) as the size. The buffer addresses and size are fixed struct members, not dynamic or out-of-bounds."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3268,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2295",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size expression `(ctb_size / 8) * (ctb_size / 4) / 8 * 2` is derived from `ctb_size` which in HEVC is strictly bounded (typically 16, 32, or 64). The destination pointers `pu4_vert_bs` and `pu4_horz_bs` are indexed by CTB coordinates (`i4_ctb_x`, `i4_ctb_y`) and stride (`bs_strd = (i2_pic_wd_in_ctb + 1) * ...`), staying within the allocated boundary strength buffer for the frame. The memset size is fully consistent with the per-CTB allocation size."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3269,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2302",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset destination pointers `pu4_vert_bs` and `pu4_horz_bs` and the size `(ctb_size / 8) * (ctb_size / 4) / 8 * 2` (which simplifies to `ctb_size * ctb_size / 16`) are strictly bounded by the allocated BS buffer dimensions (stride is `(pic_wd_in_ctb + 1) * ...`). The CTB coordinates `i4_ctb_x` and `i4_ctb_y` are checked and bounded within picture dimensions by the slice parsing loop, so this memset stays within allocated bounds."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1510,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operates on `pv_buf` with the exact `size` that was just allocated via `pf_aligned_alloc(pv_mem_ctxt, 128, size)` after verifying `pv_buf` is non-null. Therefore, memset does not write out of bounds of the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1529,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %51",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset uses the exact `size` variable that was passed into `pf_aligned_alloc`. If allocation succeeds, `pv_buf` contains at least `size` bytes. Width and height are bounded by standard codec limits or checked elsewhere, and integer overflow in `size` leading to a mismatch between alloc and memset does not occur here (and if `size` overflows to negative/small, `aligned_alloc` allocates `size` and `memset` writes `size`). Therefore, memset does not write out of bounds of the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1538,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory buffer is allocated with size `size` immediately prior to the memset via `pf_aligned_alloc`, and the memset clears exactly `size` bytes. Therefore, the memset does not write out of bounds of the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1547,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %78",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operation uses the exact same size parameter that was just passed to pf_aligned_alloc to allocate the buffer. While the size is derived from codec dimensions, it initializes a newly allocated buffer of that identical size, so there is no out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1556,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %93",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operation initializes `pv_buf` using the exact `size` that was just passed to `pf_aligned_alloc`. Since the allocated buffer length matches the memset size argument, this is a standard allocation-and-zeroing pattern and does not cause an out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1567,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %112",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory buffer pv_buf is allocated with `size` bytes via pf_aligned_alloc, and memset immediately initializes it with the exact same `size` bytes. There is no out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1617,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %176",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory at `pv_buf` is allocated with `size` bytes via `pf_aligned_alloc` immediately before `memset(pv_buf, ..., size)`. Since the memset writes exactly `size` bytes into the newly allocated buffer of size `size`, there is no out-of-bounds write at this operation."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1624,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %187",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset immediately initializes freshly allocated memory returned by pf_aligned_alloc with the exact size passed to the allocator. There is no out-of-bounds access in the memset call itself."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1633,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %203",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Each allocation cleanly pairs an allocation of `size` bytes (`pf_aligned_alloc(..., size)`) with a `memset(pv_buf, ..., size)` matching the newly allocated buffer's exact size, after verifying the buffer is non-null. There is no out-of-bounds access in the memset operations."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1642,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Every memset operates directly on `pv_buf` using the exact `size` that was just allocated via `pf_aligned_alloc(..., size)` after verifying `pv_buf` is non-NULL. The size calculation does not overflow before allocation, and `memset(pv_buf, ..., size)` writes strictly within the allocated bounds."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %319",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory allocation computes `size` using verified codec dimensions and allocates `pu1_buf` of that size. The subsequent `memset(pu1_buf, 0, size)` accurately zeros the allocated memory region of length `size`. No out-of-bounds access occurs during this memset operation."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1833,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %565",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The buffer `pu1_buf` is dynamically allocated immediately before the `memset` with size `size` using `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`, and `memset` operates on `pu1_buf` for exactly `size` bytes. Therefore, the memset does not cause an out-of-bounds access."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1882,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %687",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory buffer `pu1_buf` (or `pv_buf`) is allocated using `size` bytes immediately before `memset(..., 0, size)` is called, with a check ensuring allocation succeeded (`RETURN_IF((NULL == ...), IV_FAIL)`). Because the memset operates exactly over the allocated size of the newly allocated buffer, this operation itself is not an out-of-bounds access."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1900,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %713",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The allocated buffer `pu1_buf` (or `pv_buf`) is allocated with the exact size calculated (`size`), checked for allocation failure (`RETURN_IF(NULL == ..., ...)`), and then initialized with `memset(buf, 0, size)`. The memset strictly zeroes the allocated byte range and cannot cause an out-of-bounds access at this call site."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1924,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %757",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The allocated buffer size (`size`) is computed and directly passed to both `pf_aligned_alloc` and `memset(pu1_buf, 0, size)`. There is a NULL check immediately prior to memset. Therefore, `memset` clears exactly the number of bytes that were allocated, preventing any buffer overflow during the memset operation."
+   }
+  ]
+ },
+ {
+  "id": "16805",
+  "project": "libhevc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "ihevcd_parse_slice_data",
+  "n_gt_cands": 3,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 2785,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1005",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The copy `memcpy(&ps_codec->s_parse.s_cabac.au1_ctxt_models_sync, &ps_codec->s_parse.s_cabac.au1_ctxt_models, size);` copies between two fixed-size struct fields of the same type/size (`size = sizeof(ps_codec->s_parse.s_cabac.au1_ctxt_models)`). Both the source and destination are fixed internal buffers whose size exactly matches the copy size."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3268,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2295",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check guarding `pu4_vert_bs` or `pu4_horz_bs` against buffer overflow prior to the `memset` operations. The destination pointer is computed using offsets derived from `i4_ctb_x` and `i4_ctb_y`, and without a visible check verifying that the target address and memset size stay within the allocated buffer for `pu4_pic_vert_bs` / `pu4_pic_horz_bs`, an out-of-bounds write can occur."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3269,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2302",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check visible on `i4_ctb_x`, `i4_ctb_y`, or the computed destination pointer `pu4_vert_bs`/`pu4_horz_bs` relative to the allocated buffer capacity before the `memset` call."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1510,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1529,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %51",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1538,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately prior to each memset call, `pv_buf` is dynamically allocated with the exact size passed to `memset` (`pv_buf = ps_codec->pf_aligned_alloc(..., size)`), followed by `RETURN_IF((NULL == pv_buf), IV_FAIL);`. Therefore, the allocated buffer's capacity matches `size` and no out-of-bounds access occurs."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1547,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %78",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Every memset in `ihevcd_allocate_dynamic_bufs` immediately follows an allocation call `pv_buf = ps_codec->pf_aligned_alloc(..., size)` and a `RETURN_IF((NULL == pv_buf), IV_FAIL)` check, clearing exactly `size` bytes of the newly allocated buffer `pv_buf` of that exact size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1556,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %93",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the memset call, pv_buf is allocated with size `size` via ps_codec->pf_aligned_alloc, checked against NULL with `RETURN_IF((NULL == pv_buf), IV_FAIL)`, and then memset fills exactly `size` bytes into the newly allocated buffer of size `size`."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1567,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %112",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately prior to each memset, pv_buf is allocated with `pf_aligned_alloc(pv_mem_ctxt, 128, size)` with the exact same `size` variable, followed by a check `RETURN_IF((NULL == pv_buf), IV_FAIL);`. Therefore, the destination buffer `pv_buf` is guaranteed to have capacity matching `size` for the `memset(pv_buf, ..., size)` call."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1617,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %176",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the memset, memory of the identical size is dynamically allocated via `pf_aligned_alloc(..., size)` and checked for failure with `RETURN_IF((NULL == pv_buf), IV_FAIL);`. Therefore, the allocated destination buffer is guaranteed to have a capacity of at least `size` bytes, rendering the `memset(pv_buf, ..., size)` bounded and safe."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1624,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %187",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The buffer `pv_buf` is dynamically allocated immediately before `memset` with `pv_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)`. The allocation is checked for NULL (`RETURN_IF((NULL == pv_buf), IV_FAIL)`), and the `memset` writes exactly `size` bytes into the newly allocated buffer of size `size`. Thus, the memset cannot exceed the bounds of the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1633,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %203",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately prior to `memset(pv_buf, 0, size);` (or corresponding `memset(pv_buf, ...)`) at the allocation sites, `pv_buf` is allocated with `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` and checked against NULL via `RETURN_IF((NULL == pv_buf), IV_FAIL);`. The allocated buffer has size `size` and the memset writes exactly `size` bytes to that newly allocated buffer, meaning the buffer's capacity matches the write size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1642,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memory buffer `pv_buf` is allocated immediately prior to `memset` using `ps_codec->pf_aligned_alloc(..., size)` with the exact same `size` parameter, and checked for NULL before `memset(pv_buf, ..., size)`. The allocated buffer size matches the memset size exactly."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %319",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target buffer `pu1_buf` is allocated immediately prior with size `size` using `ps_codec->pf_aligned_alloc`, followed by a NULL check (`RETURN_IF((NULL == pu1_buf), IV_FAIL);`). The `memset(pu1_buf, 0, size);` clears exactly the allocated bytes `size`, so the operation is fully bounded within the allocated memory."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1833,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %565",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the memset, `pu1_buf` is allocated with size `size` via `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` and checked for non-NULL with `RETURN_IF((NULL == pu1_buf), IV_FAIL);`. Thus `pu1_buf` has a buffer of at least `size` bytes, and `memset(pu1_buf, 0, size)` is exactly bounded by the newly allocated buffer size."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1882,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %687",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before the memset call, memory is allocated with pf_aligned_alloc using the exact same 'size' parameter (`pu1_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` or `pv_buf = ps_codec->pf_aligned_alloc(...)`), checked for NULL failure (`RETURN_IF((NULL == ...), IV_FAIL)`), and then memset zeroes exactly `size` bytes of the newly allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1900,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %713",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target buffer `pu1_buf` (or `pv_buf`) is allocated immediately prior to `memset(pu1_buf, 0, size)` via `ps_codec->pf_aligned_alloc(..., size)`, and checked against NULL before memset is executed. Because the allocation size exactly matches the memset size and there is no mismatch or missing bounds check for the memset operation itself over the allocated memory, the memset does not write out of bounds."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1924,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %757",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Immediately before memset, memory is allocated with pf_aligned_alloc using the exact same variable `size` as the allocation size, and a check `RETURN_IF((NULL == pv_buf), IV_FAIL)` ensures the buffer of size `size` was successfully allocated."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 2785,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %1005",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies fixed-size CABAC context models between fixed-size array members (au1_ctxt_models to au1_ctxt_models_sync) of the same structure. The size passed is sizeof(ps_codec->s_parse.s_cabac.au1_ctxt_models), which perfectly matches the destination and source buffers. There is no out-of-bounds read or write."
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3268,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2295",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_parse_slice_data",
+    "line": 3269,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %2302",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operates on pu4_vert_bs/pu4_horz_bs with a constant size calculation based on ctb_size ((ctb_size / 8) * (ctb_size / 4) / 8 * 2 = ctb_size^2 / 128 bytes). The buffer allocated for pu4_pic_vert_bs has stride bs_strd = (i2_pic_wd_in_ctb + 1) * (ctb_size^2 / 128), and offset for each CTB is i4_ctb_x * (ctb_size^2 / 128) + i4_ctb_y * bs_strd, which fits within the CTB-sized deblocking filter allocation. The bounds are constrained by valid picture CTB dimensions and cannot overflow."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1510,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory buffer `pv_buf` is allocated with the exact size passed to `memset` (`pf_aligned_alloc(pv_mem_ctxt, 128, size)`), and allocation failure is checked immediately before `memset`. Thus, `memset` cannot write out of bounds of `pv_buf`."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1529,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %51",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In each allocation block, `memset(pv_buf, 0, size)` is called immediately after `ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size)` with the exact same `size` parameter that was allocated. As long as `pv_buf` is non-null (which is checked with `RETURN_IF((NULL == pv_buf), IV_FAIL)`), clearing `size` bytes of a buffer of size `size` is in-bounds and safe."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1538,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1547,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %78",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1556,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %93",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1567,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %112",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1617,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %176",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Each `memset` call operates directly on the newly allocated `pv_buf` using the exact same `size` parameter passed to `pf_aligned_alloc`. As long as the allocation succeeds (which is checked with `RETURN_IF`), `memset` cannot write out of bounds of the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1624,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %187",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory allocation and subsequent memset call use the identical 'size' variable that was passed to pf_aligned_alloc, and the allocation success is validated with RETURN_IF((NULL == pv_buf), IV_FAIL). Therefore, the memset operates strictly within the allocated buffer boundaries."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1633,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %203",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The allocated size is computed and passed directly to pf_aligned_alloc, followed immediately by memset with the exact same size value. There is no size mismatch or integer truncation between the allocation and the memset initialization."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1642,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %237",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Every memset operates strictly on a freshly allocated buffer with `size` passed directly from `pf_aligned_alloc`, or on bounded subsets within the allocated size, and does not exceed the allocation bounds."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1684,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %319",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset immediately follows dynamic allocation using `pf_aligned_alloc` with the exact same `size` parameter. Because `size` bytes were successfully allocated right before `memset(..., size)`, the memset operates entirely within bounds of the allocated buffer and cannot cause an out-of-bounds write."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1833,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %565",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset immediately follows the memory allocation `pu1_buf = ps_codec->pf_aligned_alloc(pv_mem_ctxt, 128, size);` with the exact same `size` parameter and checks for NULL before memset. Therefore, memset is clearing newly allocated memory within its allocated bounds."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1882,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %687",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory allocated by pf_aligned_alloc is sized exactly to 'size', and memset immediately clears 'pu1_buf' with that same 'size'. There is no buffer overflow during the memset operation itself."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1900,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %713",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The buffer `pu1_buf` (or subsequent `pv_buf`) is allocated immediately prior to `memset` using `ps_codec->pf_aligned_alloc` with the exact same `size` argument. The return value is checked for NULL before `memset(pu1_buf, 0, size)` is invoked. As long as `size` matches the allocated size, this memset cannot overflow the allocated buffer."
+   },
+   {
+    "func": "ihevcd_allocate_dynamic_bufs",
+    "line": 1924,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %757",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory allocation size and the memset size are identical (allocated via pf_aligned_alloc with `size` and initialized via memset with the same `size`), and the allocation check RETURN_IF ensures the pointer is valid before memset is called."
+   }
+  ]
+ }
+]

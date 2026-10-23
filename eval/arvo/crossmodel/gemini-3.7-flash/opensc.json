@@ -1,0 +1,399 @@
+[
+ {
+  "id": "22967",
+  "project": "opensc",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "tcos_decipher",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "tcos_decipher",
+    "line": 626,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check verifying that crgram_len does not exceed sizeof(sbuf) - 1 before performing memcpy(sbuf + 1, crgram, crgram_len)."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 638,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %139",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The target buffer `out` has capacity `outlen`. `len` is clamped by `len = (apdu.resplen > outlen) ? outlen : apdu.resplen;`, ensuring `len <= outlen`. Since `offset >= 0` and `offset < len` (or 0), the copied size `len - offset` is at most `len <= outlen`, so `memcpy(out, apdu.resp + offset, len - offset)` cannot overflow `out`."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `tcos_select_file`, `memcpy(path, in_path->value, in_path->len)` copies `in_path->len` bytes into `pathbuf` (which has fixed size `SC_MAX_PATH_SIZE`). There is no check verifying that `in_path->len <= sizeof(pathbuf)` prior to the `memcpy` call."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 675,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `sizeof(*serial)` (56 bytes) from `&card->serialnr` to `serial`. Both `serial` (type `sc_serial_number_t *`) and `&card->serialnr` (type `sc_serial_number_t`) have a fixed compile-time size of `sizeof(sc_serial_number_t)`, so copying `sizeof(*serial)` bytes between these two valid structures cannot overflow the source buffer."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 687,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `sizeof(*serial)` bytes from `&card->serialnr` to `serial`. Both `serial` and `&card->serialnr` are of type `sc_serial_number_t` (size 56 bytes), so reading 56 bytes from `&card->serialnr` is an exact-size struct copy from a valid, fixed-size structure buffer within `card`."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 626,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "In `tcos_decipher`, `crgram_len` is user-controlled/caller-provided and not checked against the size of `sbuf` (`SC_MAX_APDU_BUFFER_SIZE`, typically 261 or similar fixed APDU size). If `crgram_len + 1 > sizeof(sbuf)`, `memcpy(sbuf+1, crgram, crgram_len)` causes a stack buffer overflow."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 638,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %139",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The destination buffer `pathbuf` has size `SC_MAX_PATH_SIZE` (which is standardly 16 bytes in OpenSC, matching `sizeof(in_path->value)` where `sc_path_t.value` is an array of size `SC_MAX_PATH_SIZE` and `len` cannot exceed `sizeof(value)` per OpenSC path invariant / struct definition `u8 value[SC_MAX_PATH_SIZE]`). Copying `in_path->len` bytes from `in_path->value` to `pathbuf` does not overflow."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 675,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Both `serial` and `&card->serialnr` are pointers to structures of type `sc_serial_number_t`. Copying `sizeof(*serial)` (56 bytes) from `&card->serialnr` to `serial` is a standard struct copy and does not exceed the bounds of either object."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 687,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Both `serial` and `&card->serialnr` are pointers to structures of type `sc_serial_number_t`. The copy length is `sizeof(*serial)`, which matches the exact allocation size of `sc_serial_number_t` (56 bytes), so neither the source nor destination buffers are accessed out of bounds."
+   }
+  ]
+ },
+ {
+  "id": "32202",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 5,
+  "recall": "hit",
+  "gt_func": "sc_pkcs15emu_oberthur_add_pubkey",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "sc_pkcs15emu_oberthur_add_pubkey",
+    "line": 631,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %118",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "When copying `key_obj.label` via `memcpy(key_obj.label, info_blob + offs + 2, len);`, the code clamps `len` to `sizeof(key_obj.label) - 1`, but fails to check whether `offs + 2 + len <= info_len`. If `info_len` is smaller than `offs + 2 + len`, reading from `info_blob + offs + 2` will read out of bounds."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_prvkey",
+    "line": 849,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %207",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copying into `kinfo.id.value` with length `len` from `info_blob + offs + 2` is preceded by explicit bounds checks: `offs + 2 > info_len`, `len + offs + 2 > info_len`, and `len > sizeof(kinfo.id.value)`. Both the source buffer and destination buffer boundaries are fully validated prior to the call."
+   },
+   {
+    "func": "sc_oberthur_parse_tokeninfo",
+    "line": 375,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks `if (!buff || len < 0x24)` before the memcpy, which guarantees `buff` has at least 0x24 (36) bytes available, safely covering the 0x20 (32) byte copy."
+   },
+   {
+    "func": "sc_oberthur_parse_containers",
+    "line": 434,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 36",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The for loop condition specifically checks `offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len`. Since `ptr` begins at `buff + offs + 2`, and is advanced by 6 * 2 = 12 bytes, `ptr + 2` is at `buff + offs + 2 + 12 + 2 = buff + offs + 16`. Reading 36 bytes accesses up to `buff + offs + 16 + 36 = buff + offs + 52`. The loop check ensures `offs + 2 + 6 + 6 + 2 + 36 <= len`, which equals `offs + 52 <= len`. Thus, the loop condition guards the 36-byte memcpy."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_cert",
+    "line": 717,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %124",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Both memcpy operations in sc_pkcs15emu_oberthur_add_cert are guarded against buffer overflows. The source access is guarded by `if (len + offs + 2 > info_len)` and the destination buffer is guarded by clamping (`len = sizeof(cobj.label) - 1`) for the label, or by an explicit check (`len > sizeof(cinfo.id.value)`) for the ID."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_pubkey",
+    "line": 631,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %118",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_prvkey",
+    "line": 849,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %207",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "sc_oberthur_parse_tokeninfo",
+    "line": 375,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function checks that `buff` is not NULL and `len >= 0x24` before invoking `memcpy(label, buff, 0x20)`. Since `0x20` (32 bytes) is strictly less than `0x24` (36 bytes) and `label` has a capacity of `0x21` (33 bytes), the read does not exceed the bounds of `buff`."
+   },
+   {
+    "func": "sc_oberthur_parse_containers",
+    "line": 434,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 36",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The loop condition explicitly checks `offs + 2 + 2+2+2 + 2+2+2 + 2+36 <= len`, which equals `offs + 52 <= len`. At the memcpy call, `ptr` has been advanced by 2 * 6 = 12 bytes from `buff + offs + 2`, so `ptr + 2` is `buff + offs + 2 + 12 + 2 = buff + offs + 16`. Reading 36 bytes accesses up to `buff + offs + 16 + 36 = buff + offs + 52`, which is within `len` as verified by the loop condition."
+   },
+   {
+    "func": "sc_pkcs15emu_oberthur_add_cert",
+    "line": 717,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %124",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ },
+ {
+  "id": "16614",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "decode_bit_string",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "decode_bit_string",
+    "line": 585,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check validating that outlen does not exceed the allocated capacity of outbuf prior to the memset call (in fact, octets_left is used uninitialized before memset, and no buffer capacity guard exists)."
+   },
+   {
+    "func": "sc_copy_asn1_entry",
+    "line": 148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 40",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The loop in `sc_copy_asn1_entry` relies solely on the sentinel check `src->name != NULL` without any bounds or capacity check covering the memory accessed at `*src` (or written to `*dest`)."
+   },
+   {
+    "func": "sc_asn1_sig_value_sequence_to_rs",
+    "line": 2071,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function checks that buf and buflen are valid (`if (!buf || !buflen) ...`), and the caller provides `buflen` as the size of the destination buffer `buf`. `memset(buf, 0, buflen)` sets exactly `buflen` bytes of `buf`."
+   },
+   {
+    "func": "sc_asn1_decode_utf8string",
+    "line": 882,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function sc_asn1_decode_utf8string checks `if (inlen+1 > *outlen) return SC_ERROR_BUFFER_TOO_SMALL;` immediately before calling `memcpy(out, inbuf, inlen);`, ensuring that the destination buffer `out` has at least `inlen + 1` bytes available."
+   },
+   {
+    "func": "asn1_encode_path",
+    "line": 1121,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation in asn1_encode_path is structure copying `sc_path_t tpath = *path;` (which compiles to memcpy of size sizeof(sc_path_t) == 64). The src-ptr is `path`, which is a pointer parameter to a valid typed struct `sc_path_t`, and dereferencing/copying sizeof(sc_path_t) bytes from a valid struct pointer `const sc_path_t *path` is fully bounded by the struct definition itself."
+   },
+   {
+    "func": "asn1_encode_p15_object",
+    "line": 1339,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2776",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check or validation verifying the accessibility or bounds of obj->p15_obj prior to the structure dereference/copy (size 2776)."
+   },
+   {
+    "func": "decode_bit_string",
+    "line": 585,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function checks buffer sizes beforehand and uses outlen explicitly to clear the output buffer (`memset(outbuf, 0, outlen)`). Furthermore, `outbuf` and `outlen` are passed in by the caller designating the allocated buffer capacity. There is no out-of-bounds write from `memset` itself since it only clears the specified capacity `outlen`."
+   },
+   {
+    "func": "sc_copy_asn1_entry",
+    "line": 148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 40",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function sc_copy_asn1_entry copies an array of struct sc_asn1_entry terminated by a NULL name field (*dest = *src, where sizeof(struct sc_asn1_entry) is 40 bytes, compiled as memcpy). In OpenSC, ASN.1 entry templates are standard static sentinel-terminated arrays defined in code. There is no triggerable out-of-bounds bug in the structure copy logic itself."
+   },
+   {
+    "func": "sc_asn1_sig_value_sequence_to_rs",
+    "line": 2071,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function memset(buf, 0, buflen) writes buflen bytes to buf, which is the buffer provided by the caller along with its allocated size buflen. The subsequent bounds checks ensure r_len and s_len do not exceed halflen (buflen / 2), preventing any out-of-bounds access."
+   },
+   {
+    "func": "sc_asn1_decode_utf8string",
+    "line": 882,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In `sc_asn1_decode_utf8string`, the buffer size is verified beforehand with `if (inlen + 1 > *outlen) return SC_ERROR_BUFFER_TOO_SMALL;`. Therefore, `out` is guaranteed to have enough space for both `memcpy(out, inbuf, inlen)` and the trailing null terminator."
+   },
+   {
+    "func": "asn1_encode_path",
+    "line": 1121,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy with size 64 corresponds to the struct copy assignment `sc_path_t tpath = *path;` in `asn1_encode_path`. The pointer `path` points to a valid `sc_path_t` structure, so copying `sizeof(sc_path_t)` bytes is safe and not an out-of-bounds read."
+   },
+   {
+    "func": "asn1_encode_p15_object",
+    "line": 1339,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2776",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation copying `*obj->p15_obj` into a local `struct sc_pkcs15_object p15_obj` (approx 2776 bytes) performs a structure assignment from a validly referenced `obj->p15_obj` pointer. It is not an out-of-bounds access."
+   }
+  ]
+ }
+]

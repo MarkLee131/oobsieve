@@ -1,0 +1,32 @@
+[done] c-blosc 2 402s
+[done] c-blosc2 1 941s
+[done] clamav-devel 1 85s
+[done] curl 1 8s
+[time] dnsmasq
+[fail] dnsmasq
+[time] htslib
+[fail] htslib
+[time] imagemagick
+[fail] imagemagick
+[done] libarchive 3 862s
+[done] libavc 1 1450s
+[done] libdwarf 1 1243s
+[time] libhevc
+[fail] libhevc
+[done] libmpeg2 1 318s
+[done] libpsl 1 141s
+[time] libspng
+[fail] libspng
+[done] libxaac 2 1355s
+[done] lldpd 1 2335s
+[done] lxc 1 60s
+[done] mupdf 1 267s
+[done] ndpi 1 142s
+[done] net-snmp 2 758s
+[done] openexr 1 843s
+[done] openjpeg 1 14s
+[done] opensc 3 1218s
+[done] pcre2 4 2292s
+[done] readstat 1 615s
+[done] sleuthkit 2 965s
+[done] wasm3 1 135s

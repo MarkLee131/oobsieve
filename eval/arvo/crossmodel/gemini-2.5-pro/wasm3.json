@@ -1,0 +1,61 @@
+[
+ {
+  "id": "33240",
+  "project": "wasm3",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "miss",
+  "gt_func": "ParseSection_Type",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 2,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code attempts to perform a bounds check at line 473 before the `memcpy` at line 474. The check is `if ((size_t) segmentOffset + segment->size <= io_memory->mallocated->length)`. The variable `segmentOffset` is a signed `i32` and can be negative, as it is derived from evaluating a WASM expression. If `segmentOffset` is negative, casting it to `size_t` will result in a very large positive value due to sign extension rules for integer conversion. The subsequent addition `(size_t)segmentOffset + segment->size` can wrap around the address space. For example, if `segmentOffset` is -10 and `segment->size` is 20, the sum wraps to 10. This small value can easily be less than `io_memory->mallocated->length`, causing the check to pass. However, the `memcpy` would then use the original negative `segmentOffset` to calculate the destination pointer `dest`, leading to a write before the beginning of the allocated buffer (`m3MemData(io_memory->mallocated)`). This is a buffer underflow vulnerability. The check is insufficient because it fails to properly handle negative offsets."
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code performs a structure assignment `*o_info = i_runtime->error;` which is compiled into a `memcpy`. The source pointer for this operation is `&i_runtime->error`. The `i_runtime` pointer is an input to the function and is assumed to be tainted. The only check performed on `i_runtime` is a null check (`if (i_runtime)`). This check is insufficient to prevent an out-of-bounds read if `i_runtime` is a non-NULL, invalid pointer, such as a dangling pointer or one pointing to an allocation smaller than the `M3Runtime` structure. There is no validation to ensure that `i_runtime` points to a valid memory region of sufficient size to contain the `error` field. Therefore, an attacker can supply a crafted pointer to cause an out-of-bounds read."
+   },
+   {
+    "func": "InitDataSegments",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %55",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The code performs a `memcpy` to initialize a data segment in the Wasm linear memory. The destination offset (`segmentOffset`), the source data (`segment->data`), and the copy size (`segment->size`) are all derived from the input Wasm module. Before the `memcpy`, there is a check to prevent an out-of-bounds write: `if ((size_t) segmentOffset + segment->size <= io_memory->mallocated->length)`. This check is vulnerable to an integer overflow. \n\nOn a 32-bit system where `size_t` is a 32-bit unsigned integer, an attacker can craft a Wasm module with a large positive `segmentOffset` (an `i32`) and a large `segment->size` (a `u32`) such that their sum wraps around to a small value. For example, if `segmentOffset` is `0x7FFFFFFF` and `segment->size` is `0x80000001`, their sum as 32-bit unsigned integers is `0`. The check `0 <= io_memory->mallocated->length` will pass. However, the `memcpy` will then be called with `dest = base_address + 0x7FFFFFFF` and `size = 0x80000001`, causing a massive heap buffer overflow. Since `segmentOffset` and `segment->size` are controllable by the Wasm module, this is a triggerable vulnerability."
+   },
+   {
+    "func": "m3_GetErrorInfo",
+    "line": 1067,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `m3_GetErrorInfo` accepts a pointer `i_runtime` and performs a structure copy `*o_info = i_runtime->error;`. This operation reads `sizeof(M3ErrorInfo)` (56 bytes) from memory pointed to by `i_runtime`. The taint analysis indicates that the `i_runtime` pointer itself is derived from external input. The only check performed on this pointer is a null check (`if (i_runtime)`). If an attacker can provide a non-null, invalid pointer (e.g., an arbitrary address), this function will attempt to read 56 bytes from that address. This constitutes a classic arbitrary read vulnerability, which can lead to information disclosure. The lack of validation on the `i_runtime` handle beyond a simple null check makes this function a dangerous gadget, even if correct usage is assumed by the API contract."
+   }
+  ]
+ }
+]

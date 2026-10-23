@@ -1,0 +1,141 @@
+[
+ {
+  "id": "16604",
+  "project": "libmpeg2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 5,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+    "line": 372,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 372 copies `u4_width` bytes in a loop that runs `u4_height` times. The source pointer `pu1_src` is initialized from the parameter `pu1_y`, and the destination pointer `pu1_dst` from `pu1_dest_y`. The size of the copy, `u4_width`, and the number of iterations, `u4_height`, are also function parameters. There are no checks within the function `impeg2_fmt_conv_yuv420p_to_yuv420sp_uv` to validate that the source and destination buffers (`pu1_y`, `pu1_dest_y`) are large enough to accommodate the copy operations dictated by `u4_width`, `u4_height`, and the corresponding strides. The safety of this operation is entirely dependent on the caller providing correct parameters, but no sanitization is performed within the function itself before the `memcpy` is reached."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` performs a `memcpy` in a loop to copy the V plane of a YUV420p image. The size of the copy, `i4_uv_width`, is derived directly from the `u4_width` parameter (`u4_width >> 1`). The loop iterates `i4_uv_height` times, which is derived from `u4_height`. The pointers `pu1_src_v` and `pu1_dst_v`, and the strides `u4_src_stride_v` and `u4_dst_stride_v` are also direct function parameters. There are no checks within this function to validate that `i4_uv_width` is a safe size to copy from `pu1_src_v` to `pu1_dst_v`, or that the repeated pointer advancements by the strides will remain within the allocated buffer bounds. The function completely trusts the caller to provide valid parameters that will not lead to an out-of-bounds access. Since no bounds checks are visible on the path to the `memcpy` at line 126, a buffer overflow can occur if the caller provides incorrect width, height, or stride values relative to the actual allocated sizes of the source and destination buffers."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 133,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` takes multiple pointers, dimensions, and strides as arguments. The `memcpy` at line 133 uses a size `i4_uv_width`, which is calculated as `u4_width >> 1`. Both the source pointer `pu1_src_u`, destination pointer `pu1_dst_u`, and the width `u4_width` are function parameters derived from an external caller. There are no checks within this function to validate that `i4_uv_width` is a safe size to copy from `pu1_src_u` to `pu1_dst_u`. The function completely trusts its callers to provide valid buffer pointers and dimensions. An attacker controlling `u4_width` could provide a large value, leading to an out-of-bounds read from `pu1_src_u` and an out-of-bounds write to `pu1_dst_u`."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 141,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %42",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` performs a `memcpy` inside a loop. The size of the copy is `i4_uv_width`, which is derived from the `u4_width` parameter. The source and destination pointers (`pu1_src_v`, `pu1_dst_v`) and strides (`u4_src_stride_v`, `u4_dst_stride_v`) are also direct parameters to the function. There are no checks within this function to validate that `i4_uv_width` is less than or equal to the strides, or that the buffers pointed to by `pu1_src_v` and `pu1_dst_v` are large enough to sustain `i4_uv_height` copy operations. The function blindly trusts its callers to provide valid arguments, making the `memcpy` vulnerable to a buffer overflow if the provided width, height, or strides do not correspond to the actual allocated buffer sizes."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_vu",
+    "line": 314,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_fmt_conv_yuv420p_to_yuv420sp_vu` performs a `memcpy` inside a loop that iterates `u4_height` times. In each iteration, it copies `u4_width` bytes. The source and destination pointers (`pu1_src`, `pu1_dst`) are advanced by `u4_stridey` and `u4_dest_stride_y` respectively. All these parameters (`u4_height`, `u4_width`, `u4_stridey`, `u4_dest_stride_y`, and the base pointers `pu1_y` and `pu1_dest_y`) are arguments to the function. There are no checks within the function to ensure that `u4_width` is less than or equal to the strides, or that the source and destination buffers are large enough to contain `u4_height` lines of data. If a caller provides a `u4_width` that is larger than the actual width of the allocated scanlines in the buffers, this `memcpy` will read or write out of bounds. Since the function blindly trusts its input parameters without any validation, and no guards are visible on the path to the `memcpy`, a buffer overflow can occur."
+   },
+   {
+    "func": "impeg2d_api_init",
+    "line": 1678,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %67",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 1678 operates on memory buffers described by an array of `iv_mem_rec_t` structures. These structures, including the base pointer `pv_base` and the size `u4_mem_size`, are provided by the caller via the `ps_ip` argument (`ps_dec_init_ip->s_ivd_init_ip_t.pv_mem_rec_location`). The code iterates through this array from the second element (`i=1`) and calls `memset` using the `pv_base` and `u4_mem_size` fields directly from each user-provided record. There is no validation to ensure that the buffer pointed to by `pv_base` is actually large enough to accommodate a write of `u4_mem_size` bytes. The code completely trusts the metadata provided by the caller, which can lead to a buffer overflow if the caller provides a small buffer pointer but a large size."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_uv",
+    "line": 372,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_fmt_conv_yuv420p_to_yuv420sp_uv` performs a `memcpy` in a loop to copy the Y plane of a video frame. The destination pointer (`pu1_dst`), source pointer (`pu1_src`), and size (`u4_width`) of the `memcpy` are all derived from function arguments which are likely controlled by an external input stream (e.g., video file headers). The function itself performs no validation to ensure that `u4_width` is a safe size to copy, nor does it check if the source and destination buffers are large enough to handle `u4_height` rows of `u4_width` bytes. If a malicious input provides a `u4_width` value that is larger than the stride of the source or destination buffers (`u4_stridey`, `u4_dest_stride_y`), or if the combination of `u4_height` and the strides exceeds the allocated buffer sizes, this `memcpy` will result in an out-of-bounds read from the source buffer and an out-of-bounds write (heap buffer overflow) to the destination buffer. The absence of any bounds checking on these input-derived parameters makes this a classic and potentially triggerable vulnerability."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` performs a `memcpy` operation where the size of the copy, `i4_uv_width`, is directly derived from the user-controlled `u4_width` parameter (`u4_width >> 1`). The source and destination pointers (`pu1_src_v`, `pu1_dst_v`) are also direct inputs. There are no checks within this function to validate that the `u4_width` is consistent with the allocated sizes of the source and destination buffers. If a malicious input provides an `u4_width` that is larger than the actual stride or allocated row size of the buffers, this `memcpy` call will result in a heap-based buffer overflow. This is a common vulnerability pattern in media decoders where frame dimension parameters from the stream are not properly validated against the allocated buffer sizes before being used in memory operations."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 133,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` performs multiple `memcpy` operations within loops. The flagged `memcpy` at line 133 uses a size `i4_uv_width`, which is calculated as `u4_width >> 1`. The `u4_width` parameter, along with the source pointer `pu1_src_u` and destination pointer `pu1_dst_u`, are all arguments to the function. The function itself performs no validation to ensure that the provided width and height parameters correspond to buffers of sufficient size. If a caller, influenced by tainted input (e.g., from a malformed video stream header), provides a large `u4_width` value but `pu1_src_u` and `pu1_dst_u` point to buffers smaller than `u4_width / 2`, this `memcpy` will result in a heap-based buffer overflow (either a read overflow on the source or a write overflow on the destination). The absence of any guards or size checks within this function makes it vulnerable to misuse by callers processing untrusted data."
+   },
+   {
+    "func": "impeg2_copy_frm_yuv420p",
+    "line": 141,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %42",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_copy_frm_yuv420p` copies image plane data row by row using `memcpy` in a loop. The parameters controlling the memory operations, including the destination pointer (`pu1_dst_v`), the size of each copy (`i4_uv_width`, derived from `u4_width`), the number of iterations (`i4_uv_height`, derived from `u4_height`), and the stride used to advance the destination pointer (`u4_dst_stride_v`), are all function arguments flagged as input-derived. \nThe function performs no internal checks to validate that these parameters are consistent with the allocated size of the destination buffer `pu1_dst_v`. A heap-based buffer overflow can occur if there is a mismatch between how the destination buffer is allocated and the parameters passed to this function. \nFor instance, if the destination buffer is allocated with a size assuming a packed format (e.g., size = `(u4_width/2) * (u4_height/2)`), but the function is called with a stride `u4_dst_stride_v` that is larger than the row width `u4_width/2`, the pointer `pu1_dst_v` will be advanced by more than the width on each iteration. This will cause subsequent `memcpy` calls to write data beyond the allocated buffer's boundaries. Since all these parameters can be influenced by a malicious input file, it is plausible for an attacker to craft input that triggers such a mismatch, leading to a controllable out-of-bounds write."
+   },
+   {
+    "func": "impeg2_fmt_conv_yuv420p_to_yuv420sp_vu",
+    "line": 314,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `impeg2_fmt_conv_yuv420p_to_yuv420sp_vu` performs a `memcpy` inside a loop. The parameters controlling the memory operation (destination pointer `pu1_dest_y`, source pointer `pu1_y`, copy size `u4_width`, loop count `u4_height`, and pointer increments `u4_stridey` and `u4_dest_stride_y`) are all passed as arguments to the function. There are no internal checks to validate that these parameters are consistent with the actual sizes of the source and destination buffers. A caller can provide values for `u4_width`, `u4_height`, and the strides that cause the `memcpy` to read or write beyond the allocated buffer boundaries. This is a classic buffer overflow vulnerability, common in C code that blindly trusts its inputs for memory operations. Given this function is likely part of a media decoder, these parameters could be derived from a malicious, untrusted input file, making the bug triggerable."
+   },
+   {
+    "func": "impeg2d_api_init",
+    "line": 1678,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %67",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `impeg2d_api_init` receives an input structure `ps_dec_init_ip` which contains a pointer to an array of memory records, `pv_mem_rec_location`. The function then iterates through this array. Inside the loop, it calls `memset` using `ps_mem_rec->pv_base` as the destination pointer and `ps_mem_rec->u4_mem_size` as the size. Both `pv_base` and `u4_mem_size` are fields within the `iv_mem_rec_t` structure, which is entirely controlled by the caller. There is no validation to ensure that `u4_mem_size` corresponds to the actual allocated size of the buffer pointed to by `pv_base`. A malicious caller can provide a `u4_mem_size` value that is larger than the buffer's true size, leading to an out-of-bounds write during the `memset` operation."
+   }
+  ]
+ }
+]

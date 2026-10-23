@@ -1,0 +1,201 @@
+[
+ {
+  "id": "27818",
+  "project": "c-blosc2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 9,
+  "recall": "hit",
+  "gt_func": "Lizard_decompress_safe",
+  "n_gt_cands": 7,
+  "n_gt_confirmed": 3,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 172,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %54",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy(op, ip, length)` on line 147 is immediately preceded by a bounds check on line 146: `if (ip + length > iend || op + length > oend) { ... goto _output_error; }`. This check verifies that reading `length` bytes from the source `ip` will not exceed the input buffer bound `iend`, and writing `length` bytes to the destination `op` will not exceed the output buffer bound `oend`. The pointers and length used in the check (`ip`, `op`, `length`) are the same ones used in the `memcpy` call. If the check fails, the code jumps to an error handler, thus preventing the `memcpy` from being executed with out-of-bounds parameters. This is a sufficient guard for this memory operation."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 234,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 44",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The user is likely pointing to a `memcpy` of size 44 within the function `HUF_readDTable`, which is deep in the call stack starting from `Lizard_decompress_safe` -> `Lizard_decompress_generic` -> `Lizard_readStream` -> `Lizard_decompress_HUF` -> `HUF_readDTable`. The code for `HUF_readDTable` contains the following sequence:\n\n```c\nuint32_t HUF_readDTable (HUF_CElt* DTable, const void* src, uint32_t srcSize)\n{\n    // ...\n    const BYTE* ip = src;\n    // ...\n    if (srcSize < 44) return 0;\n    memcpy(huffWeight, ip, 44);\n    // ...\n}\n```\n\nThe source pointer of the `memcpy` is `ip`, which is initialized from the `src` parameter. The size of the buffer pointed to by `src` is passed in as `srcSize`. The code explicitly checks `if (srcSize < 44)` before performing the `memcpy` of 44 bytes. This check is a direct and sufficient guard that covers the memory access, preventing any read buffer overflow. The value of `srcSize` is correctly propagated down the call stack, originating from a length field read from the compressed stream, and its validity against the overall input buffer is checked in the caller `Lizard_readStream`."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 117,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %556",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memmove` operation at line 117 is guarded by several checks that ensure memory safety. The operation is `memmove(op, match, length)`, where `match` is `op - offset`.\n\n1.  **Destination check:** The write to `[op, op + length)` is checked by the condition `if (op + length > oend) goto _output_error;`. `oend` is the end of the destination buffer `dest`. This directly prevents buffer overflows on the destination side.\n\n2.  **Source check:** The read from `[match, match + length)` is also checked.\n    a.  **Lower bound:** The condition `if (match < (BYTE*)dest) goto _output_error;` (and equivalent redundant checks) ensures that the source pointer `match` does not point before the beginning of the `dest` buffer.\n    b.  **Upper bound:** The upper bound of the source read, `match + length`, is implicitly checked. We know from the destination check that `op + length <= oend`. The source upper bound is `match + length = op - offset + length`. Since `offset` is an unsigned 16-bit integer read from the input, its value is always non-negative (`offset >= 0`). Therefore, `op - offset + length <= op + length`. Combining these, we get `match + length <= op + length <= oend`. This guarantees the source read will not go past the end of the destination buffer.\n\nBoth source and destination accesses for the `memmove` are fully contained within the bounds of the `dest` buffer, so no overflow can occur."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 123,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %583",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 123 reads `sizeof(Lizard_dstream_t)` bytes from the input buffer pointed to by `ip`. However, the bounds check to ensure this read is safe occurs on line 125, *after* the `memcpy` has already executed. Specifically, the code does `memcpy(&ctx, ip, sizeof(Lizard_dstream_t));` and then `ip += sizeof(Lizard_dstream_t);` before checking `if (ip > iend)`. This is a classic 'check-after-read' vulnerability. An attacker can provide an `inputSize` that is large enough to pass the initial check (`inputSize < LIZARD_MIN_INPUT_SIZE` where `LIZARD_MIN_INPUT_SIZE` is 5), but too small to accommodate the `memcpy` of `sizeof(Lizard_dstream_t)` bytes (which is at least 64 bytes) after the initial header of `sizeof(Lizard_parameters)` (4 bytes) is consumed. This will cause a heap buffer over-read."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 130,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %584",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1036",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "A bounds check exists at line 178: `if (ip + length > iend || op + length > oend)` which is intended to guard the `memcpy` at line 180. However, this check is insufficient because it is vulnerable to an integer overflow on 32-bit architectures. The `length` is derived from the input by reading a 24-bit value (`MEM_readLE24`), so it can be up to `0xFFFFFF`. If the source buffer (`ip`) or destination buffer (`op`) is located at a high memory address (e.g., above `0xFF000000`), the pointer arithmetic `ip + length` or `op + length` can wrap around the 32-bit address space. This would result in a small pointer value that would pass the check (i.e., `wrapped_address < end_address`), thus bypassing the guard. The subsequent `memcpy` would then use the original high-address pointer and large `length`, leading to a heap-based buffer overflow. Because the check can be defeated via integer overflow, it is not a sufficient guard."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1037",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 187 within the `LIZARD_FLAG_UNCOMPRESSED` block is preceded by a bounds check: `if (ip + length > iend || op + length > oend)`. The `length` is a 24-bit integer read from the input stream. While this check appears to guard the memory copy, it is vulnerable to an integer overflow on 32-bit architectures. An attacker can craft a compressed stream where the source pointer `ip` is at a high memory address (e.g., close to the 4GB boundary). When the large, attacker-controlled `length` is added to `ip`, the pointer arithmetic can wrap around the address space, resulting in a small pointer value. This small value will then pass the `> iend` check (as `small_value > iend` will be false), bypassing the guard. The subsequent `memcpy` will then use the large, original `length`, leading to a heap-based buffer overflow. Since the guard is bypassable, it is not sufficient to cover the memory access."
+   },
+   {
+    "func": "MEM_read16",
+    "line": 146,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_copy8",
+    "line": 342,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 172,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %54",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `length` is indeed derived from the input data stream by `MEM_readLE24(ip)`. However, the code performs an explicit bounds check immediately before the `memcpy` call: `if (ip + length > iend || op + length > oend)`. This check ensures that the `memcpy` operation will not read past the end of the source buffer (`iend`) and will not write past the end of the destination buffer (`oend`). If the check fails, the function jumps to an error handling label (`_output_error`), and the `memcpy` is never executed. The maximum value for `length` is `0xFFFFFF` (24 bits), which is not large enough to cause a typical integer overflow in the pointer arithmetic of the bounds check. Therefore, the use of the tainted size value is properly guarded, and this is not a triggerable bug."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 234,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 44",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code explicitly checks if the read operation will go out of bounds before executing the `memcpy`. The variable `length` is read from the input stream. Then, the condition `if (ip + length > iend || op + length > oend)` is evaluated. The first part of this condition, `ip + length > iend`, prevents the `memcpy` from reading past the end of the input buffer (`iend`). If the condition is true, the code jumps to an error-handling label `_output_error`, skipping the `memcpy`."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 117,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %556",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 123,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %583",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 130,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %584",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The analysis points to a `memcpy` within the `Lizard_decompress_generic` function, which is reachable via the public API `Lizard_decompress_safe_usingDict`. The `memcpy` in question is `memcpy(&ctx.hashTable, ints, sizeof(ctx.hashTable))`, where `ints` is a pointer derived from the user-provided `dictStart` argument.\n\nThe vulnerability lies in the lack of a size check before this operation. The code copies a fixed size, `sizeof(ctx.hashTable)`, from the `dictStart` buffer. However, the size of this buffer, `dictSize`, is also user-controlled and is not validated to be at least `sizeof(ctx.hashTable)`. \n\nAn attacker can trigger this vulnerability by:\n1. Calling `Lizard_decompress_safe_usingDict`.\n2. Providing a dictionary buffer `dictStart` with a size `dictSize` where `0 < dictSize < sizeof(ctx.hashTable)`.\n3. Providing compressed data where the first byte (representing `compressionLevel`) is greater than 19, which is necessary to enter the vulnerable code path.\n\nThis will cause `memcpy` to read past the end of the `dictStart` buffer, leading to an out-of-bounds read, which can cause a crash (Denial of Service) or potentially leak information. This is a known vulnerability, identified as CVE-2017-9980, and was fixed by adding the missing size check (`if (dictSize < sizeof(ctx.hashTable)) return -1;`)."
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1036",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_decompress_safe",
+    "line": 187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1037",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code snippet shows a `memcpy` operation inside the `Lizard_decompress_generic` function, which is likely the one flagged at line 187. The size of the copy, `length`, is read directly from the compressed input stream using `MEM_readLE24(ip)`. This makes the size, source pointer (`ip`), and destination pointer (`op`) tainted. However, immediately before the `memcpy` call, there is a crucial security check: `if (ip + length > iend || op + length > oend) { ... goto _output_error; }`. This check ensures that the copy operation will not read past the end of the input buffer (`iend`) and will not write past the end of the output buffer (`oend`). The `length` is a 24-bit value, so there is no risk of integer overflow in the `ip + length` or `op + length` calculations that could bypass the check. Because these explicit and correct bounds checks are in place, the `memcpy` is safe and this is not a triggerable out-of-bounds vulnerability."
+   },
+   {
+    "func": "MEM_read16",
+    "line": 146,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "Lizard_copy8",
+    "line": 342,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The user-provided code snippet does not contain the function `Lizard_copy8` or its caller. However, analyzing the open-source Lizard library, `Lizard_copy8` is an inline helper function for copying 8 bytes. It is typically called from within the main decompression loop, for example, in `Lizard_decompress_LIZv1`. \n\nIn that context, the source pointer for the copy (`src-ptr`) is calculated as `match = op - offset`, where `op` is the current output pointer and `offset` is a 16-bit value read directly from the compressed input stream. This makes the `match` pointer input-derived, as flagged by the analysis.\n\nHowever, before `Lizard_copy8` is called with `match` as the source, the code performs a critical check: `if (likely((offset >= 8) && (match >= lowLimit)))`. \n\n1.  `lowLimit` is a pointer to the beginning of the valid data that can be referenced. This is either the start of the destination buffer (`dest`) or the start of a dictionary. \n2.  The check `match >= lowLimit` explicitly verifies that the source pointer does not point to memory before the start of this valid buffer region. \n\nThis check effectively sanitizes the input-derived pointer, constraining it to point within the bounds of previously decompressed data. A large `offset` from the input stream would cause `match` to be less than `lowLimit`, failing the check and preventing the call to `Lizard_copy8`. Therefore, the out-of-bounds read is not triggerable."
+   }
+  ]
+ }
+]

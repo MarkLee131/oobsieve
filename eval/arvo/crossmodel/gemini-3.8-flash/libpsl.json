@@ -1,0 +1,61 @@
+[
+ {
+  "id": "39226",
+  "project": "libpsl",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "domain_to_punycode",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source length `labellen` is computed directly via `strchr` or `strlen` on the null-terminated string `label`, guaranteeing `label` has at least `labellen` bytes. Furthermore, the destination buffer `out` is explicitly guarded by `if (outlen + labellen + (e != NULL) >= outsize) return 1;` immediately before the `memcpy`."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In vector_add, memcpy reads sizeof(psl_entry_t) bytes from elem into elemp without checking if elem is non-NULL or points to a buffer of at least sizeof(psl_entry_t) bytes."
+   },
+   {
+    "func": "domain_to_punycode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %33",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `labellen` bytes from `label`, where `labellen` is computed as either `e - label` (where `e = strchr(label, '.')`) or `strlen(label)`. In both cases, `label` contains at least `labellen` valid bytes, and the preceding condition checks that `outlen + labellen + (e != NULL) < outsize` to ensure destination bounds."
+   },
+   {
+    "func": "vector_add",
+    "line": 257,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 144",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies exactly `sizeof(psl_entry_t)` bytes from `elem` into a freshly allocated buffer of `sizeof(psl_entry_t)`. `elem` points to a `psl_entry_t` object passed by value/pointer from callers creating an entry. There is no dynamic or variable length read, and `elem` is expected to point to a valid `psl_entry_t` structure. This is standard value copying into a heap-allocated element for the vector container."
+   }
+  ]
+ }
+]

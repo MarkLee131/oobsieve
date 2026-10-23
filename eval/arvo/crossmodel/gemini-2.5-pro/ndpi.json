@@ -1,0 +1,61 @@
+[
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "search_valid_dns",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 0,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The vulnerable `memcpy` is inside the `search_valid_dns` function. This function is `static` and its sole caller appears to be `ndpi_search_dns` within the same file. The caller, `ndpi_search_dns`, performs bounds checks before calling `search_valid_dns`. There are two paths to the call:\n1. UDP path: `payload_offset` is set to 0. A check `if(packet->payload_packet_len < sizeof(struct ndpi_dns_packet_header)) return;` is performed. This ensures that the payload buffer is at least as large as the `memcpy` size, covering the access.\n2. TCP path: `payload_offset` is set to 2. The code reads a DNS message length `len` from the payload. It then checks `if(len < sizeof(struct ndpi_dns_packet_header)) return;`. It also validates the total packet length against this `len`: `if((payload_offset + len) != packet->payload_packet_len) return;`. Combined, these checks ensure `packet->payload_packet_len >= 2 + sizeof(struct ndpi_dns_packet_header)`. This is sufficient to guard the `memcpy` which reads `sizeof(struct ndpi_dns_packet_header)` bytes starting from an offset of 2. Both calling paths have sufficient guards."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 195 is guarded by two checks. The source access is `flow->packet.payload + x` with size `data_len`. This is guarded by the check at line 183: `if((x + data_len) <= flow->packet.payload_packet_len)`. The `memcpy` is inside the body of this `if` statement, ensuring the read from the source buffer `flow->packet.payload` is within bounds. The destination buffer is `&flow->protos.dns.rsp_addr`, a field in a struct with a size of either 4 or 16 bytes. The `memcpy` is also inside another `if` statement at line 188 which explicitly checks `if ( ... (data_len == 4)) ... || (... (data_len == 16)) ... )`. This ensures that the size of the copy, `data_len`, matches the expected size of an IPv4 or IPv6 address, which corresponds to the size of the destination buffer. Therefore, both source and destination accesses are properly bounds-checked."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'memcpy' reads a fixed-size DNS header (12 bytes) from the packet payload at an offset 'x'. The value of 'x' is determined by the 'payload_offset' parameter passed by the sole caller function, 'ndpi_search_dns'. Before calling 'search_valid_dns', the 'ndpi_search_dns' function explicitly checks if the available payload length is sufficient for reading the DNS header at the given offset. For UDP, it checks if `payload_packet_len >= sizeof(dns_header)`. For TCP (where the offset is 2), it first checks `payload_packet_len > 2` and then checks if `payload_packet_len - 2 >= sizeof(dns_header)`. These checks effectively guard the 'memcpy' operation, preventing any out-of-bounds read."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 'memcpy' operation copies a DNS address response into the `flow->protos.dns.rsp_addr` buffer. The size of the copy, `data_len`, is derived from the network packet. However, the code has two crucial checks that prevent an out-of-bounds condition. First, `if((x + data_len) <= flow->packet.payload_packet_len)` ensures that the read from the source buffer (`flow->packet.payload + x`) with size `data_len` will not go past the end of the packet buffer. Second, the `memcpy` is only executed if `(rsp_type == 0x1 && data_len == 4)` or `(rsp_type == 0x1c && data_len == 16)`. The destination buffer, `flow->protos.dns.rsp_addr`, is a union designed to hold an IPv4 (4 bytes) or IPv6 (16 bytes) address, so its size is at least 16 bytes. Since `data_len` is explicitly checked to be either 4 or 16, it cannot cause an overflow on the destination buffer. Therefore, both the source read and the destination write are properly bounded."
+   }
+  ]
+ }
+]

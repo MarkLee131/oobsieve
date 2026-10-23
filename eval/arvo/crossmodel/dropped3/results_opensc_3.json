@@ -1,0 +1,141 @@
+[
+ {
+  "id": "16614",
+  "project": "opensc",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "decode_bit_string",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 3,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "decode_bit_string",
+    "line": 585,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 585 uses `outlen` as its size. While `outlen` is compared against `octets_left` at line 577, this comparison is `outlen < octets_left`. The `memset` uses `outlen`, which is an input parameter and its value is not guaranteed to be within the bounds of `outbuf` or `inbuf` based on any preceding checks. The check `outlen < octets_left` is not a sufficient upper bounds check for `outlen` to prevent a potential buffer overflow in `memset(outbuf, 0, outlen)`."
+   },
+   {
+    "func": "sc_copy_asn1_entry",
+    "line": 148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 40",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 148 is `*dest = *src;`. This is copying the entire `struct sc_asn1_entry`. The `src` pointer is input-derived. The loop condition `while (src->name != NULL)` checks a field within the `src` structure, but it does not perform any bounds checking on the `src` pointer itself or the buffer it points to. If the input-derived `src` points to an array of `sc_asn1_entry` structures and the array is not null-terminated with a `name == NULL` entry or if the `src` pointer is crafted to point to an invalid memory location, this loop could read beyond the bounds of the intended `src` buffer. There's no explicit check like `src + 1 <= src_cap` or `dest + 1 <= dest_cap`."
+   },
+   {
+    "func": "sc_asn1_sig_value_sequence_to_rs",
+    "line": 2071,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 2071 fills `buf` with zeros up to `buflen`. The `buflen` argument is passed into the function `sc_asn1_sig_value_sequence_to_rs` and is checked at line 2064: `if (!buf || !buflen) LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);`. This check ensures that `buflen` is greater than 0, making the `memset` operation safe within the bounds of `buf`."
+   },
+   {
+    "func": "sc_asn1_decode_utf8string",
+    "line": 882,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 882 is preceded by a bounds check at line 880: `if (inlen+1 > *outlen) return SC_ERROR_BUFFER_TOO_SMALL;`. This check ensures that the destination buffer `out` (of size `*outlen`) is large enough to accommodate `inlen` bytes copied from `inbuf` plus one null terminator, which is exactly what the `memcpy` and the subsequent `out[inlen] = 0;` operation do."
+   },
+   {
+    "func": "asn1_encode_path",
+    "line": 1121,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 1121 copies `datalen` bytes from `data` to `p`. The destination buffer `buf` (pointed to by `p`) is allocated with `malloc(*outlen)`, where `*outlen = tag_len + 1 + c + datalen`. The code then increments `p` multiple times before the `memcpy`. Specifically, `p` is incremented by `1` (for `t`), then `tag_len - 1` times (in the loop `for (ii=1;ii<tag_len;ii++)`), then `1` (if `c` is true) and `c` times (in the `while (c--)` loop), or `1` time (if `c` is false).  There is no explicit check to ensure that the sum of these increments plus `datalen` does not exceed `*outlen`. While the logic seems to carefully build up the buffer, the expression for `*outlen` includes `datalen`, implying that `datalen` bytes should fit. However, without a formal proof or a visible guard that explicitly checks `p + datalen <= buf + *outlen` after all the prior increments, it's difficult to be certain that an overflow cannot occur, especially if `datalen` itself is input-derived and could be maliciously crafted to cause an offset that, when added to the bytes already written before `memcpy`, exceeds the allocated size. Defaulting to true as no explicit bounds check for this specific `memcpy` is present."
+   },
+   {
+    "func": "asn1_encode_p15_object",
+    "line": 1339,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2776",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1339 copies `ptrlen` bytes from `ptr` to `out + outlen`. The destination buffer `out` is reallocated with `realloc(out, outlen + ptrlen)` just before the memcpy. This reallocation makes sure that `out` has at least `outlen + ptrlen` bytes available for the write. However, the analysis states that `src-ptr` is INPUT-DERIVED and is not checked. Even though the `out` buffer is correctly sized, there is no visible check on `ptr` (the source of the memcpy) to ensure it is large enough to contain `ptrlen` bytes. Therefore, `ptr` could potentially be a smaller buffer, leading to an out-of-bounds read from `ptr`."
+   },
+   {
+    "func": "decode_bit_string",
+    "line": 585,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` size operand `outlen` is compared against `octets_left` (derived from `inlen`) at line 583: `if (outlen < octets_left) return SC_ERROR_BUFFER_TOO_SMALL;`. This check ensures that `outlen` is large enough to prevent an out-of-bounds write up to `octets_left` bytes, and `memset` uses `outlen` as its size. Therefore, there's no out-of-bounds write."
+   },
+   {
+    "func": "sc_copy_asn1_entry",
+    "line": 148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 40",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `sc_copy_asn1_entry` function copies `sc_asn1_entry` structs from `src` to `dest`. The loop condition `while (src->name != NULL)` indicates that `src` is an array of `sc_asn1_entry` structs terminated by an entry where `name` is NULL. The `memcpy` (implicitly generated by `*dest = *src;`) operation copies a fixed size of 40 bytes (the size of `struct sc_asn1_entry`). The `src-ptr` operand is tainted because the `src` pointer can be controlled by input. However, the copy is bounded by the `NULL` sentinel in `src->name`. As long as the `src` array is properly terminated and valid, the copy will not go out of bounds of the `src` array. The destination `dest` must be allocated to accommodate at least as many entries as `src`, including the NULL-terminated entry. The analyzer flags `src-ptr` as input-derived, but the termination condition relies on a field within the input, which limits the access to the boundaries of the input structure itself. This looks like a standard way to copy an array of structures, and without information on how `src` is populated or `dest` is allocated, it's hard to definitively say it's an OOB write on `src`. The `memcpy` itself is copying a fixed size based on `sizeof(struct sc_asn1_entry)`, which is a safe operation if the `src` and `dest` pointers are valid and `src` is correctly terminated. The `src` pointer is advanced in the loop, so it's reading consecutive elements within the `src` array, not beyond it as long as the array is validly null-terminated. Therefore, it does not seem to be an out-of-bounds read from `src`."
+   },
+   {
+    "func": "sc_asn1_sig_value_sequence_to_rs",
+    "line": 2071,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` operation at line 2071 uses `buflen` as the size, which is an input parameter. However, `buflen` is checked at line 2062: `if (!buf || !buflen) LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);`. Later, at line 2070, there's a bounds check: `if (halflen < r_len || halflen < s_len) { rv = SC_ERROR_BUFFER_TOO_SMALL; goto err; }`. `halflen` is `buflen / 2`. This ensures that `buflen` is non-zero and, combined with the subsequent `memcpy` operations, implies that `buflen` is expected to be large enough to hold the `r` and `s` values. The `memset` itself operates on `buf` with `buflen`, and `buf` is also an input parameter, implying the caller provides a buffer of at least `buflen` size. As long as the caller correctly provides a buffer of size `buflen`, there's no out-of-bounds write. The taint analysis flags `buflen` as input-derived, which is true, but the code appears to validate and use it correctly within the provided buffer."
+   },
+   {
+    "func": "sc_asn1_decode_utf8string",
+    "line": 882,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `inlen` is derived from input, but there's a guard `if (inlen+1 > *outlen)` that checks if the destination buffer `out` is large enough to hold `inlen` bytes plus a null terminator. If `inlen+1` exceeds `*outlen`, the function returns `SC_ERROR_BUFFER_TOO_SMALL`, preventing an overflow. Therefore, the `memcpy` operation is protected against out-of-bounds writes."
+   },
+   {
+    "func": "asn1_encode_path",
+    "line": 1121,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy is copying `datalen` bytes from `data` to `p`. The size of the allocated buffer `buf` is `tag_len + 1 + c + datalen`. The pointer `p` starts at `buf` and is incremented `tag_len + 1 + c` times before the `memcpy`. Therefore, the available space from `p` is `(tag_len + 1 + c + datalen) - (tag_len + 1 + c) = datalen`. The `memcpy` correctly uses `datalen` as its size. The `src-ptr` (`data`) itself is an input-derived value, but the `memcpy` operation does not cause an out-of-bounds write to the destination buffer `p`."
+   },
+   {
+    "func": "asn1_encode_p15_object",
+    "line": 1339,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2776",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1339 copies `ptrlen` bytes from `ptr` to `out + outlen`. The `out` buffer is reallocated just before the `memcpy` to `outlen + ptrlen` bytes. This ensures that `out + outlen` has enough space to accommodate `ptrlen` bytes without an out-of-bounds write. Thus, the destination buffer `out` is correctly sized for the operation. The `src-ptr` `ptr` is likely controlled by the ASN.1 decoding process, and its size `ptrlen` is also part of that process. While `ptr` itself could potentially be an issue if `ptrlen` is incorrectly determined, the reallocation logic ensures that the destination buffer is always adequately sized based on the value of `ptrlen`."
+   }
+  ]
+ }
+]

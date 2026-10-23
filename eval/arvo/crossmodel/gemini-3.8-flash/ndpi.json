@@ -1,0 +1,61 @@
+[
+ {
+  "id": "21263",
+  "project": "ndpi",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 2,
+  "recall": "hit",
+  "gt_func": "search_valid_dns",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 0,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "No bounds check on payload_offset or the payload length is visible prior to the memcpy of sizeof(struct ndpi_dns_packet_header) bytes from flow->packet.payload[x]."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access is guarded by `if((x + data_len) <= flow->packet.payload_packet_len)` which ensures the read from `flow->packet.payload + x` of length `data_len` remains within the bounds of `payload_packet_len`, and `data_len` is further restricted to 4 or 16."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 89,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 12",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "In `search_valid_dns`, `memcpy` copies `sizeof(struct ndpi_dns_packet_header)` (12 bytes) from `&flow->packet.payload[x]` without first verifying that `flow->packet.payload_packet_len >= payload_offset + sizeof(struct ndpi_dns_packet_header)`. If a packet has fewer than 12 bytes of payload (or less remaining after `payload_offset`), this results in an out-of-bounds read from `flow->packet.payload`."
+   },
+   {
+    "func": "search_valid_dns",
+    "line": 195,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %320",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

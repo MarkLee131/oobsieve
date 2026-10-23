@@ -1,0 +1,1219 @@
+[
+ {
+  "id": "43300",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 28,
+  "recall": "hit",
+  "gt_func": "dhcp_reply",
+  "n_gt_cands": 15,
+  "n_gt_confirmed": 3,
+  "n_other_sampled": 13,
+  "n_other_confirmed": 9,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "dhcp_reply",
+    "line": 200,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %201",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy(agent_id, opt, total) is guarded by `if (last_opt && last_opt < end - total)`. `end` points to the buffer end, and subtracting `total` from `end` ensures that `agent_id = end` has at least `total` bytes remaining in the buffer (and doesn't overlap/underrun `last_opt`)."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 513,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %986",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 608,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The specified memcpy operation with size 4 is not visible or has no visible bounds check covering a 4-byte read/copy in the provided code snippet."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 721,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %1452",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 738,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %1495",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 865,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 17",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access is guarded by `if ((opt = option_find(mess, sz, OPTION_PXE_UUID, 17)))`, where `option_find` checks that the option payload is at least 17 bytes before returning non-NULL."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 889,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The call to option_find1 specifically requires a minimum length of 4 (SUBOPT_PXE_BOOT_ITEM, 4), ensuring that option_ptr(opt, 0) has at least 4 bytes available before memcpy executes."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 912,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access of 4 bytes via `memcpy(save71, option_ptr(opt, 0), 4)` is guarded by the preceding call `option_find1(..., SUBOPT_PXE_BOOT_ITEM, 4)`, which validates that the sub-option length is at least 4 bytes before returning a non-NULL pointer."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 980,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The enclosing condition checks `(opt = option_find1(..., SUBOPT_PXE_BOOT_ITEM, 4))` where the minimum required length argument is explicitly specified as 4. Therefore, `option_find1` ensures that `opt` has at least 4 bytes of data, safely covering `memcpy(save71, option_ptr(opt, 0), 4)`."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 992,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check ensuring that `opt` contains at least 4 bytes before `memcpy(save71, option_ptr(opt, 0), 4)` reads 4 bytes from it. If the option length is less than 4, an out-of-bounds read occurs."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1026,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2090",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check verifying that `option_len(opt)` does not exceed the capacity of destination buffer `daemon->dhcp_buff2` before the `memcpy`."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1125,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access to `opt` (via `option_addr(opt)` which copies 4 bytes / sizeof(struct in_addr) with `memcpy`) is protected by `option_find(mess, sz, OPTION_REQUESTED_IP, INADDRSZ)`. The fourth argument to `option_find` is `INADDRSZ` (4 bytes), which ensures the option payload length is at least 4 bytes before returning a non-NULL pointer."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1134,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "In dnsmasq, option_addr(opt) is a helper macro or function defined as `memcpy(&addr, option_ptr(opt, 0), INADDRSZ)` (INADDRSZ = 4). The call to `option_find(mess, sz, OPTION_..., INADDRSZ)` takes the minimum required length as its 4th argument (`INADDRSZ` = 4), which verifies that the option exists and has a length of at least 4 bytes before returning a non-NULL pointer. Since `option_find` checks `min_len >= INADDRSZ`, the subsequent 4-byte read/memcpy is fully bounds-checked."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1513,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The 4-byte access on the option pointer is guarded by `option_find(mess, sz, OPTION_LEASE_TIME, 4)`, which validates that the option's payload length is at least 4 bytes within packet bounds, returning NULL otherwise (which is subsequently checked before access)."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1570,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "In `option_find(mess, sz, OPTION_LEASE_TIME, 4)`, dnsmasq's `option_find` checks that the option's length matches or is at least the minimum length parameter (4 bytes). The returned pointer is validated to have at least 4 bytes within the packet boundary."
+   },
+   {
+    "func": "option_addr",
+    "line": 1803,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Function option_addr performs memcpy of INADDRSZ (4 bytes) directly from option_ptr(opt, 0) without verifying the option length (e.g., via option_len(opt) >= INADDRSZ)."
+   },
+   {
+    "func": "clear_packet",
+    "line": 2334,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %15",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In clear_packet, the memset size calculation `end - (&mess->options[0] + sizeof(u32))` has no visible bounds check ensuring `end >= &mess->options[0] + sizeof(u32)`, which can result in an integer underflow to an extremely large unsigned value."
+   },
+   {
+    "func": "do_options",
+    "line": 2438,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The operation at line 2438 is not visible within the provided code snippet, and no bounds guard covering this access is visible."
+   },
+   {
+    "func": "do_options",
+    "line": 2469,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The referenced memcpy operation at line 2469 is not present or visible in the provided code snippet, and no bounds guard covering the 4-byte read from the tainted src-ptr can be identified."
+   },
+   {
+    "func": "do_options",
+    "line": 2620,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %502",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "Before writing into buffer `p` with `memcpy(p, hostname, strlen(hostname))` (and the subsequent domain memcpy), the code calls `free_space(mess, end, OPTION_CLIENT_FQDN, len)`, which verifies and allocates space for `len` bytes. The calculated `len` includes `strlen(hostname)` (plus 3 for header, plus domain length and dots/nulls if applicable). If insufficient space remains up to `end`, `free_space()` returns NULL and the entire write block is guarded by `if ((p = free_space(...)))`."
+   },
+   {
+    "func": "do_options",
+    "line": 2625,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %508",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The call to free_space(mess, end, OPTION_CLIENT_FQDN, len) verifies that at least len bytes (calculated as strlen(hostname) + 3 + (null_term ? 1 : 0) + (domain ? strlen(domain) + 1 : 0)) are available in the buffer ending at 'end'. The memcpy operations copy strlen(hostname) and strlen(domain), exactly bounded within the allocated len space."
+   },
+   {
+    "func": "do_options",
+    "line": 2778,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %792",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy(p, daemon->dhcp_buff3, vendor_class_len) is guarded directly by `(p = free_space(mess, end, OPTION_VENDOR_ID, vendor_class_len))` in the if condition, which verifies that buffer `mess` has sufficient space up to `end` to hold `vendor_class_len` bytes at `p`."
+   },
+   {
+    "func": "dhcp_packet_size",
+    "line": 1851,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %12",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In dhcp_packet_size(), p is derived by scanning options with dhcp_skip_opts() without bounds checking against real_end or buffer boundaries, and memmove(p, agent_id, real_end - agent_id) is executed without verifying that p + (real_end - agent_id) fits within the destination buffer."
+   },
+   {
+    "func": "dhcp_packet_size",
+    "line": 1853,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In dhcp_packet_size(), p is advanced by (real_end - agent_id) via `p += real_end - agent_id;`, and then `memset(p, 0, real_end - p);` is performed. There is no check verifying that agent_id <= real_end or that p <= real_end, which can cause underflow in `real_end - p` leading to a massive memset size and buffer overflow."
+   },
+   {
+    "func": "pxe_misc",
+    "line": 2139,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 17",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function only checks `if (uuid && ...)` for non-nullness before executing `memcpy(p, uuid, 17)`. No bounds check or validation verifying that `uuid` points to a buffer of at least 17 bytes is present."
+   },
+   {
+    "func": "server_id",
+    "line": 1657,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check or length guard covering the memory copy operation in server_id."
+   },
+   {
+    "func": "do_opt",
+    "line": 2005,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "do_opt",
+    "line": 2007,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The loop iterates while `j < opt->len` with step `j += INADDRSZ`, copying 4 bytes (`INADDRSZ`) on each iteration from `a` (`opt->val`). If `opt->len` is not a multiple of 4 (e.g., 1, 2, or 3), `memcpy` will read past the end of the `opt->val` buffer without any visible length or alignment guard."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 200,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %201",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code explicitly bounds-checks the destination buffer before the copy. It verifies that `last_opt < end - total`, adjusts `end -= total`, and sets `agent_id = end`. `opt` has already been validated by `option_find`, and `total` is `option_len(opt) + 2` bytes (representing the option header plus payload). There is sufficient space in the packet buffer and no buffer overflow occurs."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 513,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %986",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In DHCPv4 (RFC 2131), option length is an 8-bit unsigned integer, meaning `option_len(opt)` is at most 255. `daemon->dhcp_buff3` is allocated with a size of 256 bytes, and `option_find` ensures the option's data payload lies within the received packet bounds, preventing both source and destination out-of-bounds access."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 608,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted data originates from incoming packet options or headers (such as `option_find` or `mess->file`). `option_find()` ensures that the option payload lies within packet bounds `sz` with at least the requested minimum length, and fixed buffers like `mess->file` have statically bounded sizes. No out-of-bounds read occurs."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 721,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %1452",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 738,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %1495",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 865,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 17",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Before the memcpy of 17 bytes, option_find() is called with a minimum size argument of 17: `option_find(mess, sz, OPTION_PXE_UUID, 17)`. This function validates that the option exists and has a length of at least 17 bytes within the packet buffer, preventing an out-of-bounds read."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 889,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The sub-option is found using `option_find1(option_ptr(opt, 0), option_ptr(opt, option_len(opt)), SUBOPT_PXE_BOOT_ITEM, 4)`, which validates that the sub-option payload is at least 4 bytes in length before returning non-NULL. Therefore, `option_ptr(opt, 0)` is guaranteed to have at least 4 valid readable bytes, making `memcpy(save71, option_ptr(opt, 0), 4)` safe."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 912,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The option `opt` is obtained via `option_find1(..., SUBOPT_PXE_BOOT_ITEM, 4)`, which validates that the sub-option payload has a minimum length of 4 bytes before returning a non-NULL pointer. Therefore, reading 4 bytes from `option_ptr(opt, 0)` into the 4-byte `save71` array is properly bounds-checked."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 980,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The sub-option is looked up via `option_find1(..., SUBOPT_PXE_BOOT_ITEM, 4)`, which explicitly validates that the option payload is at least 4 bytes in length. Therefore, reading 4 bytes via `memcpy` from `option_ptr(opt, 0)` is properly bounds-checked and safe."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 992,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1026,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2090",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The length of a DHCP option is represented by a single byte (max 255), and `daemon->dhcp_buff2` is sized to accommodate maximum DHCP packet sizes / options buffer (at least 256 bytes, typically DHCP_BUFF_SZ which is 2048+ bytes). Furthermore, `option_find` with min_length 0 validates the option boundary against packet size `sz`. Thus, `memcpy` of `option_len(opt)` bytes into `dhcp_buff2` does not overflow."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1125,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The option was validated by option_find() with minimum length INADDRSZ (4 bytes) prior to accessing or copying option data with option_addr(), ensuring the 4-byte read is in-bounds."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1134,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1513,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The option lookup specifies a minimum length requirement (min = 4 in option_find), ensuring the option contains at least 4 bytes before any 4-byte copy or read operation."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1570,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The pointer passed into `calc_time` is returned by `option_find(mess, sz, OPTION_LEASE_TIME, 4)`, which validates that the found DHCP option payload is at least 4 bytes in length before returning a non-NULL pointer. Therefore, any 4-byte read or copy from this pointer is guarded and cannot trigger an out-of-bounds access."
+   },
+   {
+    "func": "option_addr",
+    "line": 1803,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In dnsmasq, callers of option_addr pass a pointer to an option found via option_find(..., minsize), where minsize is at least INADDRSZ (4), or the option length is explicitly validated to be at least 4 bytes (e.g. INADDRSZ). Therefore, reading 4 bytes at option_ptr(opt, 0) does not cause an out-of-bounds read."
+   },
+   {
+    "func": "clear_packet",
+    "line": 2334,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %15",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "do_options",
+    "line": 2438,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The query flags a 4-byte memcpy in dnsmasq's `do_options` function where the source pointer is derived from input (e.g. copying an IPv4 address, an option parameter, or a DHCP field). Such 4-byte copies typically handle standard 4-byte integers/addresses (like IP addresses, lease time, or network masks) from parsed DHCP options or option buffers that have already been validated for sufficient length by preceding option parsing/validation checks. Without an out-of-bounds offset or insufficient buffer length, copying 4 bytes from a validated pointer is not an out-of-bounds bug."
+   },
+   {
+    "func": "do_options",
+    "line": 2469,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 4-byte memory copies in do_options typically handle 32-bit quantities such as IPv4 addresses, lease times, or integer option values from fixed-size structures or validated buffers. There is no evidence of an unbounded or triggerable out-of-bounds read."
+   },
+   {
+    "func": "do_options",
+    "line": 2620,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %502",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "do_options",
+    "line": 2625,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %508",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "do_options",
+    "line": 2778,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %792",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_packet_size",
+    "line": 1851,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memmove operation moves the agent_id option back down to the current end of options (p) within the allocated packet buffer ending at real_end. Since agent_id <= real_end and p <= agent_id, the length (real_end - agent_id) fits within the bounds of the packet buffer, and the operation is a standard compaction of DHCP options."
+   },
+   {
+    "func": "dhcp_packet_size",
+    "line": 1853,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset is part of moving the DHCP agent_id/relay options within the packet buffer during packet construction. After memmove(p, agent_id, real_end - agent_id) and incrementing p by (real_end - agent_id), if p < real_end, the remaining bytes up to real_end are zeroed. Since p was advance by (real_end - agent_id), p is positioned appropriately within bounds bounded by real_end. If real_end >= p, real_end - p is non-negative and within buffer bounds."
+   },
+   {
+    "func": "pxe_misc",
+    "line": 2139,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 17",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In dnsmasq, the `uuid` pointer passed to `pxe_misc` is obtained via `option_find` with a minimum length requirement of 17 bytes (representing the 1-byte type prefix plus 16-byte UUID according to RFC 4578). Since the length is validated prior to calling `pxe_misc`, `uuid` is guaranteed to point to a buffer of at least 17 bytes."
+   },
+   {
+    "func": "server_id",
+    "line": 1657,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `server_id` returns a `struct in_addr` by value, selecting between `override`, `context->local`, or `fallback`. The compiler or inlining uses a 4-byte copy (size of `struct in_addr`) to copy the structure. All source structures (`override`, `context->local`, and `fallback`) are valid 4-byte IPv4 address structures allocated on the stack or in heap context structs. There is no out-of-bounds read or write."
+   },
+   {
+    "func": "do_opt",
+    "line": 2005,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "do_opt",
+    "line": 2007,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In do_opt(), when opt->flags & DHOPT_ADDR is set, opt->val stores an array of IPv4 addresses. The loop iterates by INADDRSZ (4 bytes) up to opt->len, reading each `struct in_addr` from opt->val. This is internal configuration data for dnsmasq DHCP options, and the buffer is allocated/sized in accordance with opt->len when options are parsed or constructed. There is no triggerable out-of-bounds read."
+   }
+  ]
+ },
+ {
+  "id": "35865",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 1,
+  "recall": "miss",
+  "gt_func": "extract_addresses",
+  "n_gt_cands": 0,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "miss",
+  "e2e_aggr": "miss",
+  "llm_details": [
+   {
+    "func": "resize_packet",
+    "line": 352,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "resize_packet",
+    "line": 352,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ },
+ {
+  "id": "35870",
+  "project": "dnsmasq",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 29,
+  "recall": "hit",
+  "gt_func": "dhcp_reply",
+  "n_gt_cands": 15,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 14,
+  "n_other_confirmed": 9,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "dhcp_reply",
+    "line": 200,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %201",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy destination is `agent_id = end - total`, where `last_opt < end - total` is explicitly checked right before copying. Furthermore, `end` represents the boundary of the allocated buffer `daemon->dhcp_packet`, and `option_find` ensures `opt` and `total` (option_len + 2) stay within the bounds of `mess` and `sz`."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 513,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %986",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 608,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The only memcpy with size 4 in this context would typically be copying an IP address or similar 4-byte field (e.g. logaddr or config->addr), or earlier option_find checks. However, looking at the code around line 608 in dnsmasq (or the memcpy calls shown), `option_find(mess, sz, OPTION_VENDOR_ID, 1)` verifies that the option has at least minsize bytes (1), and in dnsmasq, option validation checks ensure bounds against packet length `sz`. If this refers to `mess->yiaddr = config->addr` or a 4-byte memcpy from config/lease/option, `option_find` checks option length against bounds `sz` and `minsize`."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 721,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %1452",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 738,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %1495",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access is preceded by `opt = option_find(mess, sz, OPTION_HOSTNAME, 1)` (or `OPTION_CLIENT_FQDN, 3`), where option_find parses the DHCP packet against packet size `sz` and min-length requirement, ensuring `option_ptr(opt, 0)` and `len = option_len(opt)` are safely within bounds of the packet buffer."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 865,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 17",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access is guarded by `if ((opt = option_find(mess, sz, OPTION_PXE_UUID, 17)))`, where the fourth argument `17` specifies the minimum required option length, ensuring that `option_ptr(opt, 0)` contains at least 17 bytes."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 889,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The pointer `opt` is obtained via `option_find1(..., SUBOPT_PXE_BOOT_ITEM, 4)`, which validates that the option payload is at least 4 bytes long and does not exceed the packet buffer. Therefore, copying 4 bytes from `option_ptr(opt, 0)` is sufficiently bounds-checked."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 912,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The enclosing if-statement calls `option_find1(..., SUBOPT_PXE_BOOT_ITEM, 4)`, which ensures that `opt` contains at least 4 bytes of payload. Thus, reading 4 bytes via `memcpy(save71, option_ptr(opt, 0), 4)` is fully bounds-checked."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 980,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The enclosing `if` condition uses `option_find1(..., SUBOPT_PXE_BOOT_ITEM, 4)` which requires the option payload to have a minimum length of 4 bytes before entering the block, safely covering the 4-byte `memcpy`."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 992,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1026,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2090",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1125,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function `option_find` was invoked with minimum length argument `INADDRSZ` (4 bytes): `option_find(mess, sz, OPTION_REQUESTED_IP, INADDRSZ)`. When `option_find` returns non-NULL, it guarantees that the option has at least `min_len` (INADDRSZ / 4 bytes), ensuring safe extraction of the 4-byte address accessed by `option_addr(opt)` (which performs a 4-byte memcpy)."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1134,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The option was extracted using `option_find(mess, sz, OPTION_REQUESTED_IP, INADDRSZ)`, which enforces a minimum length check of `INADDRSZ` (4 bytes). Therefore, the 4-byte access on `opt` is guaranteed to be within bounds."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1513,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source pointer is retrieved via option_find(mess, sz, OPTION_LEASE_TIME, 4), which explicitly validates that the option payload length is at least 4 bytes within packet bounds before returning the pointer."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1570,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The lease time option is retrieved using option_find(mess, sz, OPTION_LEASE_TIME, 4), which explicitly verifies that the option length matches or exceeds the requested 4 bytes before returning a non-NULL pointer for copying/reading."
+   },
+   {
+    "func": "tftp_request",
+    "line": 104,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 28",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The tainted source pointer comes from kernel control messages (msghdr / cmsghdr parsed from recvmsg, e.g. struct in6_pktinfo or in_pktinfo, size 28 matching in6_pktinfo or sockaddr/in6_addr structures) or msg_name peer address structure, which is handled via standard socket control message macros (CMSG_FIRSTHDR/CMSG_NXTHDR) with bounds checked by recvmsg and msg_controllen/msg_namelen."
+   },
+   {
+    "func": "option_addr",
+    "line": 1803,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Within option_addr, memcpy copies INADDRSZ (4 bytes) from option_ptr(opt, 0) without any bounds check on the option length or buffer boundary visible in the function."
+   },
+   {
+    "func": "clear_packet",
+    "line": 2333,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %15",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `clear_packet`, the size operand computed as `end - (&mess->options[0] + sizeof(u32))` is passed directly to `memset` without any preceding bounds check verifying that `end >= &mess->options[0] + sizeof(u32)`. If `end` is less than that pointer, the size underflows to a large positive value, causing a buffer overflow."
+   },
+   {
+    "func": "do_options",
+    "line": 2437,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The operation at line 2437 is not present in the provided snippet, so no guard covering this access is visible. Per instructions, default to true when no such guard is visible or when unsure."
+   },
+   {
+    "func": "do_options",
+    "line": 2468,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The target memcpy operation at line 2468 is not shown in the provided snippet, and no bounds guard covering that copy operation is present in the visible context."
+   },
+   {
+    "func": "do_options",
+    "line": 2619,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %502",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation is protected by the preceding `free_space(mess, end, OPTION_CLIENT_FQDN, len)` call, which ensures sufficient buffer capacity up to `end` for `len` bytes. The calculation of `len` accounts for the 3 header bytes, `strlen(hostname)`, `strlen(domain) + 1` (if domain is present), and the null terminator (if `null_term` is set)."
+   },
+   {
+    "func": "do_options",
+    "line": 2624,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %508",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access is preceded by a bounds check `free_space(mess, end, OPTION_CLIENT_FQDN, len)`, which verifies that at least `len` bytes remain in the packet buffer before `end`. The length `len` is computed to precisely account for the 3-byte prefix, `hostname`, `domain` (with dot), and the null terminator."
+   },
+   {
+    "func": "do_options",
+    "line": 2777,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %792",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copying `daemon->dhcp_buff3` into `p` with size `vendor_class_len` is guarded directly in the enclosing `if` condition by `(p = free_space(mess, end, OPTION_VENDOR_ID, vendor_class_len))`, which verifies that there is sufficient room (`vendor_class_len` bytes) before the pointer `end`."
+   },
+   {
+    "func": "dhcp_packet_size",
+    "line": 1851,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %12",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `dhcp_packet_size`, `memmove(p, agent_id, real_end - agent_id)` copies bytes from `agent_id` to `p` where `p = dhcp_skip_opts(&mess->options[0] + sizeof(u32))`. There are no visible bounds checks verifying that `real_end >= agent_id` or that `p + (real_end - agent_id)` does not exceed the packet buffer / `real_end`."
+   },
+   {
+    "func": "dhcp_packet_size",
+    "line": 1853,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check verifying that agent_id is greater than or equal to p (or that real_end >= p after advancing p). If agent_id < p, real_end - p evaluates to a negative value or underflows to a very large size_t, leading to a buffer overflow."
+   },
+   {
+    "func": "pxe_misc",
+    "line": 2139,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 17",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `pxe_misc`, `memcpy(p, uuid, 17)` copies 17 bytes from `uuid` without any bounds check verifying that the buffer pointed to by `uuid` is at least 17 bytes long (only `if (uuid)` null check is present)."
+   },
+   {
+    "func": "server_id",
+    "line": 1657,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check or guard macro (such as checking offset/capacity) visible on the path reaching or within server_id for this access."
+   },
+   {
+    "func": "do_opt",
+    "line": 2005,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "do_opt",
+    "line": 2007,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In the loop `for (j = 0; j < opt->len; j += INADDRSZ, a++)`, the condition only verifies `j < opt->len`, which allows a 4-byte copy `memcpy(p, a, INADDRSZ)` even if fewer than 4 bytes remain in `opt->val` (e.g., if `opt->len` is not a multiple of 4 or less than 4). There is no guard checking `j + INADDRSZ <= opt->len` or validating the buffer bounds of `opt->val`."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 200,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %201",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 513,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %986",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 608,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In dnsmasq, option_find() validates the option bounds within the DHCP packet up to sz and ensures that the option payload is fully contained within the buffer. The option_ptr(opt, 0) and option_len(opt) retrieve valid bounds-checked pointers and length from the parsed option within packet limits, so copying from option_ptr(opt, 0) does not constitute an out-of-bounds read."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 721,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %1452",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 738,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %1495",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 865,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 17",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The call to `option_find(mess, sz, OPTION_PXE_UUID, 17)` enforces a minimum option payload length of 17 bytes. Therefore, copying 17 bytes via `memcpy` from `option_ptr(opt, 0)` is strictly bounds-checked and safe."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 889,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The call to option_find1 explicitly checks that the option has a minimum length of 4 (min_len parameter is 4). Thus, copying 4 bytes with memcpy from option_ptr(opt, 0) into save71 is bounds-checked and safe."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 912,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The option was validated by option_find1 with a minimum required length of 4 (the fourth parameter). Therefore, option_ptr(opt, 0) is guaranteed to contain at least 4 bytes, matching the destination save71 buffer size and memcpy length."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 980,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The suboption was retrieved using `option_find1(..., SUBOPT_PXE_BOOT_ITEM, 4)` where the minimum length argument is explicitly specified as 4. This guarantees that `option_ptr(opt, 0)` points to a buffer of at least 4 bytes, so `memcpy(save71, option_ptr(opt, 0), 4)` cannot read out of bounds."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 992,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In dnsmasq, options are located via option_find(mess, sz, OPTION_PXE_BOOT_ITEM, 4), which validates that the option contains at least 4 bytes of payload. Thus, copying 4 bytes from option_ptr(opt, 0) is bounds-checked and safe."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1026,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2090",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1125,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The option lookup specifies a minimum length of INADDRSZ (4 bytes) in option_find(..., INADDRSZ). This ensures that option_find only returns a non-null pointer if the option payload contains at least 4 bytes, preventing any out-of-bounds read."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1134,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The option pointer is retrieved via option_find(mess, sz, OPTION_REQUESTED_IP, INADDRSZ), which verifies that the option's length is at least INADDRSZ (4 bytes). Therefore, copying 4 bytes from option_ptr(opt, 0) is safely bounded."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1513,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The option lookup specifies a minimum required length of 4 (e.g., via option_find with minlen parameter 4), ensuring that any extracted option payload read as 4 bytes is properly bounds-checked against the packet buffer."
+   },
+   {
+    "func": "dhcp_reply",
+    "line": 1570,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted DHCP option lookup uses option_find(), which checks the option length against the requested minimum size (4 bytes). It only returns a non-NULL pointer if the option payload contains at least 4 bytes within packet bounds, making the 4-byte read safe."
+   },
+   {
+    "func": "tftp_request",
+    "line": 104,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 28",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The operation copying socket address structures (typically `sizeof(union mysockaddr)` or `sizeof(struct sockaddr_in6)` around 28 bytes) copies data populated by `recvmsg` (`msg.msg_name`) or interface information into a bounded local sockaddr union. The buffer `peer` has type `union mysockaddr` which is sized sufficiently for any supported address family, and the copy size (28 bytes) is standard for `struct sockaddr_in6`. This is a standard network address copy, not an out-of-bounds bug."
+   },
+   {
+    "func": "option_addr",
+    "line": 1803,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Callers obtain option pointers via option_find(), which enforces a minimum size (minsize, typically INADDRSZ or sizeof(struct in_addr) == 4 for IP address options) and bounds-checks that the option payload does not exceed the packet buffer. Therefore, option_ptr(opt, 0) is guaranteed to point to at least 4 valid bytes."
+   },
+   {
+    "func": "clear_packet",
+    "line": 2333,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %15",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "do_options",
+    "line": 2437,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 4-byte memcpy in do_options copies a fixed 4-byte value (such as an IPv4 address or integer field), where the source pointer points to an in_addr structure or an option whose length and bounds have already been validated. There is no triggerable out-of-bounds read."
+   },
+   {
+    "func": "do_options",
+    "line": 2468,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted 4-byte memcpy in dnsmasq's do_options typically corresponds to copying an IPv4 address (such as subnet_addr, context->local, or an option value) into a packet buffer. Packet parsing and option length checks are handled prior to option handling, and fixed 4-byte address copies to/from validly allocated structures or buffers are properly sized and bounded."
+   },
+   {
+    "func": "do_options",
+    "line": 2619,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %502",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "do_options",
+    "line": 2624,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %508",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The buffer space allocated via `free_space(mess, end, OPTION_CLIENT_FQDN, len)` accounts for the exact size calculation of `len`, which includes `strlen(hostname)`, `strlen(domain)`, and separator/termination bytes. The `free_space` function verifies that sufficient space exists before returning a pointer `p`. Therefore, the `memcpy` operations within this branch cannot overflow the allocated buffer."
+   },
+   {
+    "func": "do_options",
+    "line": 2777,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %792",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy is guarded by free_space(mess, end, OPTION_VENDOR_ID, vendor_class_len), which ensures that there is at least vendor_class_len bytes available at destination p before returning the pointer."
+   },
+   {
+    "func": "dhcp_packet_size",
+    "line": 1851,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %12",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memmove operation moves the agent_id option block from its temporary position back to the end of the newly constructed options list (`p`), bounded by `real_end - agent_id`. Since `agent_id` points within the allocated packet buffer and `p <= agent_id <= real_end`, the copy is an in-buffer compaction with valid destination and source ranges within the packet buffer."
+   },
+   {
+    "func": "dhcp_packet_size",
+    "line": 1853,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "pxe_misc",
+    "line": 2139,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 17",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In dnsmasq, OPTION_PXE_UUID is DHCP option 97 (client machine identifier), which is parsed earlier in dhcp.c only if its length is 17 bytes (option_len(opt) == 17) or option_find returns a valid option where uuid points to a validated 17-byte buffer (or uuid points to a 17-byte buffer in caller dhcp_reply). Thus uuid is guaranteed to have at least 17 bytes available when non-NULL."
+   },
+   {
+    "func": "server_id",
+    "line": 1657,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function server_id passes and returns struct in_addr by value (4 bytes), which the compiler implements via 4-byte copies (memcpy/load-store). All sources (override, context->local, fallback) are standard 4-byte in_addr structures safely allocated in memory/stack, meaning there is no out-of-bounds access."
+   },
+   {
+    "func": "do_opt",
+    "line": 2005,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy copies an in_addr structure (INADDRSZ = 4 bytes) from either context->local or opt->val. In dnsmasq, options with DHOPT_ADDR are created from parsed IP addresses where opt->val is allocated and populated in chunks of sizeof(struct in_addr), so reading 4 bytes is within bounds."
+   },
+   {
+    "func": "do_opt",
+    "line": 2007,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In `do_opt`, the loop iterates over `opt->val` in increments of `INADDRSZ` (4 bytes) up to `opt->len`. `opt->val` holds the addresses configured for DHCP options, and the source pointer `a` is safely incremented per `struct in_addr`. The memory copy of size 4 reads within the bounds of the allocated option buffer."
+   }
+  ]
+ }
+]

@@ -1,0 +1,181 @@
+[
+ {
+  "id": "47503",
+  "project": "openexr",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 8,
+  "recall": "hit",
+  "gt_func": "uncompress_b44_impl",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 7,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "uncompress_b44_impl",
+    "line": 505,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "While there is a bounds check on the input buffer (`bIn + nBytes > comp_buf_size`), there is no check verifying that `scratch + nBytes` does not exceed the allocated size of `decode->scratch_buffer_1`, leaving the destination pointer unguarded against buffer overflow."
+   },
+   {
+    "func": "internal_coding_fill_channel_info",
+    "line": 32,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The destination buffer `chanfill` is dynamically allocated immediately before the `memset` with size `(size_t)(chans) * sizeof(exr_coding_channel_info_t)`, checked against NULL, and then cleared with the exact same byte count `(size_t)(chans) * sizeof(exr_coding_channel_info_t)`. Therefore, the allocated buffer size exactly matches the memset size."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 353,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %46",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The buffer `encode->scratch_buffer_1` is allocated via `internal_encode_alloc_buffer` with size `encode->packed_bytes`, which matches the total packed bytes across all scanlines/channels. However, more specifically regarding bounds checks covering `tmp` and `packed`, `internal_encode_alloc_buffer` ensures allocation, and the loop advances through the valid packed buffer and scratch buffer calculated strictly from channel dimensions and chunk height."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 377,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %110",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy copying from `scratch` to `out` (size `nBytes`) is guarded immediately beforehand by `if (nOut + nBytes > encode->compressed_alloc_size) return EXR_ERR_OUT_OF_MEMORY;`, which ensures `nBytes` fits within the destination buffer."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 429,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access of 4 uint16_t elements (8 bytes) is inside the `else` branch of `if (x + 3 >= nx)`. Therefore, this branch is only reached when `x + 3 < nx` (i.e. `x + 4 <= nx`), which guarantees that at least 4 elements remain in the row, preventing an out-of-bounds read."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 430,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The access is guarded by `if (x + 3 >= nx)`, with the memcpy residing in the `else` branch. This guarantees that `x + 4 <= nx`, ensuring 4 `uint16_t` elements (8 bytes) are strictly within the row bounds."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 431,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy is inside the 'else' branch of 'if (x + 3 >= nx)', ensuring that x + 3 < nx (i.e. x + 4 <= nx). Since row0 through row3 are advanced by 4 in each loop iteration and clamped appropriately for the y dimension, copying 4 uint16_t elements (8 bytes) is fully bounds-checked by this condition."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 432,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The four `memcpy (&s[...], rowN, 4 * sizeof(uint16_t))` calls (where 4 * sizeof(uint16_t) is 8 bytes) are inside the `else` branch of `if (x + 3 >= nx)`. Thus, in this branch `x + 3 < nx`, guaranteeing that at least 4 elements (`nx - x >= 4`) remain in each row. Furthermore, the vertical bounds are handled right above by clamping `row1`, `row2`, `row3` if `y + 3 >= ny`."
+   },
+   {
+    "func": "uncompress_b44_impl",
+    "line": 505,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %29",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "internal_coding_fill_channel_info",
+    "line": 32,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %31",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The allocation and memset size match exactly: `chanfill` is allocated with `(size_t)(chans) * sizeof(exr_coding_channel_info_t)` and immediately cleared using `memset` with the identical size expression. As long as the allocation succeeded, the memset does not write out of bounds."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 353,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %46",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The scratch buffer is allocated with size `encode->packed_bytes`, which matches the total bytes of all channels across the chunk height. The buffer arithmetic in the interleaving/packing loops computes slice offsets (`y * bpl` within each channel's partition `nBytes`) within the allocated scratch buffer bounds."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 377,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %110",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The buffer `scratch_buffer_1` is allocated with size `encode->packed_bytes`, which matches the total packed bytes for all channels across the chunk. For each channel and row, the destination offset within `scratch_buffer_1` (`tmp`) and copy size `bpl` are derived directly from the channel geometry, matching the layout of the allocated buffer and input packed stream. Validations prior to encode pipeline execution ensure buffer sizes match the expected channel dimensions."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 429,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The else branch where memcpy is called with size 4 * sizeof(uint16_t) (8 bytes) is guarded by the condition `x + 3 < nx`, ensuring at least 4 valid elements exist in the row buffer. Furthermore, row pointers are clamped when `y + 3 >= ny`, preventing out-of-bounds reads vertically."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 430,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code properly bounds and clamps both vertical and horizontal access. For rows, when `y + 3 >= ny`, subsequent row pointers (`row1`, `row2`, `row3`) are clamped to previous valid rows. For columns, `memcpy` is only executed when `x + 3 < nx` (meaning at least 4 elements remain in the row), while any edge case where `x + 3 >= nx` is handled separately with bounds clamping."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 431,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 8-byte (4 * sizeof(uint16_t)) memcpy is guarded by the condition `if (x + 3 >= nx) ... else ...`. In the else branch, `x + 3 < nx` (i.e., `x + 4 <= nx`), ensuring that reading 4 `uint16_t` values from each row (`row0` through `row3`) is fully within bounds of the allocated row buffers."
+   },
+   {
+    "func": "compress_b44_impl",
+    "line": 432,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 8",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code properly guards against out-of-bounds reads: vertically, rows are clamped to valid row pointers within the buffer when `y + 3 >= ny`, and horizontally, the branch containing `memcpy` only executes when `x + 3 < nx`, guaranteeing at least 4 pixels (8 bytes) remain in the current row."
+   }
+  ]
+ }
+]

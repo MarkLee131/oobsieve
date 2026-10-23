@@ -1,0 +1,440 @@
+[
+ {
+  "id": "61902",
+  "project": "libxaac",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "iusace_estimate_scfs_chan",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 5,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "iusace_estimate_scfs_chan",
+    "line": 1586,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset on `str_qc_out_chan[idx].scalefactor` uses `sizeof(str_qc_out_chan[idx].scalefactor[0]) * pstr_psy_out[ch].sfb_count` as its size. There is no bounds check visible verifying that `sfb_count` does not exceed the capacity/allocated size of `str_qc_out_chan[idx].scalefactor` prior to the memset."
+   },
+   {
+    "func": "iusace_calc_form_fac_per_chan",
+    "line": 946,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `iusace_calc_form_fac_per_chan`, `memset(ptr_sfb_num_relevant_lines, 0, sizeof(FLOAT32) * pstr_psy_out_chan->sfb_count);` is executed without any visible bounds check verifying that `pstr_psy_out_chan->sfb_count` fits within the buffer allocated for `ptr_sfb_num_relevant_lines`."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1186,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_improve_scf` performs `memcpy(ptr_quant_spec, ptr_quant_spec_temp, sfb_width * sizeof(WORD16))` without checking the allocated bounds or capacity of the buffers `ptr_quant_spec` or `ptr_quant_spec_temp` against `sfb_width * sizeof(WORD16)`."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1204,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %63",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In iusace_improve_scf, `sfb_width` is passed as a parameter and used to calculate the size for `memcpy(ptr_quant_spec, ptr_quant_spec_temp, sfb_width * sizeof(WORD16))`. There is no bounds check or validation on `sfb_width` (or the buffer bounds of ptr_quant_spec / ptr_quant_spec_temp) visible within this function or preceding the memcpy call."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1225,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Within iusace_improve_scf, memcpy is called with size sfb_width * sizeof(WORD16) to copy from ptr_quant_spec_temp to ptr_quant_spec without any visible bounds check on sfb_width against the allocated capacities of the destination or source buffers."
+   },
+   {
+    "func": "iusace_assimilate_multiple_scf",
+    "line": 1442,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function copies `MAX_NUM_GROUPED_SFB * sizeof(WORD16)` (60 * 2 = 120 bytes) from `ptr_scf` to `scf_temp` without verifying that `ptr_scf` has at least `MAX_NUM_GROUPED_SFB` elements allocated or that `sfb_count` or the allocated size of `ptr_scf` is large enough to cover 120 bytes."
+   },
+   {
+    "func": "iusace_estimate_scfs_chan",
+    "line": 1586,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset clearing str_qc_out_chan[idx].scalefactor scales by pstr_psy_out[ch].sfb_count, which is bounded and validated by the psychoacoustic model configuration (sfb_count <= MAX_NUM_GROUPED_SFB). The destination buffer scalefactor in ia_qc_out_chan_struct is appropriately sized for the maximum number of scalefactor bands, so this does not constitute a triggerable out-of-bounds write."
+   },
+   {
+    "func": "iusace_calc_form_fac_per_chan",
+    "line": 946,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operation zeroes `ptr_sfb_num_relevant_lines` up to `sfb_count` elements of type FLOAT32. The buffer `ptr_sfb_num_relevant_lines` is sized based on the maximum number of scale factor bands supported by the codec configuration, and `sfb_count` is a standard psych model parameter bounded by the sampling frequency / window sequence table configurations. There is no evidence of an uncontrolled overflow here."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1186,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sfb_width * sizeof(WORD16) bytes from ptr_quant_spec_temp to ptr_quant_spec, which corresponds directly to the sfb_width elements computed in iusace_calc_sfb_dist. Both pointers are allocated and indexed to handle sfb_width elements of the scale factor band."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1204,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %63",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sfb_width elements of type WORD16 between ptr_quant_spec_temp and ptr_quant_spec. Both buffers are allocated to hold the current scale factor band's coefficients, matching the loop iteration bound in iusace_calc_sfb_dist (which writes up to sfb_width elements). There is no buffer overflow."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1225,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Both `ptr_quant_spec` and `ptr_quant_spec_temp` are allocated to hold the full spectral/sfb data, and `iusace_calc_sfb_dist` already accesses and writes `sfb_width` elements in both buffers immediately prior to the `memcpy`. Copying `sfb_width * sizeof(WORD16)` is fully within the bounds of both buffers."
+   },
+   {
+    "func": "iusace_assimilate_multiple_scf",
+    "line": 1442,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Both the destination buffer `scf_temp` and the source buffer `ptr_scf` are statically sized to `MAX_NUM_GROUPED_SFB` elements (60 16-bit words = 120 bytes). The fixed-size `memcpy` of 120 bytes does not read or write out of bounds."
+   }
+  ]
+ },
+ {
+  "id": "61998",
+  "project": "libxaac",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 14,
+  "recall": "hit",
+  "gt_func": "iusace_estimate_scfs_chan",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 13,
+  "n_other_confirmed": 13,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "iusace_estimate_scfs_chan",
+    "line": 1587,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset operation `memset(str_qc_out_chan[idx].scalefactor, 0, sizeof(str_qc_out_chan[idx].scalefactor[0]) * pstr_psy_out[ch].sfb_count)` uses an input-derived `sfb_count` without any bounds check verifying that `pstr_psy_out[ch].sfb_count <= sizeof(str_qc_out_chan[idx].scalefactor) / sizeof(...)` or `MAX_NUM_GROUPED_SFB` before executing the memset."
+   },
+   {
+    "func": "iusace_calc_form_fac_per_chan",
+    "line": 947,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_calc_form_fac_per_chan` performs `memset(ptr_sfb_num_relevant_lines, 0, sizeof(FLOAT32) * pstr_psy_out_chan->sfb_count);` without checking whether `sfb_count` exceeds the allocated bounds/capacity of the `ptr_sfb_num_relevant_lines` buffer in `pstr_scratch`."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In `iusace_improve_scf`, `memcpy(ptr_quant_spec, ptr_quant_spec_temp, sfb_width * sizeof(WORD16))` copies based on `sfb_width`. There are no visible bounds checks or capacity validations within `iusace_improve_scf` to ensure `sfb_width * sizeof(WORD16)` does not exceed the allocation size of `ptr_quant_spec` or `ptr_quant_spec_temp`."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1205,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %63",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iusace_improve_scf` performs `memcpy(ptr_quant_spec, ptr_quant_spec_temp, sfb_width * sizeof(WORD16))` without checking `sfb_width` or verifying that `sfb_width * sizeof(WORD16)` does not exceed the allocated capacities of `ptr_quant_spec` or `ptr_quant_spec_temp`."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1226,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check visible on sfb_width or the buffer capacities of ptr_quant_spec and ptr_quant_spec_temp prior to the memcpy call in iusace_improve_scf."
+   },
+   {
+    "func": "iusace_assimilate_multiple_scf",
+    "line": 1443,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function executes `memcpy(scf_temp, ptr_scf, MAX_NUM_GROUPED_SFB * sizeof(WORD16))` (size 120 bytes) without validating that the buffer pointed to by `ptr_scf` has at least `MAX_NUM_GROUPED_SFB * sizeof(WORD16)` allocated bytes, potentially reading past the end of `ptr_scf` if it points to a buffer sized based on `sfb_count` or smaller than `MAX_NUM_GROUPED_SFB`."
+   },
+   {
+    "func": "iaace_calc_form_fac_per_chan",
+    "line": 60,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %9",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no bounds check or validation on pstr_psy_out_chan->sfb_count or the capacity of ptr_sfb_ld_energy before the memset call."
+   },
+   {
+    "func": "iaace_calc_form_fac_per_chan",
+    "line": 63,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %14",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Line 63 (`memset(ptr_sfb_ld_energy, 0, sizeof(*ptr_sfb_ld_energy) * pstr_psy_out_chan->sfb_count);`) performs a memset using the tainted `sfb_count` operand without any prior bounds check on `pstr_psy_out_chan->sfb_count` against the allocated capacity of `ptr_sfb_ld_energy`."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 646,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %21",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` receives `frame_len_long` as a parameter and directly uses it to clear fixed-size stack arrays `quant_spec_temp`, `ptr_mdct_spec`, and `ptr_exp_spec` (all sized `FRAME_LEN_1024`) via `memset` without checking if `frame_len_long <= FRAME_LEN_1024`."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 647,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %25",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` receives `frame_len_long` (or `pstr_psy_out[ch].sfb_count`) and performs `memset` on fixed-size stack buffers (`quant_spec_temp`, `ptr_mdct_spec`, `ptr_exp_spec` each sized `FRAME_LEN_1024`) as well as struct arrays without any bounds check verifying that `frame_len_long <= FRAME_LEN_1024` or within capacity prior to the `memset` operations."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 648,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %29",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` receives `frame_len_long` (and `sfb_count`) from caller/input without validating that `frame_len_long <= FRAME_LEN_1024` or checking against buffer bounds before executing `memset` operations on stack-allocated arrays `quant_spec_temp`, `ptr_mdct_spec`, and `ptr_exp_spec` or channel buffers."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 654,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `iaace_estimate_scfs_chan` receives `frame_len_long` and performs `memset` on local stack arrays of fixed size `FRAME_LEN_1024` (e.g. `quant_spec_temp`, `ptr_exp_spec`, `ptr_mdct_spec`) without checking whether `frame_len_long <= FRAME_LEN_1024`, nor is there any visible bounds check on `frame_len_long` covering this `memset`."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 656,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function iaace_estimate_scfs_chan performs several memsets using input-derived sizes (frame_len_long and pstr_psy_out[ch].sfb_count) directly on fixed-size stack arrays (e.g. quant_spec_temp, ptr_mdct_spec, ptr_exp_spec of size FRAME_LEN_1024) or heap-allocated struct buffers without verifying that frame_len_long <= FRAME_LEN_1024 or sfb_count <= buffer capacity."
+   },
+   {
+    "func": "iaace_assimilate_multiple_scf",
+    "line": 517,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function copies `MAXIMUM_GROUPED_SCALE_FACTOR_BAND * sizeof(*ptr_scf)` (120 bytes, assuming 60 WORD16 elements) from `ptr_scf` into `scf_temp`. There is no check verifying that the input buffer `ptr_scf` has at least `MAXIMUM_GROUPED_SCALE_FACTOR_BAND` elements allocated or that `sfb_count` bounds the memory passed in `ptr_scf` to cover 120 bytes."
+   },
+   {
+    "func": "iusace_estimate_scfs_chan",
+    "line": 1587,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset on `str_qc_out_chan[idx].scalefactor` uses `pstr_psy_out[ch].sfb_count` elements, which is bounded by the psychoacoustic model's maximum scalefactor bands (MAX_NUM_GROUPED_SFB / MAX_SFB), which matches the allocated size of the scalefactor array in ia_qc_out_chan_struct."
+   },
+   {
+    "func": "iusace_calc_form_fac_per_chan",
+    "line": 947,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %20",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operation initializes `ptr_sfb_num_relevant_lines` up to `sizeof(FLOAT32) * pstr_psy_out_chan->sfb_count`. The scratch buffer is allocated according to standard maximum scalefactor band counts for AAC/USAC codec configurations, and `sfb_count` is bounded by the psychoacoustic/filterbank configuration tables, not arbitrary user-controlled sizes that would cause an out-of-bounds write."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1187,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %37",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sfb_width elements of type WORD16 from ptr_quant_spec_temp to ptr_quant_spec. Both buffers represent the quantized spectrum buffer for the current scale factor band of length sfb_width, which was previously populated and bounds-checked. There is no size mismatch or out-of-bounds access."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1205,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %63",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `sfb_width * sizeof(WORD16)` elements from `ptr_quant_spec_temp` to `ptr_quant_spec`. Both pointers are allocated and sized to hold the spectrum data for the scale factor band of width `sfb_width`, which was just populated up to `sfb_width` elements by `iusace_calc_sfb_dist`. This is standard intra-band scratch buffering and not an out-of-bounds copy."
+   },
+   {
+    "func": "iusace_improve_scf",
+    "line": 1226,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies sfb_width elements of WORD16 between ptr_quant_spec and ptr_quant_spec_temp. Both buffers are sized to hold the spectrum data for the scale factor band (or entire frame), and iusace_calc_sfb_dist also safely iterates up to sfb_width on both arrays. There is no size mismatch or out-of-bounds condition."
+   },
+   {
+    "func": "iusace_assimilate_multiple_scf",
+    "line": 1443,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies `MAX_NUM_GROUPED_SFB * sizeof(WORD16)` bytes from `ptr_scf` to `scf_temp` (declared as `WORD16 scf_temp[MAX_NUM_GROUPED_SFB]`). In the codec (USAC/AAC encoder), scale factor arrays (`ptr_scf`) are allocated with size `MAX_NUM_GROUPED_SFB` (60 elements = 120 bytes). The copy reads and writes exactly this fixed buffer size and does not overflow."
+   },
+   {
+    "func": "iaace_calc_form_fac_per_chan",
+    "line": 60,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %9",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset uses `sfb_count` to zero the active scalefactor band entries in `ptr_sfb_ld_energy`. The buffer passed in is sized according to the maximum allowable scalefactor bands (e.g., MAX_GROUPED_SFB), which bounds `sfb_count` through codec configuration and initialization validation. This is standard initialization and not an out-of-bounds write."
+   },
+   {
+    "func": "iaace_calc_form_fac_per_chan",
+    "line": 63,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %14",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Line 63 (`memset(ptr_sfb_ld_energy, 0, sizeof(*ptr_sfb_ld_energy) * pstr_psy_out_chan->sfb_count);`) clears an array sized proportionally to `pstr_psy_out_chan->sfb_count`. The destination buffer `ptr_sfb_ld_energy` is allocated based on the maximum number of scale factor bands for the channel configuration, and `sfb_count` is constrained by the psychoacoustic model parameters and AAC standard limits. This is standard initialization and not an out-of-bounds write."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 646,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %21",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset uses `frame_len_long * sizeof(...)` on `quant_spec_temp`, `ptr_mdct_spec`, or `ptr_exp_spec` (or `pstr_qc_out_chan[ch].quant_spec`), where `frame_len_long` in standard AAC is strictly constrained by configuration (either 1024 or 960/480, bounded by FRAME_LEN_1024) and checked during codec initialization. There is no indication of an untamed input causing an overflow of these fixed 1024-element buffers."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 647,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %25",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The parameter `frame_len_long` specifies the long transform frame length (typically 1024 or 960 in AAC encoders). The buffers `quant_spec_temp`, `ptr_mdct_spec`, and `ptr_exp_spec` are sized with `FRAME_LEN_1024`, and `frame_len_long` is bounded by encoder configuration and does not exceed the static buffer bounds."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 648,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %29",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The parameter frame_len_long represents the audio frame length (typically 1024 or 960 in AAC, bounded by FRAME_LEN_1024), and the destination buffers (quant_spec_temp, ptr_exp_spec, ptr_mdct_spec, and the channel structures) are appropriately allocated to accommodate the maximum frame length."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 654,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %49",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memset operations in iaace_estimate_scfs_chan initialize stack arrays (sized FRAME_LEN_1024) or structs using bounded parameters like frame_len_long (typically 1024, 960, 512, or 480 depending on AAC configuration) and sfb_count. These values represent valid AAC audio frame lengths and scale factor band counts that fit within the statically allocated buffers without overflowing."
+   },
+   {
+    "func": "iaace_estimate_scfs_chan",
+    "line": 656,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function memset operations in `iaace_estimate_scfs_chan` initialize local buffers `quant_spec_temp`, `ptr_mdct_spec`, and `ptr_exp_spec` sized `FRAME_LEN_1024`, as well as channel output buffers `pstr_qc_out_chan[ch].quant_spec` and `pstr_qc_out_chan[ch].scalefactor`. In the AAC codec framework (libxaac), `frame_len_long` is standardly bounded by the maximum frame length (1024 or 960) and validated during encoder initialization, and `sfb_count` is bounded by the scale factor band tables. There is no triggerable out-of-bounds write here."
+   },
+   {
+    "func": "iaace_assimilate_multiple_scf",
+    "line": 517,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 120",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "Both scf_temp and the underlying ptr_scf buffer in the encoder are allocated with a size of MAXIMUM_GROUPED_SCALE_FACTOR_BAND (60 elements * 2 bytes = 120 bytes), making the fixed-size memcpy safe."
+   }
+  ]
+ }
+]

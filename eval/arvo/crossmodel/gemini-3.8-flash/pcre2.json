@@ -1,0 +1,498 @@
+[
+ {
+  "id": "1859",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "internal_dfa_match",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 1,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "internal_dfa_match",
+    "line": 512,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %234",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "In the restart branch when `(mb->moptions & PCRE2_DFA_RESTART) != 0`, `new_count` is read directly from `workspace[1]` (`new_count = workspace[1];`) and used without a bounds check against `wscount` before `memcpy(new_states, active_states, (size_t)new_count * sizeof(stateblock));`."
+   },
+   {
+    "func": "pcre2_dfa_match_8",
+    "line": 3228,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation copying 24 bytes corresponds to struct assignment (such as copying `re->memctl` or `mcontext->memctl`, which is a `pcre2_memctl` struct consisting of 3 pointers / 24 bytes). The pointer `re` is checked against NULL (`if (re == NULL ...) return PCRE2_ERROR_NULL;`) and verified with magic number check (`re->magic_number != MAGIC_NUMBER`), and `mcontext` is checked against NULL (`if (mcontext == NULL)`). Struct copy of `memctl` accesses a fixed valid struct within the allocated/validated context/code structure, not an out-of-bounds read."
+   },
+   {
+    "func": "pcre2_dfa_match_8",
+    "line": 3241,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is only a null pointer check (re == NULL or mcontext == NULL) and magic number check, but no bounds check verifying the allocation size or capacity of the memory pointed to by re or mcontext covers the 24-byte structure read/copy."
+   },
+   {
+    "func": "internal_dfa_match",
+    "line": 512,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %234",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The values in workspace[0] and workspace[1] are internal DFA match state saved from a previous partial match call when PCRE2_DFA_RESTART is used. Within normal library usage, new_count was bounded by wscount during the preceding run, and the workspace buffer layout correctly separates active_states and new_states."
+   },
+   {
+    "func": "pcre2_dfa_match_8",
+    "line": 3228,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 24-byte memcpy corresponds to copying the 3-pointer `pcre2_memctl` structure (malloc, free, memory_data) between valid structs (`re->memctl` or `mcontext->memctl` to `mb->memctl`). This is a standard struct assignment lowered to memcpy, not an out-of-bounds read or vulnerability."
+   },
+   {
+    "func": "pcre2_dfa_match_8",
+    "line": 3241,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 24-byte memcpy corresponds to the compiler-generated struct copy of mb->memctl = re->memctl (or mcontext->memctl), copying the 24-byte pcre2_memctl structure. Both source and destination pointers point to valid, allocated struct fields and do not exceed bounds."
+   }
+  ]
+ },
+ {
+  "id": "3852",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 12,
+  "recall": "hit",
+  "gt_func": "match",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 0,
+  "n_other_sampled": 11,
+  "n_other_confirmed": 2,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "dropped",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "match",
+    "line": 847,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %397",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The size calculation `i = 2 * ((top_bracket + 1 > oveccount)? oveccount : top_bracket + 1);` explicitly clamps the copied range to the minimum of `oveccount` (external ovector size) and `top_bracket + 1` (frame ovector size), bounding the copy `(i - 2) * sizeof(PCRE2_SIZE)` within the allocated bounds of both `ovector` and `Fovector`."
+   },
+   {
+    "func": "pcre2_code_copy_8",
+    "line": 1115,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %21",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "pcre2_code_copy_with_tables_8",
+    "line": 1150,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %21",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "pcre2_code_copy_with_tables_8",
+    "line": 1160,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1088",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function copies character tables using `memcpy(newtables, code->tables, tables_length);`. In PCRE2, `code->tables` always points to a valid character table structure (either built-in or custom) of fixed size `tables_length` (1088 bytes for 8-bit tables), guaranteed by the API contract and compiled code invariant. There is no dynamic input-derived overrun possible on valid compiled pcre2_code objects."
+   },
+   {
+    "func": "pcre2_compile_8",
+    "line": 9476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation at line 9476 is `re->memctl = ccontext->memctl;` (or equivalent struct copy/memcpy of `ccontext->memctl` which is a `pcre2_memctl` struct of 24 bytes (function pointers + user data pointer)). `ccontext` is a valid pointer to compile context allocated/passed as `pcre2_compile_context *`, which is a fixed-size struct of known size, and `re` was just allocated with `malloc(re_blocksize)` where `re_blocksize >= sizeof(pcre2_real_code)`. Both source and destination structs are fixed-size stack/heap objects and the copy length is `sizeof(pcre2_memctl)` (24 bytes), entirely within the allocated bounds of both."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8220,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %38",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "Within add_name_to_table, there is no visible bounds check or capacity validation on cb->name_table before performing the memmove shift."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8231,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %56",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8237,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %66",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The function add_name_to_table writes into a slot allocated according to `cb->name_entry_size`. The memset initializes the remaining bytes in the slot: `cb->name_entry_size - length - IMM2_SIZE`. In PCRE2, `cb->name_entry_size` is calculated during parsing/scanning to be at least `max_name_length + IMM2_SIZE + 1`, guaranteeing `cb->name_entry_size >= length + IMM2_SIZE + 1`, so the slot and offset remain within the allocated buffer for the entry."
+   },
+   {
+    "func": "compile_branch",
+    "line": 5232,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operand `cbits + posix_class_maps[posix_class]` indexes into character class bitmap tables `cbits` using pre-compiled, statically validated POSIX class definitions generated during parser phase; however, within the visible function path itself, `posix_class` is parsed from the validated internal representation `pptr` and `posix_class_maps` is a fixed static lookup table. There is no dynamic bounds check visible immediately guarding the indexing of `posix_class_maps` or `cbits` in this block, but let's check the rule: 'Rules: (1) if you can point to a specific sufficient guard covering THIS access, real_bug=false; (2) otherwise -- no such guard visible, or you are unsure -- real_bug=true. DEFAULT TO TRUE.' Wait! Can we point to a specific guard on the path reaching this op? No specific guard `if (posix_class ...)`, bounds check, or macro is visible in the provided snippet."
+   },
+   {
+    "func": "compile_branch",
+    "line": 6494,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 3",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "There is no visible bounds check or guard ensuring that `lastchar` (or `BACKCHAR(lastchar)`) remains within valid buffer bounds before reading and copying via `memcpy`."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6161,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation copying 24 bytes corresponds to copying fixed-size control/context structures (such as `pcre2_memctl` struct or context fields, which are typically 24 bytes: 3 pointers of 8 bytes each for malloc/free/memory_data). The source is `re->memctl` or `mcontext->memctl`, which are embedded struct instances of fixed compile-time size `sizeof(pcre2_memctl)` = 24 bytes, not an unbounded buffer read."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6163,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "match",
+    "line": 847,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %397",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "pcre2_code_copy_8",
+    "line": 1115,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %21",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "pcre2_code_copy_with_tables_8",
+    "line": 1150,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %21",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies code->blocksize bytes from code to newcode, where newcode was just allocated with code->blocksize bytes. This is a standard cloning of the compiled code structure and is not an out-of-bounds access."
+   },
+   {
+    "func": "pcre2_code_copy_with_tables_8",
+    "line": 1160,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1088",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In PCRE2, `code->tables` points to character tables whose size is guaranteed to be at least `tables_length` (1088 bytes for 8-bit tables). `pcre2_code_copy_with_tables` correctly allocates and copies `tables_length` bytes from `code->tables`. The static taint analysis flagged `code->tables` as tainted, but this is a standard valid library operation and not an out-of-bounds read."
+   },
+   {
+    "func": "pcre2_compile_8",
+    "line": 9476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged operation is a fixed-size struct assignment (copying `pcre2_memctl`, 24 bytes, from `ccontext->memctl` to `re->memctl`) or bounded metadata copy into the newly allocated and validated `pcre2_real_code` block. The source and destination buffers are properly sized and valid."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8220,
+    "sink": "memmove",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %38",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "This is standard insertion into a sorted array. The buffer `cb->name_table` is allocated to hold all discovered named groups (at least `tablecount + 1` entries of size `cb->name_entry_size`). Shifting `(tablecount - i)` entries forward by one entry size from `slot` to `slot + cb->name_entry_size` stays within the allocated buffer bounds."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8231,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function add_name_to_table is an internal helper in PCRE2 called during compilation passes. The memory buffer cb->name_table and entry size cb->name_entry_size are calculated and allocated specifically based on the maximum name length and number of named groups encountered during the pre-compilation scanning pass. Length checks, maximum identifier length validation (MAX_NAME_SIZE), and table size allocation occur prior to populating the table, ensuring that slot has sufficient space for CU2BYTES(length) and the remaining padding."
+   },
+   {
+    "func": "add_name_to_table",
+    "line": 8237,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %66",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "In PCRE2, cb->name_entry_size is computed beforehand to be at least max_name_length + IMM2_SIZE + 1 (to accommodate the group number, the longest name, and the null terminator). Therefore, cb->name_entry_size - length - IMM2_SIZE is guaranteed to be non-negative and properly bounded within the allocated slot size."
+   },
+   {
+    "func": "compile_branch",
+    "line": 5232,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The offset into `cbits` is retrieved from `posix_class_maps`, which is an internal constant lookup table indexed by the internal representation of a validated POSIX class ID (`posix_class`), parsed and bounded during regular expression parsing. The static character class bitmaps table `cbits` contains valid 32-byte chunks for all defined offsets."
+   },
+   {
+    "func": "compile_branch",
+    "line": 6494,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 3",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy copies a UTF character that was just written into the bytecode buffer (`code`). `lastchar` points to the start of the preceding multi-code-unit UTF character, determined via BACKCHAR(lastchar), and `mclength` is computed as `code - lastchar`. The destination `mcbuffer` is sized to hold any multi-byte UTF character, and `lastchar` points safely within the allocated bytecode buffer."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6161,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted memory copy corresponds to copying fixed-size internal structures (such as `pcre2_memctl` or context blocks, size 24 bytes = 3 pointers) between `re->memctl` / `mcontext->memctl` and `mb->memctl`. These pointers point to valid, internally allocated or static structures (`pcre2_real_match_context` or `pcre2_real_code`), not unbounded or out-of-bounds user buffers."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6163,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The 24-byte memcpy corresponds to a struct assignment of the `memctl` block (pcre2_memctl contains 3 pointer-sized fields, exactly 24 bytes on 64-bit: `mb->memctl = re->memctl` or `mb->memctl = mcontext->memctl`). Both source and destination pointers point to valid, fully-allocated struct fields, making this a false positive from compiler-generated struct copying."
+   }
+  ]
+ },
+ {
+  "id": "783",
+  "project": "pcre2",
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "pcre2_match_8",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 1,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "pcre2_match_8",
+    "line": 6178,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation copying 24 bytes corresponds to copying the `memctl` struct (`mb->memctl = mcontext->memctl;`), which is a fixed-size internal memory control block (pcre2_memctl) within the match context `mcontext`. It is a structure copy of fixed known size (24 bytes) from a validated/fallback `mcontext` pointer (`&PRIV(default_match_context)` if NULL), not an out-of-bounds buffer read."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6219,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %238",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memset writes `re->top_bracket * 2 * sizeof(PCRE2_SIZE)` bytes into `mb->stack_frames` at `offsetof(heapframe, ovector)`. The initial buffer `mb->stack_frames` has a fixed size `START_FRAMES_SIZE` (typically 131072 bytes or similar fixed stack/heap initial block). There is no bounds check prior to this memset ensuring that `re->top_bracket * 2 * sizeof(PCRE2_SIZE) + offsetof(heapframe, ovector) <= sizeof(mb->stack_frames)` or that `frame_size <= START_FRAMES_SIZE`. If `top_bracket` is sufficiently large, this memset overflows `mb->stack_frames`."
+   },
+   {
+    "func": "match",
+    "line": 823,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %358",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The copy length `(i - 2) * sizeof(PCRE2_SIZE)` is explicitly bounded: `i` is computed as `2 * ((top_bracket + 1 > oveccount) ? oveccount : top_bracket + 1)`, clamping it to the minimum of the external ovector capacity (`oveccount` pairs) and internal frame capacity (`top_bracket + 1` pairs)."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6178,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged 24-byte memcpy corresponds to a struct assignment of the `memctl` field (`mb->memctl = mcontext->memctl;`). Both `mb` and `mcontext` (which defaults to a statically allocated default match context if NULL) are valid, fully-allocated structures, making the copy entirely safe and within bounds."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6219,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %238",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "match",
+    "line": 823,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %358",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ },
+ {
+  "id": "781",
+  "project": "pcre2",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 3,
+  "recall": "hit",
+  "gt_func": "match",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 2,
+  "n_other_confirmed": 0,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "match",
+    "line": 819,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %348",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The call `memcpy(ovector+2, Fovector, (oveccount - 1) * 2 * sizeof(PCRE2_SIZE))` copies `(oveccount - 1) * 2` elements from `Fovector` without checking whether `Fovector` contains at least `(oveccount - 1) * 2` elements or if `oveccount <= 1` (which could cause an integer underflow on `oveccount - 1` if unsigned, or out-of-bounds read/write). There is no bounds check visible on this execution path covering the size or source buffer limits before the memcpy."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The operation copying 24 bytes (size of pcre2_memctl struct: malloc, free, memory_data pointers, 3 * 8 = 24 bytes) corresponds to `mb->memctl = mcontext->memctl;` (or similar struct copy compiled to memcpy). `mcontext` is either pointing to the caller-supplied `pcre2_match_context` or the static `default_match_context`. `mcontext->memctl` is a fixed-size struct field of a valid structure type and is safely accessed/copied."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6217,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %238",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "match",
+    "line": 819,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %348",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6176,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 24",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The flagged memcpy with size 24 corresponds to a struct assignment of `mb->memctl = mcontext->memctl;` (where `pcre2_memctl` comprises two function pointers and a user data pointer, totaling 24 bytes on 64-bit architectures). `mcontext` is either a valid pointer provided by the caller or points to the internal `default_match_context`. This is a safe structure copy, not an out-of-bounds vulnerability."
+   },
+   {
+    "func": "pcre2_match_8",
+    "line": 6217,
+    "sink": "memset",
+    "operand": "size",
+    "size_expr": "i64 %238",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   }
+  ]
+ }
+]

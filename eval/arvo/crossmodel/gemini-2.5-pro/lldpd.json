@@ -1,0 +1,521 @@
+[
+ {
+  "id": "52006",
+  "project": "lldpd",
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "cdp_decode",
+  "n_gt_cands": 18,
+  "n_gt_confirmed": 4,
+  "n_other_sampled": 7,
+  "n_other_confirmed": 3,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "cdp_decode",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is within the `CDP_TLV_HELLO` case of a switch statement that processes Type-Length-Value (TLV) fields from a network packet. The source pointer `pos` points to the start of the TLV's value field. Before this `memcpy` and two preceding ones, there is a check: `CHECK_TLV_SIZE(sizeof(struct cdp_hello_tlv), \"cisco hello\")`. The size of `struct cdp_hello_tlv` is 9 bytes. This macro expands to `if (tlv_len < 9) { goto malformed; }`, ensuring that the total length of the current TLV is at least 9 bytes. Since the TLV header (type and length fields) is 4 bytes, this guarantees that the data payload starting at `pos` is at least `9 - 4 = 5` bytes long. The sequence of memory operations reads `memcpy(..., pos, 1)`, `memcpy(..., pos+1, 1)`, and finally `memcpy(..., pos+2, 2)`, accessing a total of 4 bytes (offsets 0 through 3 from the start of the data). Since 4 bytes are required and at least 5 are guaranteed to be available, this access is bounds-checked and safe. This specific check, combined with the earlier check `if (tlv_len > length)`, which ensures the TLV fits within the packet buffer, prevents a buffer over-read."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 356,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 384,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 391,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 403,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 403 reads 2 bytes from the `pos` pointer, which points to the beginning of a TLV's value field. The length of this value field is given by `tlv_len`, which is read from the packet. There are two crucial checks that happen before this `memcpy`:\n1. On line 348, `if ((tlv_len < 0) || (length < tlv_len))` ensures that the claimed TLV value length (`tlv_len`) is valid and fits within the remaining packet buffer (tracked by `length`). This guarantees that it's safe to read up to `tlv_len` bytes from `pos`.\n2. On line 398, within the `case CDP_TLV_APPLIANCE_VLAN:`, there is a specific check `if (tlv_len < 2)`. The `memcpy` is only reached if this check fails, meaning `tlv_len` is greater than or equal to 2.\n\nCombined, these checks ensure that at least 2 bytes are available to be read from `pos` within the bounds of the received network frame. Therefore, the 2-byte `memcpy` is bounds-checked and safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 436,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 448,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 459,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The code block in question is inside a loop that parses CDP address TLVs. Before attempting to extract data, the code performs a 'dry run' parse of the current address record. This dry run uses a local length variable `addresses_len` to validate that the sum of all the declared sub-lengths within the record does not exceed the record's boundary. Specifically, the checks `if (addresses_len < 2)`, `if (addresses_len < address_len + 2)`, and `if (addresses_len < address_len)` ensure the internal consistency and bounds of the address record. After this validation pass, `PEEK_RESTORE(pos_address)` resets the main buffer pointer and length counter to the beginning of the address record. The subsequent 'real' parse then re-reads the data. The initial check `if ((tlv_len < 0) || (length < tlv_len))` and the initialization `addresses_len = tlv_len - 4` ensure that the space allocated for all address records (`addresses_len`) is within the bounds of the received packet (`length`). Because the dry run has already validated the size of the entire address record against `addresses_len`, and `addresses_len` is known to be within the main buffer's remaining length, any individual read (like the `memcpy` of size 2, which is part of a `PEEK_UINT16` or similar macro) during the real parse is implicitly bounds-checked. The series of checks in the dry run collectively serve as a covering guard for all accesses in the subsequent real parse of that same data."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 473,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The operation is `memcpy(chassis->c_id, chassis->c_name, tlv_len)` at line 473. The source pointer is `chassis->c_name`, and the size of the read is `tlv_len`. The source buffer `chassis->c_name` is allocated on line 463 with size `tlv_len + 1`. While this 'allocate-to-fit' approach makes the read of `tlv_len` bytes inherently safe (as `tlv_len` is non-negative and thus less than `tlv_len + 1`), the instructions explicitly state that the taint analysis has proven this is 'NOT an allocate-to-fit size' and I must not question this premise. Accepting this premise means I cannot consider the allocation itself as a sufficient guard. Looking for other guards, there are no explicit `if` checks or bounds-checking macros between the allocation of `chassis->c_name` and the `memcpy` that would constrain the read size (`tlv_len`) against the buffer's capacity. The prior checks on `tlv_len` (e.g., line 449 `if ((tlv_len < 0) || (length < tlv_len))`) are for ensuring the read from the network packet buffer is safe, not for ensuring the subsequent read from the heap-allocated `chassis->c_name` buffer is safe. Therefore, under the strict constraints of the prompt, no sufficient guard is visible for this specific access."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The safety of the `memcpy` read from the source `chassis->c_name` depends on its allocated size. The buffer is allocated at line 465 with `calloc(1, tlv_len + 1)`, and the `memcpy` reads `tlv_len` bytes. This 'allocate-to-fit' style of coding makes the access safe. However, the problem statement requires me to accept as a premise that the analysis has already proven this is *not* an allocate-to-fit scenario. My task is to find a separate, explicit bounds check (e.g., an `if` condition or a macro) that guards this specific access. Looking at the code path within the `case CDP_TLV_CHASSIS:` block, there are no such explicit checks. The checks on `tlv_len` at line 454 are against the remaining packet length, not the capacity of the `chassis->c_name` buffer. Without being able to rely on the allocation size as a guard (per the problem constraints), the access appears unguarded."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 475,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation is inside the `PEEK_UINT16` macro at line 475. This operation is part of a sequence of reads in an `if` condition that total 5 bytes (`PEEK_UINT8` x3, then `PEEK_UINT16`). This sequence of reads occurs after a `PEEK_RESTORE(pos_address)` call, which resets the buffer pointer to re-parse an address entry.\n\nPrior to the `PEEK_RESTORE`, the code performs a 'dry run' parse to validate and skip over the address entry. Let's analyze the checks in that dry run. The variable `addresses_len` tracks the remaining length of the current TLV sub-payload. The dry run's checks ensure that the total length of the address entry is available. The tightest guarantee established by these checks is `addresses_len >= len1 + len2 + 4`, where `len1` and `len2` are lengths read from the packet and can be zero. This means the dry run only guarantees that at least 4 bytes are available for the address entry (`addresses_len >= 4`).\n\nAfter restoring the pointer, the code immediately attempts to read 5 bytes for the `if` condition. If a malicious packet provides an address entry with a total length of exactly 4 bytes (which would pass the dry run checks), the `PEEK_UINT16` call will attempt to read 2 bytes when only 1 byte remains in the buffer, leading to a 1-byte out-of-bounds read. There is no check before the re-parsing begins that ensures at least 5 bytes are available."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 535 reads `tlv_len` bytes from the source buffer `port->p_descr`. The buffer `port->p_descr` is allocated a few lines above using `calloc(1, tlv_len + 1)`. While this allocation appears to create a buffer of sufficient size (`tlv_len + 1` is allocated for a `tlv_len` read), the problem statement explicitly requires assuming that this does not constitute a valid 'allocate-to-fit' guard. Given that premise, there is no other visible conditional check or macro on the execution path to the `memcpy` that validates the size of the `port->p_descr` buffer against the access size `tlv_len`. The check `if (tlv_len == 0)` is insufficient for the general case where `tlv_len > 0`. Without a covering bounds check, and being forced to disregard the allocation sizing, the access must be considered unsafe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 563,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The source buffer `port->p_descr` is allocated at line 551 with `calloc(1, tlv_len + 1)`. The subsequent `memcpy` at line 563 reads exactly `tlv_len` bytes from this buffer. Since `tlv_len` is always less than or equal to `tlv_len + 1`, the read is always within the bounds of the allocated buffer. This is a classic 'allocate-to-fit' scenario where the size of the memory operation is guaranteed to be safe by the size of the allocation that immediately precedes it, using the same length variable."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 581,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The user's report identifies a `memcpy` at line 581 with a size of 4 and a source pointer derived from input. However, the code at line 581 is `memcpy(port->p_id, port->p_descr, tlv_len);`. This operation's size is `tlv_len`, not a constant 4, and its source `port->p_descr` is a buffer allocated by `calloc` within the same function block, not a direct input-derived pointer. Given these contradictions, it's highly probable that the report is misattributed and refers to a different operation that better matches the description. The most likely candidate is the `caps = PEEK_UINT32;` operation at line 599. This operation reads 4 bytes from the packet buffer pointer `pos` (an input-derived pointer). This access is immediately preceded by `CHECK_TLV_SIZE(4, \"Capabilities\");` on line 598. This macro explicitly checks if the length of the TLV data (`tlv_len`) is at least 4 bytes, and branches to an error handler (`goto malformed`) if it's not. This constitutes a direct and sufficient bounds check covering the 4-byte read."
+   },
+   {
+    "func": "cdp_send",
+    "line": 79,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 6",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The user is asking about the `memcpy` at line 79. The source pointer is `fdpllcorg`, and the size of the read is `sizeof(llcorg)`. According to the problem description, I must assume that `fdpllcorg` is an input-derived pointer to a buffer of unknown size. The code reads a compile-time constant number of bytes (`sizeof(llcorg)`) from this pointer. For this access to be safe, there must be a bounds check ensuring that the buffer pointed to by `fdpllcorg` is at least `sizeof(llcorg)` bytes long. Looking at the code path, the `memcpy` is inside an `if (version == 0)` block. This condition does not relate to the size of the buffer at `fdpllcorg`. There are no other checks on the size or validity of the buffer pointed to by `fdpllcorg` before the `memcpy` call. Therefore, there is no visible bounds check covering this memory access."
+   },
+   {
+    "func": "cdp_send",
+    "line": 101,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %180",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is inside the `POKE_BYTES` macro. Looking at the definition of this macro in `frame.h`, it is defined as:\n\n```c\n#define POKE_BYTES(data, len) ({ \\\n        int result = 0; \\\n        if (pos + (len) > packet + length) \\\n                result = -1; \\\n        else { \\\n                memcpy(pos, (data), (len)); \\\n                pos += (len); \\\n        } \\\n        result == 0; \\\n})\n```\n\nThis macro contains an explicit bounds check: `if (pos + (len) > packet + length)`. The variables used in this check are:\n- `pos`: The current destination pointer within the packet buffer.\n- `len`: The size of the data to be copied, which is `strlen(chassis_name)` in this case.\n- `packet`: The start of the buffer, allocated on line 82 with size `length`.\n- `length`: The total size of the allocated buffer, initialized from `hardware->h_mtu` on line 81.\n\nThis check correctly ensures that the `memcpy` operation will not write past the end of the allocated `packet` buffer. If the check fails, the macro returns `false`, the `if` condition on line 101 becomes true, and the code jumps to the `toobig` error handling label, preventing the `memcpy` from being executed. Therefore, the access is covered by a sufficient guard."
+   },
+   {
+    "func": "cdp_send",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 126 is part of the `POKE_BYTES` macro. The source of the copy is `&mgmt->m_addr`, and the size is `sizeof(struct in_addr)` (4 bytes). The code path reaches this copy inside a `case LLDPD_AF_IPV4:` block of a `switch` statement on `mgmt->m_family`. This `switch` acts as a type check, from which the code infers that `mgmt->m_addr` contains an IPv4 address. However, it is not a size check. The `POKE_BYTES` macro and the enclosing `if` statement check for potential overflows on the *destination* buffer (`packet`), not the source. There is no explicit check to ensure that the buffer at `&mgmt->m_addr` is at least `sizeof(struct in_addr)` bytes long before the copy is performed. According to the problem description, we must assume the taint analysis is sound and the source buffer's size is not guaranteed. Therefore, without a specific bounds check on the source, this is a potential out-of-bounds read."
+   },
+   {
+    "func": "cdp_send",
+    "line": 139,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %352",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memory operation is guarded by a check inside the `POKE_BYTES` macro, which is likely `pos + size <= end_of_buffer`. However, the `size` is the result of `strlen` on an input-derived string (`chassis_name`). A sufficiently long string can yield a large `size_t` value for `size`, causing the pointer arithmetic `pos + size` to wrap around due to an integer overflow. This would make the result appear to be within bounds, incorrectly passing the check. The subsequent `memcpy` would then use the large, original `size` value, resulting in a heap-based buffer overflow. The guard is present but insufficient to prevent the overflow under adversarial conditions."
+   },
+   {
+    "func": "cdp_send",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %580",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` call is located inside the `POKE_BYTES` macro. This macro, and others like it in this file (`POKE_UINT8`, `POKE_UINT16`, etc.), is designed to be a safe write operation. It first checks if the write would exceed the buffer bounds (`if (pos + (len) > packet + length)`). If the check fails, it returns a failure value. The call site at line 180 is `if (!(... && POKE_BYTES(...) && ...)) goto toobig;`. If the bounds check within `POKE_BYTES` fails, the macro returns false, the `if` condition evaluates to true, and control flow jumps to the `toobig` label, preventing the `memcpy` from being executed. This is a standard and sufficient guard pattern used throughout the function for all buffer writes."
+   },
+   {
+    "func": "cdp_send",
+    "line": 188,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %633",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` is located inside the `POKE_BYTES` macro. The source shows this macro is part of a boolean expression: `if (!(... && POKE_BYTES(...) && ...)) goto toobig;`. This is a common pattern for safely building packets. The `POKE_BYTES` macro (which expands to a call to a function like `frame_add_bytes`) performs a bounds check. If the check indicates that the `memcpy` would write past the end of the buffer, the macro/function returns false (0). The surrounding `if` condition then becomes true, and the code jumps to the `toobig` error-handling label, thus avoiding the memory corruption. The check directly covers the access."
+   },
+   {
+    "func": "cdp_guess",
+    "line": 694,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 356,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is parsing a network packet containing Type-Length-Value (TLV) structures. The `memcpy` in question is inside a loop that processes these TLVs. Before the `memcpy` is reached, several checks are performed on the lengths involved:\n\n1.  A check `if (tlv_len > length)` ensures that the length of the current TLV, as specified in its header (`tlv_len`), does not exceed the remaining bytes in the packet buffer (`length`). This prevents any read from going past the end of the packet buffer.\n2.  After parsing the TLV header, the code calculates the length of the value part of the TLV (`tlv_len -= 4`).\n3.  For the specific TLV type (`CDP_TLV_APPLIANCE_VLAN`) that contains the `memcpy`, a macro `CHECK_TLV_SIZE(3, ...)` is used. This macro ensures that the value part of the TLV is at least 3 bytes long.\n4.  The code then advances the source pointer `pos` by 1 byte (`PEEK_DISCARD(1)`).\n5.  Finally, the `memcpy` reads 2 bytes from the advanced `pos`.\n\nSince the code has already verified that at least 3 bytes are available in the TLV value, skipping 1 byte and then reading 2 bytes is a safe operation. The read is confined within the bounds of the TLV value, which itself is confined within the bounds of the overall packet. The code is well-guarded against out-of-bounds reads."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 384,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 391,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is parsing a network packet containing Type-Length-Value (TLV) structures. The `memcpy` in question copies a 2-byte value for the `CDP_TLV_NATIVE_VLAN` TLV type.\n\nBefore any data is copied, several checks are performed:\n1.  Inside the main parsing loop, the code reads the TLV header (type and length). It checks that the remaining packet length (`length`) is at least 4 bytes before doing so.\n2.  After reading the header, it gets `tlv_len` (the length of the TLV's value). It then performs a crucial check: `if ((tlv_len < 0) || (length < tlv_len))`. This ensures that the remaining packet buffer is large enough to contain the data portion of the TLV as specified by its length field.\n3.  Inside the `switch` statement for `case CDP_TLV_NATIVE_VLAN`, there is another specific check: `if (tlv_len != 2)`. This ensures that for this specific TLV type, the length must be exactly 2.\n\nTo reach the `memcpy` of size 2, both checks must pass. This means `tlv_len` must be equal to 2, and `length` (the number of available bytes) must be greater than or equal to `tlv_len`. By transitivity, `length` must be greater than or equal to 2. Therefore, copying 2 bytes from the source pointer is always safe and within the bounds of the packet buffer. The bug is not triggerable."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 403,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 436,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source pointer `chassis->c_name` points to a buffer that is allocated on the heap. The size of this buffer is `tlv_len + 1`. The `memcpy` operation copies `tlv_len` bytes from this buffer. This is an in-bounds read. The value `tlv_len` is derived from the network packet, but it is checked before use. Specifically, at line 403, there is a check `if ((tlv_len < 0) || (length < tlv_len))`. This ensures that `tlv_len` is a sensible positive value and that the data it refers to is within the bounds of the received packet. The subsequent allocations and the `memcpy` are therefore safe with respect to the value of `tlv_len`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 448,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is parsing a TLV (Type-Length-Value) structure from a network packet. The length of the TLV's value, `tlv_len`, is derived from the packet data. Before the `memcpy` at line 448, there are several checks and operations:\n1. At line 421, a check `if ((tlv_len < 0) || (length < tlv_len))` ensures that the `tlv_len` is non-negative and not larger than the remaining packet buffer `length`. This prevents reading out of bounds from the source packet buffer.\n2. At line 428, `chassis->c_name` is allocated with `calloc(1, tlv_len + 1)`, which is `tlv_len + 1` bytes.\n3. At line 434, `PEEK_BYTES(chassis->c_name, tlv_len)` copies `tlv_len` bytes from the packet into `chassis->c_name`. This is safe because of the allocation size and the prior length check.\n4. At line 446, `chassis->c_id` is allocated with `malloc(tlv_len)`, which is `tlv_len` bytes.\n5. The `memcpy(chassis->c_id, chassis->c_name, tlv_len)` at line 448 copies `tlv_len` bytes.\n\nThe source buffer `chassis->c_name` has size `tlv_len + 1`, and the destination buffer `chassis->c_id` has size `tlv_len`. The copy size is `tlv_len`. Therefore, the `memcpy` reads `tlv_len` bytes from a `tlv_len + 1` byte buffer and writes `tlv_len` bytes to a `tlv_len` byte buffer. Both the read from the source and the write to the destination are within their respective allocated bounds. The code is safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 459,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted source operand `chassis->c_name` points to a buffer allocated on the heap. The size of this allocation is `tlv_len + 1`. The `memcpy` operation reads `tlv_len` bytes from this buffer. Since `tlv_len` is always less than `tlv_len + 1` (and `tlv_len` is checked to be non-negative earlier in the code), the read from the source buffer `chassis->c_name` is always within bounds. The destination buffer `chassis->c_id` is also correctly allocated with size `tlv_len`. The code is safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 473,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size of the memcpy, `tlv_len`, is derived from the network packet. However, the code performs several checks to ensure safety. First, it checks that the reported TLV length is not negative and does not exceed the remaining packet length (`if ((tlv_len < 0) || (length < tlv_len))`). Then, it allocates memory for both the source and destination buffers based on this validated `tlv_len`. The source buffer `chassis->c_name` is allocated with size `tlv_len + 1`, and the destination buffer `chassis->c_id` is allocated with size `tlv_len`. The `memcpy` then copies `tlv_len` bytes. This copy is well within the bounds of both the source buffer (size `tlv_len + 1`) and the destination buffer (size `tlv_len`). The code also correctly handles potential memory allocation failures. Therefore, no out-of-bounds access can occur."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The length of the data to be processed, `tlv_len`, is read from the network packet. However, before this length is used, it is validated against the remaining size of the packet buffer (`length`). The check `if ((tlv_len < 0) || (length < tlv_len))` ensures that `tlv_len` is both non-negative and does not exceed the available data in the packet. The source of the `memcpy`, `chassis->c_name`, is allocated with size `tlv_len + 1`, and the destination, `chassis->c_id`, is allocated with size `tlv_len`. The `memcpy` itself copies exactly `tlv_len` bytes. Both the source read and the destination write are therefore within the bounds of their respective newly allocated buffers. The code is safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 475,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The length variable `tlv_len` is derived from the network packet, which is why the source operand `chassis->c_name` is tainted. However, the code performs robust checks before using this length. Specifically, `if ((tlv_len < 0) || (length < tlv_len))` ensures that the provided TLV length is non-negative and does not exceed the remaining packet buffer size. The destination buffer `chassis->c_id` is allocated with `malloc(tlv_len)`, the source buffer `chassis->c_name` is allocated with `calloc(1, tlv_len + 1)`, and the `memcpy` copies exactly `tlv_len` bytes. Both the source read and the destination write are within the bounds of their respective, correctly-sized buffers. The logic is sound and not vulnerable to an out-of-bounds access."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code block in question handles a `CDP_TLV_CHASSIS` message. The length of the data, `tlv_len`, is read from the network packet. Before the `memcpy` at line 476, two allocations occur based on this length:\n1. `chassis->c_name` is allocated with size `tlv_len + 1` at line 467.\n2. `chassis->c_id` is allocated with size `tlv_len` at line 474.\n\nThe `memcpy` at line 476 copies `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`.\n\n- The source buffer `chassis->c_name` has size `tlv_len + 1`, so reading `tlv_len` bytes from it is safe.\n- The destination buffer `chassis->c_id` has size `tlv_len`, so writing `tlv_len` bytes to it is safe.\n\nFurthermore, there are checks earlier in the function (lines 437-443) to ensure that `tlv_len` is not negative and does not exceed the bounds of the received packet data (`if ((tlv_len < 0) || (length < tlv_len))`). The code also checks for allocation failures from `calloc` and `malloc`. The logic appears to be sound and safe from out-of-bounds access."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The source operand of the `memcpy`, `port->p_descr`, is a buffer that was allocated a few lines above with `calloc(1, tlv_len + 1)`. The `memcpy` operation reads `tlv_len` bytes from this buffer. Since the buffer `port->p_descr` is allocated with a size of `tlv_len + 1`, reading `tlv_len` bytes from it is always within bounds. The code is safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 563,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code block handles a CDP TLV of type `CDP_TLV_PORT`. The length of the TLV data, `tlv_len`, is derived from the input packet. The source buffer `port->p_descr` is allocated using `calloc(1, tlv_len + 1)`. The destination buffer `port->p_id` is allocated using `calloc(1, tlv_len)`. The `memcpy` at line 563 copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. Since the source buffer `port->p_descr` is allocated to be of size `tlv_len + 1`, reading `tlv_len` bytes from it is always within bounds. The destination buffer is also correctly sized. The logic is self-consistent and safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memory operation in question is a 2-byte read performed by the `PEEK_UINT16` macro inside the `CDP_TLV_NATIVEVLAN` case. This read operation is well-guarded against out-of-bounds access. The surrounding code that parses TLVs performs several checks:\n1. Before entering the `switch` statement, there is a check `if (pos + tlv_len - 4 > end)` which verifies that the length of the TLV's value (`tlv_len - 4`) does not exceed the packet boundaries. `pos` points to the start of the value, and `end` points to the end of the packet buffer.\n2. Inside the `case CDP_TLV_NATIVEVLAN`, the `CHECK_TLV_SIZE(2, \"Native VLAN\")` macro is called. This macro expands to a check that ensures the TLV's value length (`tlv_len`) is at least 2 bytes.\n3. The `PEEK_UINT16` macro itself contains a bounds check: `(pos + 2 > end)`. If this check fails, it aborts the parsing.\n\nGiven that the code first ensures the entire TLV value fits within the packet buffer, and then ensures the value is at least 2 bytes long before attempting the 2-byte read, an out-of-bounds read is not possible. The access is safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted source is a pointer `pos` into a network packet buffer. The operation in question is a read of 2 bytes, which is performed by the `PEEK_UINT16` macro. A static analysis tool might model this read as a `memcpy` of size 2. However, immediately before this read, the code calls `CHECK_TLV_SIZE(2, \"Native VLAN\")`. This macro checks if the length of the current TLV field (`tlv_len`) is at least 2 bytes. If this check fails, the function branches to an error handling block (`goto malformed`) and the read is never performed. This explicit check, combined with the implicit check from the main parsing loop that the entire TLV is within the packet boundaries, ensures that the 2-byte read from the tainted pointer `pos` is always within bounds. Therefore, this is not a triggerable out-of-bounds bug."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 581,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code snippet is part of a TLV parser for CDP packets. The `memcpy` in question is within the `case CDP_TLV_PORT:`. Let's analyze the operation: `memcpy(port->p_id, port->p_descr, tlv_len);`\n\n1.  **`tlv_len`**: This value is derived from the input packet. It's tainted.\n2.  **Destination (`port->p_id`)**: The buffer `port->p_id` is allocated immediately before the `memcpy` with `calloc(1, tlv_len)`. The size of this buffer is exactly `tlv_len` bytes. The `memcpy` writes `tlv_len` bytes, which perfectly fits the allocated buffer. The code also checks if `calloc` returns `NULL`.\n3.  **Source (`port->p_descr`)**: The buffer `port->p_descr` is also allocated based on the same `tlv_len`, with a size of `tlv_len + 1` bytes (`calloc(1, tlv_len + 1)`). The `memcpy` reads `tlv_len` bytes from this buffer. Since the buffer is `tlv_len + 1` bytes long, this read is safely within bounds.\n\nBoth the source and destination buffer sizes are correctly managed based on the tainted `tlv_len`. The code is careful to allocate buffers of sufficient size for the `memcpy` operation. Therefore, this is not an out-of-bounds vulnerability."
+   },
+   {
+    "func": "cdp_send",
+    "line": 79,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 6",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation copies data from `fdpmcastaddr` to `mcastaddr`. Both are local stack arrays initialized with compile-time constant MAC addresses (`FDP_MULTICAST_ADDR` and `CDP_MULTICAST_ADDR` respectively). These MAC addresses are standard and are 6 bytes long. The size of the copy is `sizeof(mcastaddr)`, which is guaranteed by the compiler to be 6 bytes. The source buffer `fdpmcastaddr` is also 6 bytes long. Therefore, this `memcpy` is always safe and cannot result in an out-of-bounds read or write. The taint on the source pointer is likely a false positive from the analysis tool, as the source data is a compile-time constant, not user input."
+   },
+   {
+    "func": "cdp_send",
+    "line": 101,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %180",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 101 copies data from `fdpmcastaddr` to `mcastaddr`. Both are local stack arrays. `mcastaddr` is initialized from the `CDP_MULTICAST_ADDR` macro, and `fdpmcastaddr` is initialized from the `FDP_MULTICAST_ADDR` macro. Both of these macros define a 6-byte array initializer. Therefore, both `mcastaddr` and `fdpmcastaddr` are 6 bytes in size. The size of the copy is `sizeof(mcastaddr)`, which is a compile-time constant equal to 6. The copy operation is always from a 6-byte source buffer to a 6-byte destination buffer, copying exactly 6 bytes. This operation is guaranteed to be within bounds. The conditional execution based on the `version` parameter does not affect the safety of the memory copy itself, as all its parameters (source, destination, and size) are based on compile-time constants."
+   },
+   {
+    "func": "cdp_send",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted source pointer is `&mgmt->m_addr`. The `mgmt` pointer is obtained by iterating over a valid linked list (`chassis->c_mgmt`). The `m_addr` field is a union containing different address types, including `struct in_addr` (for IPv4) and `struct in6_addr` (for IPv6). The size of a union is at least the size of its largest member, which in this case is `struct in6_addr` (16 bytes). The `memcpy` (inside the `POKE_BYTES` macro) reads `sizeof(struct in_addr)`, which is 4 bytes. Reading 4 bytes from a buffer that is guaranteed to be at least 16 bytes large is always safe and cannot result in an out-of-bounds read. Additionally, the code explicitly checks `mgmt->m_family == LLDPD_AF_IPV4` before performing the copy, ensuring that the data being copied is of the expected type and size."
+   },
+   {
+    "func": "cdp_send",
+    "line": 139,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %352",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The analysis has flagged a `memcpy` operation inside a macro, likely `POKE_BYTES`. The source pointer `capstr` and its size `strlen(capstr)` are influenced by the `chassis->c_cap_enabled` field, which is likely input-derived. However, the code logic constrains `capstr` to one of three constant string literals: \"Router\", \"Switch\", or \"Host\". This means the size of the copy is strictly limited to either 4 or 6 bytes, which are very small, constant values. Furthermore, the `POKE_BYTES` macro is used in a boolean expression (`if (!(...)) goto toobig;`). This is a very common and safe pattern for building network packets, where each `POKE_*` macro checks if the write operation will fit within the allocated buffer (`packet`). If the check fails, the macro returns false, the condition becomes true, and the code jumps to the `toobig` error handler, preventing the out-of-bounds write. Given the small, constant size and the strong evidence of a bounds-checking mechanism, this is not a triggerable vulnerability."
+   },
+   {
+    "func": "cdp_send",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %580",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code constructs a network packet in a buffer. The buffer `packet` is allocated with a size of `length`, which is `hardware->h_mtu`. The code then uses a series of `POKE_*` macros to write data into this buffer, advancing a position pointer `pos` after each write. The specific operation at line 180 is `POKE_BYTES(platform, strlen(platform))`. The `platform` string can be user-controlled, making its length (`strlen(platform)`) input-derived. However, the `POKE_BYTES` macro and all similar macros in this file are designed to be safe. They explicitly check if the requested write would exceed the buffer's boundary (`packet + length`). If the write is too large, the macro returns a failure value (0), and the surrounding `if (!(...)) goto toobig;` control structure handles this failure by branching to an error handler, thus avoiding the memory copy altogether. Therefore, an arbitrarily long `platform` string will not cause an out-of-bounds write; it will simply cause the packet creation to fail safely."
+   },
+   {
+    "func": "cdp_send",
+    "line": 188,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %633",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is constructing a CDP packet. The `platform` variable, whose content and length are derived from a configuration option (`global->g_config.c_platform`), is being copied into the packet buffer. This is correctly identified as tainted. However, the copy operation is performed using a `POKE_BYTES` macro. This macro, along with all other `POKE_*` macros in the function, is part of a safe buffer construction pattern. Each `POKE_*` operation checks if the data to be written will fit into the remaining buffer space. If it doesn't, the operation returns false, and the `if` condition `if (!(...)) goto toobig;` will trigger, branching to an error handling label (`toobig`) and preventing the out-of-bounds write. Additionally, the `platform` variable is initialized to a default string literal (\"Unknown\") at the beginning of the function, ensuring it is never a NULL pointer when `strlen` is called. The combination of these guards makes the potential overflow non-triggerable."
+   },
+   {
+    "func": "cdp_guess",
+    "line": 694,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The alert is likely for the `memcpy` at line 694, although the function name `cdp_guess` in the alert description is incorrect. The `memcpy` in question is `memcpy(chassis->c_descr, platform, platform_len);`. The source pointer `platform` and the size `platform_len` are derived from a received CDP TLV. However, the code is safe. Earlier in the function (in the `case CDP_TLV_PLATFORM` block), the buffer pointed to by `platform` is allocated using `calloc(1, tlv_len + 1)`, and then `platform_len` is set to `tlv_len`. The `memcpy` reads `platform_len` bytes from a buffer that was explicitly allocated to be `platform_len + 1` bytes long. Therefore, this operation cannot result in an out-of-bounds read from the source buffer. The destination buffer is also allocated with sufficient size to hold the concatenated data. The code is careful and correct."
+   }
+  ]
+ }
+]
