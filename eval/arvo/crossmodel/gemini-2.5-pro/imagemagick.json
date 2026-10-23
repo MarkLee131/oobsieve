@@ -561,9 +561,421 @@
  {
   "id": "10115",
   "project": "imagemagick",
-  "build_ok": false,
-  "recall": "error:ServerError",
-  "tb": "esponse\n    cls.raise_error(response.status_code, response_json, response)\n  File \"/home/likaixuan/.local/lib/python3.10/site-packages/google/genai/errors.py\", line 148, in raise_error\n    raise ServerError(status_code, response_json, response)\ngoogle.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The request timed out. Please try again.', 'status': 'UNAVAILABLE'}}\n"
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 55,
+  "recall": "hit",
+  "gt_func": "DrawDashPolygon",
+  "n_gt_cands": 5,
+  "n_gt_confirmed": 4,
+  "n_other_sampled": 15,
+  "n_other_confirmed": 14,
+  "n_gt_confirmed_aggr": 1,
+  "n_other_confirmed_aggr": 12,
+  "e2e": "hit",
+  "e2e_aggr": "hit",
+  "llm_details": [
+   {
+    "func": "DrawDashPolygon",
+    "line": 1770,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted pointer `draw_info` is passed as an argument to the function `DrawDashPolygon`. It is then passed directly to `CloneDrawInfo`, which, based on the problem description, performs a `memcpy` from this pointer. The only check on `draw_info` before this use is `assert(draw_info != (const DrawInfo *) NULL)`. This is a null-pointer check, not a bounds check. It does not ensure that `draw_info` points to a memory region of at least 48 bytes. If a caller provides a non-NULL pointer to a buffer smaller than what `CloneDrawInfo` expects, an out-of-bounds read will occur. No bounds check is visible on the path within this function to prevent this."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1819,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted `src-ptr` is `&primitive_info[0]`. The `memcpy` reads `sizeof(PrimitiveInfo)` bytes. The `memcpy` is executed only if `number_vertices != 0`. The value of `number_vertices` is determined by an earlier loop: `for (i=0; primitive_info[i].primitive != UndefinedPrimitive; i++) ; number_vertices=(size_t) i;`. For `number_vertices` to be non-zero, the expression `primitive_info[0].primitive` must have been accessed successfully. However, the `primitive` member is located at an offset within the `PrimitiveInfo` struct. An attacker can provide a `primitive_info` pointer that points to a buffer that is smaller than `sizeof(PrimitiveInfo)`, but large enough to contain the `primitive` member at its correct offset. In this scenario, the initial loop would succeed and set `number_vertices` to a non-zero value, but the subsequent `memcpy` would read past the end of the small buffer. Therefore, the prior access to a single member of the struct is not a sufficient guard for a `memcpy` of the entire struct."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1830,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memcpy` in question uses `&primitive_info[i]` as the source address. This access occurs inside a `for` loop: `for (i=1; (i < (ssize_t) number_vertices) && (length >= 0.0); i++)`. The loop condition `i < (ssize_t) number_vertices` acts as an explicit bounds check. The value of `number_vertices` is determined earlier in the function by iterating through the `primitive_info` array until a sentinel element (`.primitive == UndefinedPrimitive`) is found. This correctly establishes the number of valid elements in the input array. The loop's guard ensures that the index `i` never reaches or exceeds this calculated bound, thus preventing an out-of-bounds read from `primitive_info`."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1849,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` is a struct assignment, `dash_polygon[j]=primitive_info[i-1]`, where the source is indexed by `i-1`. The index `i` is controlled by the loop `for (i=1; (i < (ssize_t) number_vertices) ...; i++)`. While this loop appears to have a bounds check (`i < number_vertices`), the bound itself, `number_vertices`, is computed unsafely. It is determined by an earlier loop: `for (i=0; primitive_info[i].primitive != UndefinedPrimitive; i++) ; number_vertices=(size_t) i;`. This loop scans the input array `primitive_info` for a sentinel value (`UndefinedPrimitive`) without any other size limit. If the input array lacks this sentinel within its allocated bounds, this initial loop will read out of bounds, resulting in `number_vertices` being an arbitrarily large value. Consequently, the main loop's check `i < number_vertices` becomes a check against an invalid, attacker-controlled bound, which does not prevent the out-of-bounds read on `primitive_info[i-1]`."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1855,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The vulnerable operation is an access to `primitive_info` using an index `i` (or `i-1`), which is compiled into a `memcpy`. This access occurs inside the main loop: `for (i=1; (i < (ssize_t) number_vertices) && (length >= 0.0); i++)`. While there is a check `i < (ssize_t) number_vertices`, this check is insufficient because the value of `number_vertices` is derived from an earlier, unbounded loop: `for (i=0; primitive_info[i].primitive != UndefinedPrimitive; i++) ; number_vertices=(size_t) i;`. This initial loop scans the input array `primitive_info` for a terminator without any bounds checking. If the input data lacks the `UndefinedPrimitive` terminator within its allocated bounds, this loop will read out-of-bounds, causing `number_vertices` to be initialized with a potentially very large, arbitrary value. Consequently, the check `i < number_vertices` in the main loop does not prevent `i` from exceeding the actual allocated size of `primitive_info`, leading to an out-of-bounds read. The guard is not against a known, safe bound."
+   },
+   {
+    "func": "GetDrawInfo",
+    "line": 5747,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `GetDrawInfo` receives a pointer `draw_info` as an argument and immediately performs a `memset` on it with the size of the `DrawInfo` struct. The only check on this pointer before the `memset` is `assert(draw_info != (DrawInfo *) NULL)`. This is a check for nullness, not for the size of the allocated buffer. An assert can also be compiled out in release builds. There is no other guard or bounds check to ensure that the memory pointed to by `draw_info` is large enough to hold a `DrawInfo` struct. Since this function is exported (`MagickExport`), it can be called from external code, and a caller could potentially pass a pointer to an undersized buffer, leading to a buffer overflow on the `memset`. Therefore, there is no sufficient guard covering this memory access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 289,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The vulnerable operation is a struct copy `clone_info->bounds = draw_info->bounds;`, which the compiler implements as a `memcpy` of size 32. The source of this copy is from the `draw_info` struct, which is a pointer argument to the function `CloneDrawInfo`. The taint analysis states this pointer is input-derived. The only validation performed on the `draw_info` pointer before this access is a check to ensure it is not `NULL`. This `NULL` check is insufficient to prevent an out-of-bounds read if a non-`NULL` pointer to an undersized buffer is passed as the `draw_info` argument. There is no check on the size of the memory region pointed to by `draw_info` to ensure it is large enough to contain the `bounds` member. Therefore, no bounds check covers this memory access, allowing a potential out-of-bounds read."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 290,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` receives a pointer `draw_info` as an argument. The code checks if `draw_info` is NULL, but it does not perform any checks to validate that the `draw_info` pointer points to a buffer of at least `sizeof(DrawInfo)` bytes. After the NULL check, the function proceeds to copy numerous fields from the memory location pointed to by `draw_info`. If a caller provides a pointer to an undersized buffer, the `memcpy` operation on the `src-ptr` derived from `draw_info` will read past the bounds of that buffer. There is no visible bounds check in the function that would prevent this out-of-bounds read."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 292,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` receives a pointer `draw_info` and proceeds to read from it to populate a new `DrawInfo` structure. There is a `NULL` check on `draw_info` at line 273. If the pointer is not `NULL`, the code proceeds to access various fields of the structure pointed to by `draw_info`. However, there is no validation to ensure that the `draw_info` pointer points to a memory buffer that is large enough to hold a full `DrawInfo` structure. An attacker could provide a non-NULL pointer to an undersized buffer, causing an out-of-bounds read when the code attempts to copy data from it. The provided code does not show any bounds check that would prevent such an access."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 293,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` takes a pointer `draw_info` as input. The only check performed on this pointer is a NULL check at line 258: `if (draw_info == (DrawInfo *) NULL)`. This check does not validate the size of the memory region pointed to by `draw_info`. If a caller provides a non-NULL pointer to a buffer that is smaller than `sizeof(DrawInfo)`, subsequent accesses to members of `draw_info` can lead to out-of-bounds reads. The code proceeds to access multiple members of `draw_info` without any further validation. Since the `memcpy` at line 293 uses a source pointer derived from `draw_info`, and there is no visible bounds check on the path to this operation that would ensure the source buffer is large enough for the 88-byte copy, the access is not covered. The NULL check is insufficient to prevent this type of out-of-bounds read."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 331,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` copies a `DrawInfo` structure. Part of this involves copying the `dash_pattern` array. The code first checks if `draw_info->dash_pattern` is not NULL. If it's not, it enters a `for` loop: `for (x=0; fabs(draw_info->dash_pattern[x]) >= MagickEpsilon; x++) ;`. This loop iterates through the `dash_pattern` array to find its length by looking for a sentinel value (a double close to 0.0). The loop variable `x` is then used to allocate memory for the copy and subsequently in a `memcpy` to copy `(x+1)` elements. The `for` loop itself does not have any bounds check; it relies entirely on finding the sentinel value within the allocated buffer. Since `draw_info` and its contents are input-derived, an attacker can provide a `dash_pattern` array that does not contain the sentinel value within its bounds. This will cause the `for` loop to read past the end of the allocated buffer. The `memcpy` that follows will then attempt to copy from the same out-of-bounds region, using the size determined by the out-of-bounds read. There is no check to ensure `x` remains within the allocated size of `draw_info->dash_pattern`."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 332,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` receives a pointer `draw_info` which is assumed to point to a valid `DrawInfo` structure. The only check performed on this pointer is a NULL check (`if (draw_info == (DrawInfo *) NULL)`). If the pointer is not NULL, the function proceeds to copy numerous fields from `draw_info` to a newly allocated `clone_info`. There are no checks to validate that the memory buffer pointed to by `draw_info` is actually large enough to hold a complete `DrawInfo` structure. The `memcpy` operation in question, which is likely an implicit copy from a struct field assignment (e.g., `clone_info->viewbox = draw_info->viewbox`), reads from a location derived from the `draw_info` pointer. Since `draw_info` is input-derived and there is no preceding bounds check to ensure the buffer is sufficiently large, an attacker could provide a pointer to an undersized buffer, causing an out-of-bounds read when the function attempts to access fields at offsets beyond the buffer's actual size."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 346,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %233",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The size of the memcpy is determined by a `for` loop at line 337 that scans the source buffer `draw_info->dash_pattern` for a sentinel value (`fabs(draw_info->dash_pattern[x]) < MagickEpsilon`). There is no upper bound on the loop counter `x`. If the input `draw_info->dash_pattern` does not contain this sentinel value within its allocated bounds, the loop will read out of bounds, resulting in an arbitrarily large value for `x`. This `x` is then used to calculate the size for the `memcpy` at line 344 (`(x+4)*sizeof(...)`), causing a heap buffer over-read from the tainted source pointer `draw_info->dash_pattern`."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 349,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 152",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code attempts to find the size of the `draw_info->dash_pattern` array by iterating through it until a near-zero value is found. The loop `for (x=0; fabs(draw_info->dash_pattern[x]) >= MagickEpsilon; x++) ;` determines the value of `x`. There is no bounds check on this loop. If the input `draw_info->dash_pattern` does not contain a sentinel value within its allocated bounds, the loop will read past the end of the buffer. The subsequent `memcpy` uses this calculated size `x+4` to copy from the source pointer. Since `x` can be arbitrarily large due to the unbounded loop, the `memcpy` will perform an out-of-bounds read from `draw_info->dash_pattern`. No check exists to prevent this."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 361,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %272",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code copies data from `draw_info->gradient.stops`. The size of the copy is determined by `draw_info->gradient.number_stops` (via `clone_info->gradient` which is a copy of `draw_info->gradient`). There is no check to validate that the source buffer `draw_info->gradient.stops` is actually large enough to contain `number_stops` elements. If an input provides a `draw_info` structure where `number_stops` is greater than the allocated size of the `stops` array, the `memcpy` at line 361 will read out of bounds."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code copies data from `draw_info->gradient.stops` into a newly allocated buffer `clone_info->gradient.stops`. The size of the copy is determined by `number_stops`, which is read from `clone_info->gradient.number_stops`. Prior to this, a struct copy `clone_info->gradient=draw_info->gradient;` is performed, meaning `number_stops` is effectively `draw_info->gradient.number_stops`. The code trusts that the input `draw_info->gradient.number_stops` correctly reflects the allocated size of the `draw_info->gradient.stops` buffer. There is no check to validate this assumption. If an attacker provides a `DrawInfo` structure where `gradient.number_stops` is larger than the actual allocated size of the `gradient.stops` buffer, the `memcpy` at line 364 will read out of bounds from the source buffer `draw_info->gradient.stops`."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 192",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code copies a block of memory from `draw_info->gradient.stops`. The size of this copy is determined by `draw_info->gradient.number_stops` (copied via a struct assignment to `clone_info->gradient.number_stops` at line 360). The code uses a field from the input structure (`number_stops`) to specify the size of a read from a pointer field (`stops`) in the same structure. There is no check to ensure that the source buffer `draw_info->gradient.stops` is actually large enough to contain `number_stops` elements. An attacker could provide a `draw_info` structure where `gradient.stops` points to a small buffer but `gradient.number_stops` is a large value, causing `memcpy` to read out of bounds from the source buffer."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2015,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2075,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The function `DrawGradientImage` receives gradient information via the `draw_info` parameter. The `gradient` object contains a pointer `stops` and a size `number_stops`. The code uses `number_stops` as a limit for iterating over and indexing into the `stops` array. For example, in the `for` loop `for (i=0; i < (ssize_t) gradient->number_stops; i++)` and subsequent accesses like `gradient->stops[i]`, `gradient->stops[0]`, and `gradient->stops[gradient->number_stops-1]`. The prompt guarantees that the `memcpy` in question uses a source pointer derived from `gradient->stops` and an index related to `number_stops`. However, there are no checks within the `DrawGradientImage` function to validate that `number_stops` is a safe upper bound for the `stops` array's allocated size. The function trusts the caller to provide a well-formed `gradient` object. In the absence of any checks on `gradient->number_stops` before it's used to govern memory access, and given the premise that `number_stops` is not guaranteed to match the allocation size, the operation is not bounds-checked."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2078,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted access is `composite=gradient->stops[0].color;`. This line is reached if the condition `(offset < 0.0) || (i == 0)` is true. The value of `i` is determined by the preceding loop: `for (i=0; i < (ssize_t) gradient->number_stops; i++)`. If the input `draw_info->gradient.number_stops` is 0, this loop will not execute, and `i` will remain 0. Consequently, the condition `i == 0` will be true, leading to the execution of `composite=gradient->stops[0].color;`. This constitutes an out-of-bounds read from the `gradient->stops` array, which has zero elements. There is no visible check in the function path to ensure that `gradient->number_stops` is greater than 0 before this access occurs."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1770,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1819,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `DrawDashPolygon` draws a dashed polygon by generating a new set of vertices. It allocates a destination buffer `dash_polygon` to hold these new vertices. The size of this buffer is calculated based on the number of input vertices (`number_vertices`) as `(2 * number_vertices + 32) * sizeof(PrimitiveInfo)`. However, the actual number of vertices generated depends on the geometric length of the polygon segments and the length of the dashes in the dash pattern. An attacker can control both of these properties. By providing a polygon with a small number of vertices but with those vertices being very far apart (resulting in long segments), and by providing a short dash pattern, a very large number of new vertices will be generated to draw the dashed line. The number of generated vertices is tracked by the index `j`, which is incremented by 2 in the inner loop. The number of iterations of this inner loop is proportional to `segment_length / dash_length`. This value is not bounded by `number_vertices`. Consequently, the index `j` can grow much larger than the allocated size of `dash_polygon`. The struct assignment `dash_polygon[j]=primitive_info[i-1]` (which is implemented as a `memcpy`) will then write past the end of the allocated heap buffer, leading to a heap-based buffer overflow."
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1830,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1849,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawDashPolygon",
+    "line": 1855,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "GetDrawInfo",
+    "line": 5747,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The function `GetDrawInfo` takes a pointer `draw_info` as an argument and initializes the structure it points to. The operation `memset(draw_info, 0, sizeof(*draw_info))` clears a block of memory whose size is determined by the compile-time size of the `DrawInfo` struct. The responsibility for allocating a sufficiently large buffer for this struct lies with the caller of `GetDrawInfo`. While a malicious caller could pass an undersized buffer, this is a violation of the function's API contract, not a bug within the function itself. This is a standard and correct way to initialize a structure passed by a pointer. The code even includes a `NULL` check (`assert(draw_info != (DrawInfo *) NULL)`), which is a reasonable guard. Therefore, this is not considered a vulnerability in the `GetDrawInfo` function."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 289,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` performs a structure assignment `clone_info->viewbox=draw_info->viewbox;`, which is compiled into a `memcpy` of a fixed size (32 bytes). The source of this copy is the `viewbox` member of the `draw_info` structure, which is passed as a pointer argument to the function. While the destination buffer `clone_info` is correctly allocated within the function, there is no validation to ensure that the source pointer `draw_info` points to a memory region that is large enough to contain the `viewbox` member. The only check performed is `draw_info == NULL`. If an attacker can control the `draw_info` pointer and make it point to an undersized buffer (which the taint analysis suggests is possible, likely through an upstream type confusion bug in a file parser), this `memcpy` will result in an out-of-bounds read. This could lead to a crash or an information leak. The function is also exported via `MagickExport`, meaning it's part of the public API and can be trivially abused by a caller passing a bad pointer."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 290,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 48",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code is performing a clone operation on a `DrawInfo` struct. The destination object `clone_info` is allocated with `sizeof(DrawInfo)`. The source object `draw_info` is checked for NULL before any of its fields are accessed. The `memcpy` in question is the compiler's implementation of the struct assignment `clone_info->affine = draw_info->affine;`. The size of this copy is fixed at compile time to `sizeof(AffineMatrix)`, which is 48 bytes. Since both the source `draw_info` and destination `clone_info` point to valid, sufficiently large memory blocks to contain the `affine` member, this memory copy is bounded and safe. The taint on the source data does not create an out-of-bounds read vulnerability in this context."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 292,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` receives a pointer `draw_info` as an argument. The code performs a `NULL` check on this pointer, but it does not validate that the pointer actually points to a memory buffer of at least `sizeof(DrawInfo)`. At line 292, the code performs a struct assignment: `clone_info->affine = draw_info->affine;`. This operation will be compiled into a memory copy that reads `sizeof(clone_info->affine)` (which is 88 bytes according to the alert) from the `draw_info` object. If an attacker can control the `draw_info` pointer and make it point to an allocated buffer that is smaller than a full `DrawInfo` structure, this copy operation will result in an out-of-bounds read. Such a scenario is plausible in a complex library like ImageMagick, for example, through a type confusion vulnerability where a pointer to a different, smaller object is passed to this function. The lack of size validation on the input object makes this a potential out-of-bounds read vulnerability."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 293,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` takes a pointer `draw_info` as an argument. This function is part of the library's public API, as indicated by `MagickExport`. The code checks if `draw_info` is NULL, but it does not perform any validation to ensure that the pointer points to a memory buffer of at least `sizeof(DrawInfo)`. The function then proceeds to copy multiple fields from the `draw_info` structure to a newly allocated `clone_info` structure. These copy operations, whether explicit `memcpy` or implicit through struct member assignment, will read from `draw_info` at various offsets. A malicious caller can provide a pointer to a buffer that is smaller than a full `DrawInfo` structure. When the function attempts to read a field located at an offset beyond the bounds of this small buffer, it will result in an out-of-bounds read. This can cause a denial of service (crash) or potentially lead to an information leak if the read data can be observed by the attacker."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 331,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` copies data from a caller-provided `draw_info` structure. The compiler has optimized a sequence of member-to-member assignments (specifically `compliance`, `viewbox`, and `affine`) into a single `memcpy` of 88 bytes. The source of this `memcpy` is the `draw_info` pointer, which is tainted according to the analysis. The code only checks if `draw_info` is NULL, but performs no validation on the size of the buffer it points to. If a caller can be manipulated into passing a `DrawInfo` pointer that points to an allocated buffer smaller than 88 bytes plus the offset of the first field being copied, this operation will result in a heap out-of-bounds read. In a complex library like ImageMagick that processes untrusted inputs, it is plausible that a code path exists where an undersized `DrawInfo` structure can be created based on malformed input and subsequently passed to `CloneDrawInfo`. Such an out-of-bounds read is a triggerable vulnerability that can lead to a crash (Denial of Service) or information disclosure."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 332,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The code calculates the size of the `draw_info->dash_pattern` array by iterating through it until it finds a value close to zero (`fabs(draw_info->dash_pattern[x]) < MagickEpsilon`). The loop `for (x=0; fabs(draw_info->dash_pattern[x]) >= MagickEpsilon; x++) ;` has no upper bound. If the `draw_info->dash_pattern` pointer, which is derived from user input, points to an array that does not contain the expected near-zero sentinel value within its allocated bounds, this loop will read past the end of the buffer. The subsequent `memcpy` then uses the out-of-bounds value of `x` to calculate the copy size (`(x+1) * sizeof(double)`), resulting in an out-of-bounds read from the source pointer `draw_info->dash_pattern`. This is a classic heap-based buffer over-read vulnerability."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 346,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %233",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The code processes the `draw_info->dash_pattern` array, which is derived from user input. It determines the length of this array by iterating until it finds a value `v` where `fabs(v) < MagickEpsilon`. The loop `for (x=0; fabs(draw_info->dash_pattern[x]) >= MagickEpsilon; x++) ;` does not have any other bounds check. If an attacker provides a crafted input where the `dash_pattern` array is not terminated by such a near-zero value within its allocated bounds, the loop will read past the end of the `draw_info->dash_pattern` buffer. This out-of-bounds read can continue until it either segfaults or happens to find a suitable value in unrelated memory. The resulting out-of-bounds value of `x` is then used to calculate the size for the `memcpy`, leading to a large out-of-bounds read from the source `draw_info->dash_pattern`. This is a classic missing bounds check on a value-terminated array from an untrusted source."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 349,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 152",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` copies a `DrawInfo` structure. Part of this process involves copying the `dash_pattern` array. The code determines the size of this array by iterating through it until it finds a value whose absolute value is less than `MagickEpsilon` (a small constant, effectively checking for a zero terminator). The loop `for (x=0; fabs(draw_info->dash_pattern[x]) >= MagickEpsilon; x++) ;` calculates the length `x`. If an attacker provides a `draw_info` object where the `dash_pattern` array is not terminated with such a near-zero value within its allocated bounds, this loop will read past the end of the buffer. This out-of-bounds read continues until it either finds a suitable value in adjacent memory or crashes. The calculated value `x` (which is now based on out-of-bounds data) is then used to determine the size of the `memcpy` operation: `(size_t)(x+4)*sizeof(*clone_info->dash_pattern)`. This `memcpy` will then attempt to read `x+4` elements from the tainted `draw_info->dash_pattern` source buffer, resulting in a heap-based buffer over-read. This is a classic missing-terminator vulnerability."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 361,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 %272",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` copies a `DrawInfo` structure. When copying the `gradient.stops` member, it performs the following steps:\n1. It copies the entire `gradient` struct by value: `clone_info->gradient=draw_info->gradient;`. This makes `clone_info->gradient.number_stops` equal to `draw_info->gradient.number_stops`.\n2. It uses `number_stops = clone_info->gradient.number_stops` to determine the number of elements to copy.\n3. It allocates a new buffer for `clone_info->gradient.stops` of size `number_stops * sizeof(StopInfo)`.\n4. It then calls `memcpy` to copy `number_stops * sizeof(StopInfo)` bytes from `draw_info->gradient.stops` to the newly allocated buffer.\n\nThe vulnerability lies in the fact that the code trusts the `number_stops` field from the input `draw_info` structure to be a correct representation of the allocated size of the `draw_info->gradient.stops` buffer. There is no validation to ensure that `draw_info->gradient.stops` actually points to a buffer that is at least `draw_info->gradient.number_stops` elements long. If a malicious input can cause the program to create an inconsistent `DrawInfo` structure where `number_stops` is larger than the actual allocated size of `stops`, the `memcpy` will read past the end of the source buffer, resulting in a heap-based buffer over-read."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 364,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The function `CloneDrawInfo` creates a deep copy of a `DrawInfo` structure. In the process of copying the `gradient` information, it first performs a shallow copy of the `gradient` struct at line 351 (`clone_info->gradient=draw_info->gradient;`). This copies both the `number_stops` field and the `stops` pointer.\n\nThen, at line 356, it reads the number of stops from the *destination* structure (`number_stops=clone_info->gradient.number_stops;`), which is the value just copied from the *source* `draw_info->gradient.number_stops`. This `number_stops` value is then used to allocate memory for the new `stops` array for the clone.\n\nFinally, the `memcpy` at line 364 uses this same `number_stops` value to determine the size of the data to copy from the original `draw_info->gradient.stops` buffer.\n\nThe vulnerability lies in the fact that the code trusts the `draw_info->gradient.number_stops` field to be correct for the buffer pointed to by `draw_info->gradient.stops`. If a malicious input can create a `DrawInfo` object where `number_stops` is larger than the actual allocated size of the `stops` array, the `memcpy` will read beyond the bounds of the source buffer (`draw_info->gradient.stops`), leading to an out-of-bounds read. This is a classic vulnerability pattern where a size field is not validated against the actual size of the buffer it describes."
+   },
+   {
+    "func": "CloneDrawInfo",
+    "line": 367,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 192",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The code copies gradient stops from a source `draw_info` structure to a new `clone_info` structure. The logic proceeds as follows:\n1. On line 357, a shallow copy of the `gradient` struct is performed: `clone_info->gradient=draw_info->gradient;`. This copies both the `stops` pointer and the `number_stops` field.\n2. On line 362, the variable `number_stops` is initialized from `clone_info->gradient.number_stops`, which is the value from the input-controlled `draw_info->gradient.number_stops`.\n3. On line 363, a destination buffer `clone_info->gradient.stops` is allocated with a size determined by `number_stops`.\n4. On line 367, `memcpy` is called to copy `number_stops * sizeof(StopInfo)` bytes from the source buffer `draw_info->gradient.stops`.\n\nThe vulnerability lies in the assumption that the source buffer `draw_info->gradient.stops` actually contains `number_stops` elements. An attacker could provide a crafted input file where the parsing logic creates an inconsistent `DrawInfo` state, such that `number_stops` is larger than the number of elements actually allocated for the `stops` buffer. In this case, the `memcpy` on line 367 will read past the end of the `draw_info->gradient.stops` buffer, leading to a heap-based out-of-bounds read. The code lacks any validation to ensure the source buffer is large enough for the copy operation."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2015,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 32",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2075,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The tainted source pointer comes from `gradient->stops`, which is part of the `draw_info` input parameter. The code processes a list of color stops for a gradient, stored in `gradient->stops`, with the number of stops given by `gradient->number_stops`. An attacker can provide an input (e.g., an MVG or SVG file) where a gradient is defined with zero stops, making `gradient->number_stops` equal to 0.\n\nThe code contains a loop to find the correct color stop based on an offset:\n```c\nfor (i=0; i < (ssize_t) gradient->number_stops; i++)\n  if (offset < gradient->stops[i].offset)\n    break;\n```\nIf `gradient->number_stops` is 0, this loop does not execute, and the loop variable `i` remains 0.\n\nImmediately following the loop is this logic:\n```c\nif (i == 0)\n  pixel=gradient->stops[0].color;\nelse\n  // ...\n```\nSince `i` is 0, the `if` condition is met, and the code attempts to access `gradient->stops[0]`. Because `gradient->number_stops` is 0, this is an out-of-bounds read from a zero-element array. The structure assignment `pixel=gradient->stops[0].color` is implemented as a `memcpy`, and the source pointer for this `memcpy` is the out-of-bounds address `&gradient->stops[0].color`. This is a triggerable vulnerability that leads to a crash (Denial of Service)."
+   },
+   {
+    "func": "DrawGradientImage",
+    "line": 2078,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 88",
+    "orientation": "aggressive",
+    "real_bug": true,
+    "reasoning": "The tainted `draw_info` structure contains a `gradient` member, which in turn has a `stops` array and a `number_stops` count. Both are considered input-derived. The code iterates through the pixels to be drawn. For each pixel, it calculates an `offset` and then tries to find the correct color stop from the `gradient->stops` array using a `for` loop:\n\n`for (i=0; i < (ssize_t) gradient->number_stops; i++)`\n\nIf an input can be crafted such that `gradient->number_stops` is 0, this loop will not execute. The loop variable `i` will retain its initial value of 0. \n\nImmediately following the loop is this conditional check:\n\n`if ((offset < 0.0) || (i == 0))`\n\nSince `i` is 0, this condition is true. The code inside the `if` block is then executed:\n\n`composite=gradient->stops[0].color;`\n\nThis line attempts to access the first element (`[0]`) of the `gradient->stops` array. However, since `gradient->number_stops` is 0, this is an out-of-bounds read. There are no preceding checks to ensure that `gradient->number_stops` is greater than 0 before this access. This constitutes a triggerable out-of-bounds read vulnerability."
+   }
+  ]
  },
  {
   "id": "20096",

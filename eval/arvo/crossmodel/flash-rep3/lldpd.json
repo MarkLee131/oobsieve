@@ -2,8 +2,520 @@
  {
   "id": "52006",
   "project": "lldpd",
-  "build_ok": false,
-  "recall": "error:ServerError",
-  "tb": ")\n  File \"/home/likaixuan/.local/lib/python3.10/site-packages/google/genai/errors.py\", line 148, in raise_error\n    raise ServerError(status_code, response_json, response)\ngoogle.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}\n"
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 25,
+  "recall": "hit",
+  "gt_func": "cdp_decode",
+  "n_gt_cands": 18,
+  "n_gt_confirmed": 17,
+  "n_other_sampled": 7,
+  "n_other_confirmed": 7,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "cdp_decode",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 345 is part of the `PEEK_UINT16` macro, which is essentially `memcpy(&v, pos, 2); pos += 2;`. The `src-ptr` operand is `pos`, and the size is `2`. The `pos` variable is derived from the input `frame`. While there are several length checks before this point (e.g., `length < ...`, `len_eth > length`), these checks primarily ensure that the overall frame length is sufficient or consistent. There isn't a specific, explicit check like `if (pos + 2 > frame + s)` or a macro like `ND_TCHECK` that directly ensures `pos` remains within the bounds of the original `frame` buffer before every `PEEK_UINT16` or similar operation. The `PEEK_UINT16` operation implicitly relies on `pos` not exceeding `frame + s`, but this is not explicitly guarded with a check that can be identified as covering this particular access. The closest checks are general frame length checks at the beginning, but `pos` is advanced iteratively, and its current value relative to `frame + s` is not always explicitly verified before each read."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 356,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 356 is part of the `cdp_decode` function, but the provided code snippet ends just before the start of the `cdp_decode` function. Without the full function body, it is impossible to determine if there is a bounds check that covers the `memcpy` operation. The `CHECK_TLV_SIZE` macro is defined, but its usage in relation to line 356 is not visible. Since the relevant code is missing, I cannot confirm a covering bounds check."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 384,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 384 is part of the `PEEK_UINT8` macro, which accesses `pos` with an offset of 0 and a size of 1. The `pos` pointer is advanced throughout the `cdp_decode` function as data is parsed from the `frame`. The `length` variable is decremented to reflect the remaining data. While there are checks like `if (length < 4)` before processing a TLV header, these checks are for the TLV header itself (type + length), not for individual bytes being read within the TLV's data. Specifically, for a single `PEEK_UINT8` operation, there is no explicit check to ensure `length >= 1` immediately preceding the access. The `while(length)` loop condition ensures `length` is positive at the start of each iteration, but if `length` becomes 0 or negative during previous `PEEK` operations within the loop, the subsequent `PEEK_UINT8` at line 384 would read out of bounds. Without a more granular check for `length` before each single-byte read, it's not possible to guarantee that `pos` always points to valid data for a read of size 1."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 391,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy is implicitly performed by `PEEK_UINT8` at line 391. While there are several length checks before the `while (length)` loop, and a `length < 4` check inside the loop, none of them specifically ensure that there is at least 1 byte available at `pos` before `PEEK_UINT8` is called. The `PEEK_UINT8` macro essentially reads one byte from `pos` and advances `pos`. The closest check, `length < 4`, only ensures that there are 4 bytes available for `tlv_type` and `tlv_len`, not necessarily for the subsequent `PEEK_UINT8` call (which is part of the CDP header parsing, not a TLV). There's no explicit check for `length >= 1` before the first `PEEK_UINT8` call at line 391."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code uses `PEEK_UINT16` to read two bytes at line 402. The `PEEK_UINT16` macro expands to a `memcpy` operation. The only bounds check that involves `length` and `tlv_len` is `if ((tlv_len < 0) || (length < tlv_len))` at line 397. This check ensures that `length` is greater than or equal to `tlv_len`. However, `tlv_len` itself is derived from `PEEK_UINT16` at line 394 and then `tlv_len = PEEK_UINT16 - 4;` at line 395. The problem is that the `PEEK_UINT16` operation at line 394 itself is not sufficiently guarded for a size of 2 bytes. The preceding check `if (length < 4)` at line 392 only ensures that at least 4 bytes are available for the entire TLV header (type and length), but not necessarily for the individual `PEEK_UINT16` reads if `length` was, for example, 3. Even if it was 4, `PEEK_UINT16` at 394 takes 2 bytes, and `PEEK_UINT16` at 395 takes another 2 bytes. If length was exactly 3, the first `PEEK_UINT16` would be fine, but the second one would be an out-of-bounds read. Since the `PEEK_UINT16` at 394 and 395 are for the type and length of the TLV, and then `tlv_len` is used to determine how much data follows, an attacker could craft `tlv_len` such that it appears to be a valid value after subtracting 4, but the initial read of `tlv_type` or `tlv_len` itself goes out of bounds. The crucial point is that `length < 4` only checks for the combined 4 bytes, not for each individual `PEEK_UINT16`'s requirement of 2 bytes within that 4-byte window. Without more specific checks before each `PEEK_UINT16` to ensure at least 2 bytes are remaining, this is a potential vulnerability."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 403,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 403 operates on a src-ptr which is input-derived. The size is 2. The PEEK_UINT16 macro, which expands to memcpy, uses the 'pos' pointer. While there are checks for 'length' (which represents the remaining buffer size) before reading TLV headers and for 'tlv_len' against 'length' after reading a TLV header, there isn't a specific explicit bounds check on 'pos' + 2 bytes right before this particular memcpy call. The existing checks on 'length' ensure that there's at least 'tlv_len' bytes available for the entire TLV, but they don't granularly check each PEEK_UINT16 operation within the TLV content, especially when 'tlv_len' might be very small."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 436,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 436 copies `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`. The value `tlv_len` is derived from `PEEK_UINT16` (line 424) which reads from the input. There's a check `if ((tlv_len < 0) || (length < tlv_len))` at line 428, which bounds `tlv_len` by `length`. However, `chassis->c_id` is allocated with `malloc(tlv_len)` at line 434, while `chassis->c_name` is allocated with `calloc(1, tlv_len + 1)` at line 430. This means `chassis->c_name` is one byte larger than `chassis->c_id`. If `tlv_len` is greater than 0, copying `tlv_len` bytes from `chassis->c_name` to `chassis->c_id` will attempt to write one byte beyond the allocated buffer for `chassis->c_id`. Thus, there is no sufficient bounds check covering this exact access."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 448,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code snippet provided does not contain a memcpy operation at line 448. However, assuming the memcpy at line 470 (memcpy(chassis->c_id, chassis->c_name, tlv_len);) is the target, there is no explicit bounds check for the destination buffer `chassis->c_id` with respect to `tlv_len` after its allocation. While `chassis->c_id` is allocated with `malloc(tlv_len)`, there's no check for `tlv_len` being non-negative before the allocation or before the memcpy. If `tlv_len` can be negative (which it's checked for with `if ((tlv_len < 0) || (length < tlv_len))`), then `malloc(tlv_len)` for a negative `tlv_len` could lead to undefined behavior or a very small allocation, which `memcpy` with `tlv_len` (if `tlv_len` is then interpreted as a large unsigned number) could overflow. Although there's a check `if ((tlv_len < 0) || (length < tlv_len))`, if `tlv_len` is controlled by an attacker and becomes very large but positive, `malloc` might fail or `memcpy` could overflow if `chassis->c_name` (the source) is smaller than `tlv_len` (though `chassis->c_name` is allocated with `tlv_len + 1`). The primary concern is the interaction of `tlv_len` with `malloc` and `memcpy` where `tlv_len` is derived from external input. Without a clear and specific guard that ensures `tlv_len` for `memcpy` is within the allocated size of `chassis->c_id` (especially considering the source `chassis->c_name` is allocated with `tlv_len + 1`), it's safer to mark as a bug."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 459,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": null
+   },
+   {
+    "func": "cdp_decode",
+    "line": 473,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 473 copies `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`. While `chassis->c_id` is allocated with `malloc(tlv_len)`, `chassis->c_name` is allocated with `calloc(1, tlv_len + 1)`. The `PEEK_BYTES` operation populates `chassis->c_name` with `tlv_len` bytes. The problem is that the `PEEK_BYTES` reads from `pos` which is the input-derived src-ptr. There's a check `if ((tlv_len < 0) || (length < tlv_len))` which ensures that `tlv_len` is not negative and that there's enough remaining `length` in the buffer to read `tlv_len` bytes. However, this check is on the `PEEK_BYTES` operation. The `memcpy` uses `chassis->c_name` as the source, which has been populated from the input-derived `pos`. The size of the `memcpy` is `tlv_len`. The bounds check `if ((tlv_len < 0) || (length < tlv_len))` ensures that the data read by `PEEK_BYTES` fits into the `chassis->c_name` buffer (which is `tlv_len + 1` bytes long). The `memcpy` itself is copying from `chassis->c_name` to `chassis->c_id`, both of which are locally allocated. The src-ptr being tainted is `chassis->c_name`. The actual content of `chassis->c_name` comes from the input, but the allocation size for `chassis->c_name` (`tlv_len + 1`) and the copy size `tlv_len` means the `memcpy` itself will not read out of bounds of `chassis->c_name`. However, the prompt states that the tainted operand is `src-ptr` of the memcpy at line 473. The src-ptr is `chassis->c_name`. The allocation for `chassis->c_name` is `tlv_len + 1`. The size of the `memcpy` is `tlv_len`. This means `memcpy` will not read past the end of `chassis->c_name`. Therefore, there is no real bug in the memcpy itself regarding an out-of-bounds read from `chassis->c_name`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 474 copies 1 byte (sizeof(struct in_addr) is usually 4 bytes). The `src-ptr` (operand `&addr`) is populated by `PEEK_BYTES(&addr, sizeof(struct in_addr))` just above line 474. The `PEEK_BYTES` operation itself relies on `addresses_len` for bounds checking. While there are checks like `if (addresses_len < address_len)` and `if (addresses_len < address_len + 2)` before the `PEEK_BYTES`, there is no explicit bounds check or macro directly protecting the `memcpy(&addr, sizeof(struct in_addr))` or the later `memcpy(&addr, sizeof(struct in_addr))` if `sizeof(struct in_addr)` is considered as `1` in this specific context (the problem description states `size expr i64 1`). If `sizeof(struct in_addr)` is 4, then the `memcpy` is copying 4 bytes. The problem states `size expr i64 1`. So, we are copying 1 byte into `addr`. `addr` is a `struct in_addr`, usually 4 bytes. The source of `PEEK_BYTES(&addr, sizeof(struct in_addr))` is `pos`, which is a pointer into the received frame. The check `PEEK_UINT16 == sizeof(struct in_addr)` ensures that the length of the address is indeed 4 bytes (assuming `sizeof(struct in_addr)` is 4). However, the overall `addresses_len` and `address_len` logic is complex and relies on multiple subtractions and checks. The given information only confirms `src-ptr` is INPUT-DERIVED and NOT a constant, NOT clamped, NOT allocate-to-fit. There isn't a single clear `if (off+n > cap)` or `ND_TCHECK` style macro directly covering the `PEEK_BYTES` for `sizeof(struct in_addr)` bytes. The various `addresses_len` checks are relative to previously parsed lengths and might not guarantee the safety of `sizeof(struct in_addr)` bytes from the `pos` pointer at this exact location without a clearer guard."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 475,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 475 copies 2 bytes from the src-ptr. While there are numerous bounds checks in the surrounding code, none of them specifically cover this exact memcpy operation to ensure that `src-ptr` has at least 2 bytes available. The PEEK_UINT8, PEEK_UINT16, PEEK_BYTES, etc., operations are essentially reading from the `src-ptr`, and while they might implicitly check bounds (or be implemented in a way that checks them), the problem description asks for an explicit, sufficient guard covering THIS exact access. The current context involves various length calculations (e.g., `addresses_len`, `address_len`), but there's no direct check like `if (addresses_len < 2)` immediately preceding the `memcpy` if this `memcpy` is one of the 'PEEK' operations simplified."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy operation at line 476 copies `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`. While `chassis->c_id` is allocated with `tlv_len` bytes, `chassis->c_name` is allocated with `tlv_len + 1` bytes, and the `PEEK_BYTES` operation populates `chassis->c_name` with `tlv_len` bytes. The `tlv_len` itself comes from `PEEK_UINT16 - 4` and is checked against `length` (remaining buffer size) and for being non-negative. However, the source `chassis->c_name` is an input-derived pointer. The question specifies that the src-ptr operand of this memory operation is INPUT-DERIVED and NOT a constant. There is no explicit bounds check on `chassis->c_name` before the `memcpy` to ensure `tlv_len` bytes can be read from it. The `PEEK_BYTES(chassis->c_name, tlv_len)` operation would have performed this check implicitly against the input buffer, but `chassis->c_name` is a local allocation, not the input buffer. Therefore, there's no explicit check ensuring that `chassis->c_name` itself has `tlv_len` bytes of valid data to be read in the context of it being the source of `memcpy`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 535 copies `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`. While `chassis->c_id` is allocated with `tlv_len + 1` bytes, the source `chassis->c_name` is also a buffer whose size depends on a previous `tlv_len` from another case. However, there is no explicit bounds check on `chassis->c_name` to ensure it can hold `tlv_len` bytes in the current context. The `tlv_len` comes from a TLV header and can be controlled by an attacker. Without a clear check to guarantee `chassis->c_name` is at least `tlv_len` bytes long before this memcpy, it's a potential out-of-bounds read from `chassis->c_name`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 563,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 563 copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. The `tlv_len` value is derived from input (CDP_TLV_PORT). While `port->p_id` is allocated with `calloc(1, tlv_len)`, and `port->p_descr` is allocated with `calloc(1, tlv_len + 1)`, ensuring the destinations are large enough, the source (`port->p_descr`) itself is filled by PEEK_BYTES earlier. PEEK_BYTES is a macro that ultimately performs a memcpy from `ctl->cdp_packet` (input). The bounds of `ctl->cdp_packet` relative to `tlv_len` are checked via `ND_TCHECK` or similar mechanisms within the PEEK_* macros. However, this is for the *input buffer*. The question asks whether the *source pointer* (`port->p_descr`) of *this specific memcpy* is covered. `port->p_descr` is a user-allocated buffer, and its contents are entirely controlled by the input data *after* the `PEEK_BYTES` operation. There is no explicit bounds check on `port->p_descr` itself before this memcpy operation to ensure that its *contents* are valid for `tlv_len` bytes, only that the buffer *size* was allocated correctly based on `tlv_len`. The `PEEK_BYTES` operation into `port->p_descr` ensures `tlv_len` bytes are copied from the input, but it doesn't ensure that `port->p_descr` *remains* valid or points to a buffer of size `tlv_len` at the point of the memcpy on line 563 if `port->p_descr` itself was somehow manipulated between the `PEEK_BYTES` and the `memcpy`. Although in this specific flow, `port->p_descr` is not modified after `PEEK_BYTES` until the `memcpy`, the question is specifically about a *bounds check* covering the *source operand* of this memcpy. There is no such explicit check covering `port->p_descr` for `tlv_len` bytes here. Given the strict instructions to default to true if unsure or no specific sufficient guard is visible, and the fact that `port->p_descr` is itself a dynamically allocated buffer filled from input, a dedicated check on it is not present before this memcpy."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 579 uses `tlv_len` as the size. The `port->p_id` buffer is allocated with `calloc(1, tlv_len)`. The `port->p_descr` buffer is allocated with `calloc(1, tlv_len + 1)`. If `tlv_len` is greater than 0, then `port->p_id` is allocated with `tlv_len` bytes, and `port->p_descr` is allocated with `tlv_len + 1` bytes. The `memcpy` copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. This means that if `tlv_len` is 0, the allocation `calloc(1, 0)` is undefined behavior, and even if it returned a valid pointer, copying 0 bytes is a no-op, which is safe. If `tlv_len` is greater than 0, the `memcpy` is writing exactly `tlv_len` bytes into a buffer of `tlv_len` bytes, which is a perfect fit. There is no explicit bounds check (like CHECK_TLV_SIZE) that ensures `tlv_len` is within a safe range, but given the preceding `calloc` calls, it seems intended that `tlv_len` is the exact size needed. However, the `src-ptr` for the `memcpy` is `port->p_descr`, and the `PEEK_BYTES(port->p_descr, tlv_len)` operation earlier is what populates `port->p_descr`. The `PEEK_BYTES` macro internally uses `ND_TCHECK` which checks `pos + len <= end`. This ensures that the data read into `port->p_descr` fits within the overall received packet. Therefore, `port->p_descr` is guaranteed to contain `tlv_len` bytes of valid data. The `memcpy` itself copies this `tlv_len` bytes into `port->p_id`, which was allocated for exactly `tlv_len` bytes. There's no overflow *from* the `memcpy` regarding `port->p_id`. The issue is not in the `memcpy` but the preceding `PEEK_BYTES` for `port->p_descr`. The prompt is asking about the `src-ptr` of the memcpy, which is `port->p_descr`. The `PEEK_BYTES` macro, which is responsible for filling `port->p_descr`, contains `ND_TCHECK` which does perform a bounds check ensuring `pos + len <= end`. This means that `port->p_descr` is guaranteed to be filled with `tlv_len` valid bytes up to the packet's end. Thus, the `src-ptr` of the `memcpy` is covered by the `ND_TCHECK` within `PEEK_BYTES`. My prior analysis failed to consider the `ND_TCHECK` within `PEEK_BYTES`. The `PEEK_BYTES` call at line 568 `PEEK_BYTES(port->p_descr, tlv_len);` involves the source pointer `pos` and length `tlv_len`. The `PEEK_BYTES` macro typically contains `ND_TCHECK` or similar checks to ensure `pos + tlv_len` does not go beyond the end of the packet. If `PEEK_BYTES` correctly guards against reading outside the packet buffer, then `port->p_descr` will contain `tlv_len` bytes of valid data. Therefore, the `src-ptr` (`port->p_descr`) for the `memcpy` operation is effectively covered because its content is guaranteed to be `tlv_len` bytes long by the prior `PEEK_BYTES` operation, which itself has a bounds check. However, the question asks about the `src-ptr` operand *of this memory operation*, meaning the `memcpy`. The `memcpy`'s source is `port->p_descr`. The *allocation* of `port->p_descr` is `tlv_len + 1`. The *reading* into `port->p_descr` is `tlv_len` bytes by `PEEK_BYTES`. The `PEEK_BYTES` macro indeed contains `ND_TCHECK(pos, len);` where `len` is `tlv_len`. This `ND_TCHECK` ensures that `pos + tlv_len` does not exceed the packet boundary. This means the data copied into `port->p_descr` is from a valid part of the packet. Therefore, the source of the `memcpy` (`port->p_descr`) is guaranteed to contain `tlv_len` valid bytes because `PEEK_BYTES` performed a bounds check. The `memcpy` then copies these `tlv_len` bytes. The bug is not at the `memcpy` itself, but the lack of a explicit check for `tlv_len` itself. The `PEEK_BYTES` ensures the read is within `pos` and `end`, but does not guard against `tlv_len` being a huge value that could lead to an excessive `calloc`. However, the question is specifically about the *bounds check that COVERS THIS EXACT ACCESS* of the `src-ptr` of the `memcpy`. The `src-ptr` is `port->p_descr`. The `PEEK_BYTES` call populates `port->p_descr` with `tlv_len` bytes, and this operation is guarded by `ND_TCHECK`. This `ND_TCHECK` ensures that the `tlv_len` bytes read into `port->p_descr` were indeed available in the input buffer. Thus, the `src-ptr` (the data stored in `port->p_descr`) is covered because its content's validity and length (`tlv_len`) are verified by `ND_TCHECK` during the `PEEK_BYTES` call. The question is if there is a bounds check that COVERS *this exact access*. The `memcpy` operation is taking `tlv_len` bytes from `port->p_descr`. The data in `port->p_descr` was previously written by `PEEK_BYTES(port->p_descr, tlv_len)`. The `PEEK_BYTES` macro (defined elsewhere but generally implies reading from a network buffer) would contain a check like `ND_TCHECK(pos, tlv_len)` to ensure `pos + tlv_len` is within the bounds of the overall packet. This check ensures that the `tlv_len` bytes *written into* `port->p_descr` were valid. Therefore, when `memcpy` reads `tlv_len` bytes *from* `port->p_descr`, it is reading `tlv_len` bytes that were previously bounds-checked during the `PEEK_BYTES` operation. So, yes, the `src-ptr` of the `memcpy` is covered by the `ND_TCHECK` in the `PEEK_BYTES` macro that populated `port->p_descr`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 580 copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. The `tlv_len` is derived from the input and is not constant. While `port->p_id` is allocated with `calloc(1, tlv_len)`, there is no explicit check to ensure that `port->p_descr` is at least `tlv_len` bytes long. The `PEEK_BYTES(port->p_descr, tlv_len)` operation earlier loads data into `port->p_descr` which is allocated with `calloc(1, tlv_len + 1)`. However, the source of `PEEK_BYTES` is the input stream, and there's no guarantee that the input stream actually contains `tlv_len` bytes at that point. If `PEEK_BYTES` reads fewer than `tlv_len` bytes due to an malformed input, then `port->p_descr` would be shorter than `tlv_len`, leading to a read out of bounds from `port->p_descr` during the `memcpy`. Therefore, a bounds check is needed on `port->p_descr`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 581,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 581 is copying `tlv_len` bytes from `port->p_descr` to `port->p_id`. The `tlv_len` value is derived from input and is used to allocate memory for `port->p_id` via `calloc(1, tlv_len)`. However, `port->p_descr` is allocated with `calloc(1, tlv_len + 1)`. If `tlv_len` is 0, then `calloc(1, tlv_len)` for `port->p_id` would allocate 0 bytes, while `port->p_descr` would allocate 1 byte. In this specific case, `tlv_len` is checked to be greater than 0 (`if (tlv_len == 0) ... goto malformed;`). So, `port->p_id` will be allocated `tlv_len` bytes. The copy size is `tlv_len`. This means the memcpy is correctly bounded by the allocation size of `port->p_id`. However, the prompt specifies the tainted operand is `src-ptr`, meaning `port->p_descr`. The `PEEK_BYTES` call populates `port->p_descr` with `tlv_len` bytes. If `tlv_len` bytes are read, but `port->p_descr` is allocated `tlv_len + 1`, then there is a guaranteed null terminator space. The `memcpy` copies exactly `tlv_len` bytes. The `PEEK_BYTES` macro, which is not fully provided but often operates on a global buffer `cdp_packet`, does not have an explicit bounds check for the source buffer (`cdp_packet`) before reading `tlv_len` bytes into `port->p_descr`. Thus, the source of the `memcpy` (`port->p_descr`) is fine, but the data stored into `port->p_descr` by `PEEK_BYTES` (which is the effective source of the `memcpy`'s data) might be out-of-bounds relative to the `cdp_packet` buffer. Without seeing the definition of `PEEK_BYTES` and how `cdp_packet` is managed and bounded, I must assume a potential vulnerability if `PEEK_BYTES` doesn't perform its own bounds check on the input buffer. Given the rule to default to `true` if unsure, and the fact that `PEEK_BYTES` is a macro that could be vulnerable, `real_bug` is `true` for the `src-ptr` (data read into `port->p_descr` from `cdp_packet`)."
+   },
+   {
+    "func": "cdp_send",
+    "line": 79,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 6",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `src-ptr` for the `memcpy` at line 79 is `fdpmcastaddr`, which is a `const u_int8_t` array of size `CDP_MULTICAST_ADDR_LEN` (6). The `size expr` for the `memcpy` is `i64 6`. This is a constant size and matches the size of `fdpmcastaddr`. The destination `mcastaddr` is also an array of the same size. No explicit bounds check is needed or performed here, but the operation is safe given the constant sizes involved. However, the analysis focuses on the `src-ptr` being INPUT-DERIVED. If `fdpmcastaddr` is truly input-derived and not a constant as the prompt states, then a bounds check would be needed. Since the prompt explicitly states that `src-ptr` is INPUT-DERIVED and NOT a constant, and no bounds check covering this specific access (reading 6 bytes from `fdpmcastaddr`) is present, we must assume `real_bug=true` according to the rules."
+   },
+   {
+    "func": "cdp_send",
+    "line": 101,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %180",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 101, `memcpy(mcastaddr, fdpmcastaddr, sizeof(mcastaddr))`, has its size argument `sizeof(mcastaddr)` derived from an input-controlled `version` parameter. When `version == 0`, `mcastaddr` is set to `FDP_MULTICAST_ADDR`. However, the definition of `mcastaddr` is `u_int8_t mcastaddr[] = CDP_MULTICAST_ADDR;`. The size of `mcastaddr` is determined by `CDP_MULTICAST_ADDR` at initialization. If `sizeof(FDP_MULTICAST_ADDR)` is greater than `sizeof(CDP_MULTICAST_ADDR)`, this `memcpy` will write past the end of the `mcastaddr` buffer. There is no bounds check covering this potential overflow."
+   },
+   {
+    "func": "cdp_send",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The tainted `src-ptr` in the `memcpy` at line 126 is `&mgmt->m_addr`. The size is `sizeof(struct in_addr)`, which is 4 bytes. This `mgmt` pointer comes from a `TAILQ_FOREACH` loop over `chassis->c_mgmt`. There are no explicit bounds checks (like `if (pos + 4 > end)`) covering this specific memory access before the `memcpy`. The `POKE_BYTES` macro, if properly defined, should contain such checks, but it's not visible here. Without the macro definition, I cannot verify its safety. Thus, it's assumed there is no explicit bounds check."
+   },
+   {
+    "func": "cdp_send",
+    "line": 139,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %352",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The size expression `i64 %352` for the memcpy at line 139 is derived from `strlen(capstr)`. There is no visible bounds check ensuring that `strlen(capstr)` is within the allocated buffer `packet` (`length = hardware->h_mtu`). The `POKE_BYTES` macro, used throughout the function, relies on a global `pos` pointer and a `end` pointer to ensure writes stay within the buffer. However, the definition of `POKE_BYTES` is not provided, and there's no explicit check immediately preceding this specific `memcpy` that validates `capstr`'s length against the remaining buffer space. Therefore, without further context on `POKE_BYTES` or a direct check, a heap buffer overflow is possible if `strlen(capstr)` is too large."
+   },
+   {
+    "func": "cdp_send",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %580",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The code uses a series of POKE_... macros which internally call memcpy. These macros are guarded by `if (!(POKE_...)) goto toobig;`. The `toobig` label eventually leads to an error return. However, the `POKE_BYTES` macro, which is responsible for the memcpy at line 180, doesn't seem to perform a bounds check itself. It relies on the overall packet length not exceeding `hardware->h_mtu`, which is a fixed size. The 'size' operand is `i64 %580` which is input-derived. Without explicit bounds checks *within* the POKE_BYTES macro or immediately surrounding it in a way that checks the *current* `pos` plus the size against the *allocated* `length` of `packet`, a buffer overflow can occur if the input-derived size exceeds the remaining buffer space. While the 'toobig' jump exists, the analysis indicates that the size is INPUT-DERIVED and NOT clamped, and the 'toobig' check seems to be a generic failure check rather than a precise bounds check on the memcpy itself for all possible inputs."
+   },
+   {
+    "func": "cdp_send",
+    "line": 188,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %633",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The provided code snippet contains multiple `POKE_BYTES` calls, each guarded by a `goto toobig` if the `POKE_BYTES` operation fails. However, the `memcpy` at line 188 with size expression `i64 %633` is not directly visible in the provided code. Assuming `POKE_BYTES` is a macro that eventually uses `memcpy`, without the definition of `POKE_BYTES` or the exact location of the `memcpy` with the size `i64 %633`, it's impossible to verify if there's a specific `POKE_BYTES` call whose guard covers this `memcpy`. Even if `i64 %633` refers to `strlen(chassis_name)`, `strlen(port_descr)`, `strlen(capstr)`, `strlen(chassis_descr)`, or `strlen(platform)`, the `POKE_BYTES` macro's internal implementation and its bounds checking mechanism for the destination buffer are unknown. Therefore, it's impossible to confirm a sufficient guard covers this exact access."
+   },
+   {
+    "func": "cdp_guess",
+    "line": 694,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 694 is copying 1 byte from `software` into `chassis->c_descr`. The `software` pointer is input-derived. While `chassis->c_descr` is allocated with `calloc(1, software_len + 1)`, there is no explicit bounds check on `software` itself to ensure that `software_len` is a valid length for the `software` buffer. Without such a check, a malicious input could provide a `software_len` that exceeds the actual size of the `software` buffer, leading to an out-of-bounds read from `software`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 345 is part of the `POKE_UINT16` macro, which is responsible for writing data to a packet buffer. The `src-ptr` operand is tainted, but it's part of a macro that seems to be carefully designed for bounds checking. The `POKE_UINT16` macro is used in the `POKE_START_CDP_TLV` and `POKE_END_CDP_TLV` checks, and if any of these fail, the code jumps to `toobig:`, which frees the packet and returns an error. This suggests that the packet buffer is protected against overflows. Additionally, the `PEEK_` macros are used for reading from the received frame, and `CHECK_TLV_SIZE` also provides bounds checks for incoming data. While the `src-ptr` itself is tainted, its usage is within a guarded context, making a triggerable out-of-bounds write unlikely."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 356,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for the `memcpy` is `pos` (which is `(u_int8_t *)frame`), and the `size` is `2`. The code uses `PEEK_UINT16` which uses `memcpy(v, PEEK_POS(), sizeof(u_int16_t))`. `PEEK_POS()` returns `pos`, and `PEEK_DISCARD(x)` increments `pos` by `x`. The `length` variable keeps track of the remaining size of the frame. Before any `PEEK_*` operation, the code ensures that there is enough data in the buffer (`length` is large enough) by using `CHECK_TLV_SIZE` macro or explicit checks like `if (length < 2 * ETHER_ADDR_LEN + sizeof(u_int16_t) /* Ethernet */ + 8 /* LLC */ + 4 /* CDP header */)`. In particular, for `PEEK_UINT16`, the check `if (length < sizeof(u_int16_t))` or similar always precedes the read. Therefore, an out-of-bounds read of 2 bytes at `pos` is prevented because `length` is guaranteed to be at least 2 at that point, and `pos` is always within `frame + s`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 384,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code uses a macro `PEEK_UINT8` which internally includes bounds checks (`PEEK_CHECK`) before accessing `pos`. The `PEEK_CHECK` macro ensures that `length` is sufficient for the access. If not, it jumps to `malformed`. Therefore, a `memcpy` of size 1 at `line 384` where `src-ptr` is `pos` (the argument to PEEK_UINT8) will not be out-of-bounds because the `PEEK_CHECK` macro guards against such access. The `PEEK_UINT8` macro essentially does `pos++` and then returns the value at the original `pos`. The taint analysis is correct in identifying `src-ptr` as input-derived, but the code has an explicit bounds check which mitigates the vulnerability."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 391,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code snippet provided shows a `memcpy` operation at line 391 where the `src-ptr` is tainted. However, the `memcpy` is not directly shown in the provided snippet, and the `PEEK_` macros are used for reading data. The `PEEK_SAVE` macro assigns `tlv` to the current `pos`. The subsequent `memcpy` (which is not directly shown but would likely be implied by a `PEEK_` macro that copies data) uses `tlv` as the source, and `tlv_len` as the size. The `tlv_len` is derived from `PEEK_UINT16 - 4` and is checked against `length` (remaining frame length) before any copy operations: `if ((tlv_len < 0) || (length < tlv_len))`. This check ensures that `tlv_len` is a valid positive length and does not exceed the remaining buffer, preventing an out-of-bounds read from `tlv`. Therefore, based on the provided context, it seems to be guarded."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for the `memcpy` at line 402 is `(u_int8_t *)frame`. This pointer is advanced using `PEEK_DISCARD` and `PEEK_UINTx` macros. The `length` variable, which represents the remaining valid bytes from `frame`, is carefully checked before each access. Specifically, the line `if (length < 4)` checks if there are enough bytes for `tlv_type` and `tlv_len`. After reading `tlv_len`, the condition `if ((tlv_len < 0) || (length < tlv_len))` further ensures that `tlv_len` is non-negative and that there are at least `tlv_len` bytes remaining in the `frame`. The `memcpy` itself is not directly in the provided snippet, but the `PEEK_SAVE(tlv)` macro and subsequent usage of `tlv` would be guarded by these checks. The overall approach of validating `length` before each read and checking `tlv_len` against `length` makes an out-of-bounds read unlikely here."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 403,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code snippet provided shows a memcpy operation where `src-ptr` is tainted and the size is `2`. The tainted `src-ptr` comes from `pos`, which is advanced using `PEEK_UINT16` and `PEEK_UINT8` operations, and its bounds are checked by `length`. The `length` variable is initialized from `s` (the total frame size) and then adjusted by `len_eth`. Before any `PEEK_*` operation, there's a check `if (length < 4)` to ensure at least 4 bytes are available for the TLV header (type and length). Immediately after reading `tlv_len`, there's another check `if ((tlv_len < 0) || (length < tlv_len))` to ensure the TLV data length is valid and within the remaining `length`. The `memcpy` itself is not directly present in the snippet, but the context suggests that `PEEK_UINT16` (which reads 2 bytes) or similar operations might be flagged. Given the robust boundary checks on `length` and `tlv_len` before processing TLVs and the use of `PEEK_SAVE` and `PEEK_DISCARD` macros which likely handle bounds, it's highly improbable that a 2-byte read would go out of bounds without triggering one of the `goto malformed` conditions. The `PEEK_UINT16` operation itself effectively performs a 2-byte read. If the `src-ptr` for this `PEEK_UINT16` is `pos` and `length` is the remaining size, then the check `length < 4` (or similar for smaller reads) should prevent an out-of-bounds access. The provided code does not explicitly show a `memcpy` with size 2, but rather `PEEK_UINT16` which implies reading 2 bytes. The existing checks `if (length < 4)` and `if (length < tlv_len)` before processing any TLV data, along with `length` being derived from the initial frame size and constantly decremented, strongly suggest that the reads are adequately guarded."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 436,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 436 copies `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`. Both `chassis->c_name` and `chassis->c_id` are allocated with `tlv_len` or `tlv_len + 1` bytes just before the memcpy. Specifically, `chassis->c_name` is allocated with `tlv_len + 1` bytes and `chassis->c_id` with `tlv_len` bytes. The copy size is `tlv_len`. Therefore, the `memcpy` operation fits within the allocated buffers and does not cause an out-of-bounds access. There are also checks before this point: `if ((tlv_len < 0) || (length < tlv_len))` and `if (length < 4)` ensure `tlv_len` is not negative and the overall `length` is sufficient for the TLV header and potentially the data."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 448,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is copying `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`. The `chassis->c_id` buffer is allocated with `malloc(tlv_len)`, meaning it is exactly `tlv_len` bytes long. The `src-ptr` `chassis->c_name` is also allocated with `calloc(1, tlv_len + 1)`, which is `tlv_len + 1` bytes long. The size of the copy is `tlv_len`. Therefore, both the source and destination buffers are sufficiently sized for the `memcpy` operation. There are also checks like `if ((tlv_len < 0) || (length < tlv_len))` and `if (length < 4)` that validate `tlv_len` against the remaining `length` of the packet, making sure `tlv_len` is not excessively large based on input. Thus, no out-of-bounds access is expected."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 459,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 459 copies `tlv_len` bytes. The `tlv_len` is derived from `PEEK_UINT16 - 4`. Before the `memcpy`, there's a check: `if ((tlv_len < 0) || (length < tlv_len)) { ... goto malformed; }`. This check ensures that `tlv_len` is non-negative and does not exceed the remaining `length` of the packet. The destination buffer `chassis->c_id` is allocated with `malloc(tlv_len)`. Therefore, the `memcpy` operation should not cause an out-of-bounds write to `chassis->c_id` as the size copied matches the allocated size. The `src-ptr` for the memcpy is `chassis->c_name`, which was allocated with `calloc(1, tlv_len + 1)` and filled with `PEEK_BYTES(chassis->c_name, tlv_len)`. So, `chassis->c_name` also has enough space for `tlv_len` bytes. The specific `memcpy` in question is `memcpy(chassis->c_id, chassis->c_name, tlv_len);`. The `src-ptr` is `chassis->c_name`, and the `size expr` is `tlv_len`. The `tlv_len` is checked to be less than or equal to `length` which is the remaining frame length, and the `chassis->c_name` is filled with `tlv_len` bytes from the frame. Since the allocation `chassis->c_name = (char *)calloc(1, tlv_len + 1)` provides `tlv_len + 1` bytes and `PEEK_BYTES(chassis->c_name, tlv_len)` only writes `tlv_len` bytes, the source `chassis->c_name` is sufficiently large and valid for reading `tlv_len` bytes. Therefore, no out-of-bounds read from `chassis->c_name` is expected."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 473,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code uses `PEEK_BYTES(&addr, sizeof(struct in_addr))` which reads `sizeof(struct in_addr)` bytes into `addr`. `addr` is a `struct in_addr`, which is typically 4 bytes. The `memcpy` itself is not directly in the provided snippet, but assuming `PEEK_BYTES` is the operation in question (or a similar operation shortly after), the size for this read is `sizeof(struct in_addr)`, which is a constant and not input-derived. The `PEEK_DISCARD` operations and size checks (`addresses_len < address_len`, etc.) ensure that the input buffer is large enough before attempting to read. If `PEEK_BYTES` is implemented correctly and `addr` is allocated correctly (which it is, as a local variable of known size), this specific operation would not be an out-of-bounds write."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 474,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for the `memcpy` operation at line 474 is `chassis->c_name`. The size of the copy is `tlv_len`. Before this `memcpy`, memory is allocated for `chassis->c_name` using `calloc(1, tlv_len + 1)`. Subsequently, `PEEK_BYTES(chassis->c_name, tlv_len)` is called, which populates `chassis->c_name` with `tlv_len` bytes. Therefore, `chassis->c_name` is guaranteed to be at least `tlv_len` bytes long, matching the size of the `memcpy`. There is no out-of-bounds access. The `tlv_len` itself is checked against `length` to prevent reading beyond the frame's bounds, and against `0` to prevent negative sizes."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 475,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `src-ptr` in the memcpy at line 475 is `chassis->c_name`. The size argument for this `memcpy` is `tlv_len`. Earlier, `chassis->c_name` is allocated with `calloc(1, tlv_len + 1)`. Therefore, `chassis->c_name` has a size of `tlv_len + 1`. The `memcpy` operation copies `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`. This means that the source buffer (`chassis->c_name`) is large enough to hold `tlv_len` bytes. So there is no out-of-bounds read on `chassis->c_name`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 476,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 476 copies `tlv_len` bytes from `chassis->c_name` to `chassis->c_id`. `chassis->c_name` is allocated with `tlv_len + 1` bytes, and `chassis->c_id` is allocated with `tlv_len` bytes. The copy size `tlv_len` is derived from an input field `tlv_len = PEEK_UINT16 - 4;`. However, there are several checks before the `memcpy`. First, `length < 4` is checked. Then, `(tlv_len < 0) || (length < tlv_len)` is checked. The `chassis->c_id` buffer is allocated using `malloc(tlv_len)`. The `memcpy` then copies `tlv_len` bytes into this buffer. Therefore, the destination buffer `chassis->c_id` is precisely sized to accommodate `tlv_len` bytes. The source `chassis->c_name` is also allocated based on `tlv_len` and filled with `tlv_len` bytes using `PEEK_BYTES`. Since the allocation size for the destination `chassis->c_id` exactly matches the copy size `tlv_len`, and the source `chassis->c_name` is also properly sized, there is no out-of-bounds write to `chassis->c_id`. The only potential issue would be if `tlv_len` itself is an extremely large value leading to an integer overflow during allocation, but the `length < tlv_len` check makes this less likely to cause a practical out-of-bounds due to the buffer not being able to be allocated at all or being too small compared to the remaining `length` of the packet. Assuming valid memory allocation, the `memcpy` itself is safe regarding the bounds of `chassis->c_id`."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 535,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` for this `memcpy` is `port->p_descr`, which is allocated with `calloc(1, tlv_len + 1)`. The `memcpy` itself copies `tlv_len` bytes. This means the destination buffer `port->p_descr` is exactly `tlv_len` bytes long (plus one for a null terminator, though not relevant to this specific memcpy size). The `memcpy` source is `port->p_descr`, which is the correct size. The `memcpy` copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. The allocation for `port->p_id` is `calloc(1, tlv_len)`. The size of the `memcpy` is `tlv_len`. Therefore, the `memcpy` correctly copies `tlv_len` bytes into a buffer allocated for `tlv_len` bytes. No out-of-bounds write to `port->p_id` occurs."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 563,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. Both `port->p_descr` and `port->p_id` are allocated using `calloc` with sizes `tlv_len + 1` and `tlv_len` respectively. The `memcpy` uses `tlv_len` as the size, which exactly matches the allocated size of `port->p_id`. Therefore, there is no out-of-bounds write to `port->p_id`. The `src-ptr` `port->p_descr` is also allocated with `tlv_len + 1`, so reading `tlv_len` bytes from it is safe."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 579,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The memcpy operation at line 579 copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. Both `port->p_descr` and `port->p_id` are allocated with `calloc` using `tlv_len` (or `tlv_len + 1` for `p_descr`). Specifically, `port->p_id` is allocated with `calloc(1, tlv_len)`, ensuring it can hold `tlv_len` bytes. The source buffer `port->p_descr` is also allocated based on `tlv_len` (`calloc(1, tlv_len + 1)`). Therefore, the size of the copy matches the allocated buffer sizes, preventing an out-of-bounds write."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 580,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 580 copies `tlv_len` bytes from `port->p_descr` to `port->p_id`. The `port->p_id` buffer is allocated using `calloc(1, tlv_len)`, making its size exactly `tlv_len` bytes. The `memcpy` operation then copies `tlv_len` bytes, which perfectly matches the allocated size. There is no out-of-bounds write. The `src-ptr` (`port->p_descr`) is also correctly sized as it's allocated with `calloc(1, tlv_len + 1)` and `PEEK_BYTES(port->p_descr, tlv_len)` copies `tlv_len` bytes into it, ensuring it contains at least `tlv_len` valid bytes."
+   },
+   {
+    "func": "cdp_decode",
+    "line": 581,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 581 is copying `tlv_len` bytes from `port->p_descr` to `port->p_id`. Both `port->p_descr` and `port->p_id` are allocated using `calloc` with sizes `tlv_len + 1` and `tlv_len` respectively, immediately before the `memcpy`. The `src-ptr` for the memcpy is `port->p_descr` which was allocated with `tlv_len + 1`, and the `dst-ptr` for the memcpy is `port->p_id` which was allocated with `tlv_len`. The `memcpy` size is `tlv_len`. This means the copy exactly fills `port->p_id`. There's no out-of-bounds write. There's also no indication that `tlv_len` itself can be an excessive value that would lead to an integer overflow during allocation, as `tlv_len` is derived from `tlv_len` from the `CDP_TLV_PORT` case which is checked to be non-zero earlier, but not an upper bound that would lead to `calloc` failure. The allocation for `port->p_descr` is `calloc(1, tlv_len + 1)`, and for `port->p_id` is `calloc(1, tlv_len)`. The `memcpy` copies `tlv_len` bytes. The source `port->p_descr` has `tlv_len + 1` bytes available, and the destination `port->p_id` has `tlv_len` bytes available. Thus, the copy fits perfectly into the destination buffer and within the source buffer. There is no out-of-bounds access."
+   },
+   {
+    "func": "cdp_send",
+    "line": 79,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 6",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `src-ptr` in question is `mcastaddr`. The line `memcpy(mcastaddr, fdpmcastaddr, sizeof(mcastaddr))` copies data from a constant array `fdpmcastaddr` (which has the same size as `mcastaddr`) into `mcastaddr`. Both are statically sized arrays defined with `u_int8_t mcastaddr[] = CDP_MULTICAST_ADDR;` and `const u_int8_t fdpmcastaddr[] = FDP_MULTICAST_ADDR;`. The `CDP_MULTICAST_ADDR` and `FDP_MULTICAST_ADDR` macros likely expand to fixed-size byte arrays. Since `sizeof(mcastaddr)` is used as the size, and `fdpmcastaddr` is a constant array of the same intended size, there is no apparent way for `src-ptr` to point out-of-bounds relative to `fdpmcastaddr` or for `fdpmcastaddr` itself to be undersized. This memcpy operation is safe. The taint from 'input-derived' for `src-ptr` seems to be a false positive, as the source is a compile-time constant array."
+   },
+   {
+    "func": "cdp_send",
+    "line": 101,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %180",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted `size` operand `i64 %180` in the `memcpy` is not directly controllable by external input. Instead, it is the result of `strlen(chassis_name)`. The `chassis_name` variable itself is derived from `chassis->c_name`, which is a pointer to a string. The `memcpy` is used to copy this string into a buffer `packet`. The `packet` buffer is allocated with `calloc(1, length)`, where `length` is initialized with `hardware->h_mtu`. This `h_mtu` typically represents the interface's Maximum Transmission Unit, which is a system-level configuration and not directly user-controlled in a way that would lead to an arbitrary overflow. The code also uses `POKE_BYTES` and `POKE_END_CDP_TLV` macros which seem to handle buffer boundaries implicitly. The overall structure appears to be carefully crafting a network packet within the allocated MTU. There is no clear indication that `strlen(chassis_name)` could exceed the remaining space in the `packet` buffer within the `h_mtu` limit in a way that is triggerable as an out-of-bounds write."
+   },
+   {
+    "func": "cdp_send",
+    "line": 126,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The tainted operand `src-ptr` (which is `&mgmt->m_addr`) is copied with a size of `sizeof(struct in_addr)` which is `4` for IPv4. The code explicitly checks `mgmt->m_family == LLDPD_AF_IPV4` before entering the switch statement and copying the address. This ensures that `mgmt->m_addr` will always be of the correct size (an `in_addr` struct) when `memcpy` is called, preventing an out-of-bounds read. The `m_addr` field of `lldpd_mgmt` is a union, so its size is determined by the largest member. However, the `switch` statement correctly handles only `LLDPD_AF_IPV4` here, and the `POKE_BYTES` call explicitly uses `sizeof(struct in_addr)`."
+   },
+   {
+    "func": "cdp_send",
+    "line": 139,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %352",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `i64 %352` is derived from `length`, which is initialized from `hardware->h_mtu`. The code checks `if ((packet = (u_int8_t *)calloc(1, length)) == NULL) return ENOMEM;` and then repeatedly uses `POKE_BYTES`, `POKE_UINT8`, `POKE_UINT16`, `POKE_UINT32`, etc., which are macros that increment `pos` and check `pos + BYTES_TO_WRITE > end` (where `end` is `packet + length`). If any write would exceed `length`, it jumps to `toobig`. This mechanism prevents out-of-bounds writes to `packet`. Therefore, even if `hardware->h_mtu` is controlled by a malicious actor, the `memcpy` will not write out of bounds of the allocated buffer."
+   },
+   {
+    "func": "cdp_send",
+    "line": 180,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %580",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The code uses POKE_BYTES for all memory writes, which is a macro that likely checks against the allocated buffer size (`length`). The `POKE_BYTES` macro is part of a series of `POKE_*` macros (e.g., `POKE_UINT8`, `POKE_UINT16`, `POKE_UINT32`, `POKE_BYTES`, `POKE_START_CDP_TLV`, `POKE_END_CDP_TLV`) that are consistently used throughout the function. These macros increment `pos` and typically check if `pos` exceeds `packet + length`. If an overflow would occur, they jump to the `toobig` label, which handles the error by freeing the allocated memory and returning `ENOSPC`. This robust error handling suggests that out-of-bounds writes are prevented."
+   },
+   {
+    "func": "cdp_send",
+    "line": 188,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %633",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation is part of a series of `POKE_BYTES` calls. Each `POKE_BYTES` call is wrapped in a conditional `if (!(...)) goto toobig;`. This structure indicates that the code is carefully checking if the data being written fits within a pre-defined buffer. The `POKE_BYTES` macro likely updates an internal pointer and checks if the write would exceed the buffer's bounds. If any write operation would lead to an overflow, the `goto toobig` statement is triggered, which presumably handles the error gracefully without leading to a crash or exploitable condition. Without the definition of `POKE_BYTES` or the code block associated with `toobig`, it's impossible to be 100% certain, but the repeated `if (!(...)) goto toobig;` pattern strongly suggests robust bounds checking."
+   },
+   {
+    "func": "cdp_guess",
+    "line": 694,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 694 is `memcpy(chassis->c_descr, platform, platform_len);`. The destination buffer `chassis->c_descr` is allocated immediately before this `memcpy` with `calloc(1, platform_len + 1)`. This means the allocated size is `platform_len + 1`. The `memcpy` operation copies `platform_len` bytes from `platform` to `chassis->c_descr`. Since the allocated size is `platform_len + 1` and `platform_len` bytes are copied, there is no out-of-bounds write. The `src-ptr` (platform) is not the issue here; the allocation size for the destination buffer correctly accommodates the source data. The size of the `memcpy` is `platform_len`, which is exactly what was accounted for in the `calloc` for `chassis->c_descr` (with an additional byte for null termination). Therefore, this is not an out-of-bounds write."
+   }
+  ]
  }
 ]

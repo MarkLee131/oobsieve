@@ -2,9 +2,141 @@
  {
   "id": "22967",
   "project": "opensc",
-  "build_ok": false,
-  "recall": "error:ServerError",
-  "tb": ")\n  File \"/home/likaixuan/.local/lib/python3.10/site-packages/google/genai/errors.py\", line 148, in raise_error\n    raise ServerError(status_code, response_json, response)\ngoogle.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}\n"
+  "rw": "WRITE",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "tcos_decipher",
+  "n_gt_cands": 2,
+  "n_gt_confirmed": 2,
+  "n_other_sampled": 4,
+  "n_other_confirmed": 4,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "tcos_decipher",
+    "line": 626,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 626 uses `len-offset` as the size. While `len` is capped by `outlen` and `apdu.resplen`, `offset` can grow up to `len-1`. If `offset` becomes `len`, then `len-offset` would be 0, which is fine. However, `apdu.resp+offset` as the source pointer is not explicitly checked against `apdu.resplen`. If `offset` is close to `apdu.resplen` and `len-offset` is a positive number, it's possible to read past `apdu.resp` bounds. Specifically, if `offset` becomes `apdu.resplen`, then `apdu.resp+offset` would point past the buffer. There's no check that `offset` is less than `apdu.resplen` before it's used as an offset for `apdu.resp` in the memcpy. The condition `offset<len-1` protects against `offset` becoming `len-1` (which would make `offset+1` equal to `len`), but doesn't guarantee `offset` is less than `apdu.resplen` when `len` might be `outlen` (and `outlen` can be arbitrarily large)."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 638,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %139",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 638 copies `len - offset` bytes from `apdu.resp + offset` to `out`. The `len` variable is `MIN(apdu.resplen, outlen)`. The `offset` variable can be up to `len-1` (if `apdu.resp[offset]` is 0 for `offset < len-1`). If `offset` becomes `len-1`, then `len-offset` would be 1. However, if `offset` becomes `len` (the `offset=(offset<len-1) ? offset+1 : 0;` line makes it 0 if `offset` is not less than `len-1`), and `len` is smaller than `offset` in some edge cases not fully visible here, `len-offset` could become negative, leading to a very large unsigned size. The `offset` is determined by scanning `apdu.resp` which is `rbuf` (a fixed-size buffer). While `offset < len` and `offset < len-1` are used in the loop and assignment, the final `len - offset` for `memcpy` could potentially result in reading beyond `apdu.resp` if `offset` somehow becomes too large due to unexpected values in `apdu.resp` within the `len` boundary, or if `len` itself is too large. `apdu.resplen` is set to `sizeof(rbuf)`, so `apdu.resp` itself is bounded. The issue is with `offset` potentially pushing the start of the copy `apdu.resp+offset` beyond the valid range when combined with `len-offset` as the size. Without a more explicit bound check on `offset` relative to `apdu.resplen` and `len`, especially when `apdu.resp` content is input-derived, it's difficult to guarantee safety. The `len` is capped by `outlen` and `apdu.resplen`, but `offset` could potentially be calculated to a value that makes `apdu.resp + offset` read beyond `apdu.resp[apdu.resplen-1]` if `offset` is close to `apdu.resplen` and `len-offset` is still positive, or if `offset` reaches `apdu.resplen` and `len-offset` is interpreted as a large number. While `offset` is incremented only if `offset < len` within the loop, the final `offset=(offset<len-1) ? offset+1 : 0;` could still result in an `offset` close to `len`, potentially causing issues if `len` is large and `offset` is also large, but `len` is capped, and `offset` might not be sufficiently capped by `len` before the `memcpy` is called."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` operation at line 345 copies `in_path->len` bytes from `in_path->value` into `path`. The destination buffer `pathbuf` has a fixed size `SC_MAX_PATH_SIZE`. While there is a check `if (pathlen != 2) return SC_ERROR_INVALID_ARGUMENTS;` in the `SC_PATH_TYPE_FILE_ID` case, this check only covers a specific path type and only validates `pathlen` to be 2, not against the actual buffer size for a general case. The `in_path->len` is user-controlled and could exceed `SC_MAX_PATH_SIZE` without a general bounds check on the path before the memcpy, leading to a buffer overflow."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 402 is `memcpy(path, in_path->value, in_path->len)`. The destination buffer `path` is a `u8 pathbuf[SC_MAX_APDU_BUFFER_SIZE]`. The size of this buffer is `SC_MAX_APDU_BUFFER_SIZE`. The source length `in_path->len` is user-controlled. There is no explicit check to ensure `in_path->len` does not exceed `SC_MAX_APDU_BUFFER_SIZE` before the memcpy. Therefore, an input-derived `in_path->len` could lead to a buffer overflow."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 675,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 675 copies `sizeof(*serial)` bytes from `&card->serialnr` to `serial`. `card->serialnr` is a `sc_serial_number_t` struct, which contains a `value` array of `SC_MAX_SERIAL_NUMBER_LENGTH` bytes (defined elsewhere, but generally a fixed maximum size). The `card->serialnr.len` field, however, is set based on the result of `sc_parse_ef_gdo`, which can be an arbitrary value up to `sizeof card->serialnr.value`. If `card->serialnr.len` is less than `sizeof(*serial)`, then copying `sizeof(*serial)` bytes from `&card->serialnr` could lead to reading out-of-bounds from the `value` field if `card->serialnr.len` is used to determine the valid length of `card->serialnr.value`. However, the issue here is with the source buffer itself. The `card->serialnr.len` field is updated by `sc_parse_ef_gdo` to be the actual length of the serial number read. The `memcpy` then copies `sizeof(*serial)` bytes from `&card->serialnr` regardless of `card->serialnr.len`. If the actual serial number read (`card->serialnr.len`) is less than `sizeof(card->serialnr.value)`, and `sizeof(*serial)` is greater than `offsetof(sc_serial_number_t, value) + card->serialnr.len`, then the `memcpy` will read uninitialized or stale data beyond the actual length of the serial number from `card->serialnr.value`. There is no check to ensure `sizeof(*serial)` is less than or equal to `card->serialnr.len` before the memcpy, nor is there a check to ensure `sizeof(*serial)` is less than or equal to `sizeof(card->serialnr)`. In fact, `memcpy(serial, &card->serialnr, sizeof(*serial))` is essentially copying the entire `card->serialnr` struct to `serial`. The `card->serialnr.len` field was previously set to `sizeof card->serialnr.value`, which is the maximum possible length for the serial number data, not the length of the `sc_serial_number_t` structure itself. The `sc_parse_ef_gdo` function populates `card->serialnr.value` and updates `card->serialnr.len` to reflect the actual length of the serial number data. The subsequent `memcpy(serial, &card->serialnr, sizeof(*serial))` copies the entire `card->serialnr` structure (including the `len` field and `value` array) into `serial`. The potential vulnerability arises if `serial` is a smaller structure or buffer than `card->serialnr`, or if `card->serialnr.value` was not fully populated up to `sizeof(card->serialnr.value)` by `sc_parse_ef_gdo`, but the `memcpy` still attempts to copy the full `sizeof(*serial)` which might exceed the valid data in `card->serialnr.value` (if `sizeof(*serial)` is larger than `offsetof(sc_serial_number_t, value) + card->serialnr.len`). However, given `serial` is of type `sc_serial_number_t`, `sizeof(*serial)` will be the same as `sizeof(card->serialnr)`. The risk is more that `card->serialnr.value` might not be fully initialized up to its maximum size by `sc_parse_ef_gdo`, but `memcpy` copies the entire `value` array, potentially exposing uninitialized bytes if the actual serial number length (`card->serialnr.len`) is less than `SC_MAX_SERIAL_NUMBER_LENGTH`."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 687,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 687 is `memcpy(serial, &card->serialnr, sizeof(*serial))`. The `src-ptr` is `&card->serialnr`. `card->serialnr` is a `sc_serial_number_t` struct, which is allocated on the heap as part of the `sc_card_t` structure. The `sizeof(*serial)` is the size of the destination `sc_serial_number_t` structure. The function `sc_parse_ef_gdo` populates `card->serialnr.value` and sets `card->serialnr.len`. While `card->serialnr.len` is set, there is no explicit check to ensure that the content within `card->serialnr.value` (or indeed the entire `card->serialnr` struct) was fully populated and is at least `sizeof(*serial)` in length. Specifically, `card->serialnr.len` represents the length of the serial number value, not necessarily the size of the buffer it's stored in. If `card->serialnr` (the source) contains less data than `sizeof(*serial)`, this could lead to an out-of-bounds read from `&card->serialnr`."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 626,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %2",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 626 uses `len-offset` as the size. Both `len` and `offset` are bounded by `apdu.resplen`. `len` is defined as `(apdu.resplen > outlen) ? outlen : apdu.resplen;`, meaning `len <= apdu.resplen`. The `offset` is also calculated based on `apdu.resp` and is guaranteed to be less than or equal to `len`. Therefore, `len-offset` will always be less than or equal to `len`, and thus less than or equal to `apdu.resplen`. The source buffer `apdu.resp` has a size of `apdu.resplen` (initialized to `sizeof(rbuf)`, which is `SC_MAX_APDU_BUFFER_SIZE`). The `memcpy` operation `memcpy(out, apdu.resp + offset, len - offset)` will not read beyond the bounds of `apdu.resp`."
+   },
+   {
+    "func": "tcos_decipher",
+    "line": 638,
+    "sink": "memcpy",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %139",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size argument for memcpy at line 638 is `len-offset`. Both `len` and `offset` are derived from `apdu.resplen`, which is capped by `sizeof(rbuf)` and `outlen` (controlled by the caller but also capped by the response length). Specifically, `len` is `MIN(apdu.resplen, outlen)`. The `offset` calculation is carefully bounded by `len` and `len-1` (i.e., `offset < len && offset < len-1`). Thus, `len-offset` will always be a non-negative value less than or equal to `len`. Since `out` is the destination, and `len` is capped by `outlen`, the copy cannot write past the end of `out`. The source `apdu.resp+offset` is also safe because `offset` is bounded by `len`, which is bounded by `apdu.resplen`. Therefore, no out-of-bounds write or read is possible."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 345,
+    "sink": "memcpy",
+    "operand": "size+src-ptr",
+    "size_expr": "i64 %19",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 345 uses `in_path->len` as the size, copying data from `in_path->value` to `pathbuf`. The `pathbuf` is declared with `SC_MAX_PATH_SIZE`. There are checks later in the function, for example, for `SC_PATH_TYPE_FILE_ID`, `pathlen` is checked to be exactly 2. However, the initial copy doesn't seem to have an explicit check for `in_path->len` against `SC_MAX_PATH_SIZE`. But, `sc_path_t` itself has a `value` field which is `u8 value[SC_MAX_PATH_SIZE]`. This implies that `in_path->len` should not exceed `SC_MAX_PATH_SIZE` by design of the `sc_path_t` structure. Assuming `sc_path_t` is properly constrained at its creation, this `memcpy` is safe. If `in_path->len` could genuinely exceed `SC_MAX_PATH_SIZE` due to external input without `sc_path_t` handling it, then it would be a bug. Given the `u8 value[SC_MAX_PATH_SIZE]` in `sc_path_t`, it's reasonable to assume `in_path->len` is bounded by `SC_MAX_PATH_SIZE`."
+   },
+   {
+    "func": "tcos_select_file",
+    "line": 402,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 402 copies `in_path->len` bytes from `in_path->value` to `path`. The `path` buffer is `pathbuf`, which has a size of `SC_MAX_PATH_SIZE`. The condition `in_path->len <= SC_MAX_PATH_SIZE` needs to hold for this to be safe.\n\nThe `sc_path_t` structure is not shown, but typically `len` would represent the actual length of the path data. `SC_MAX_PATH_SIZE` is a compile-time constant, defining the maximum allowed path length.\n\nLooking at how `sc_path_t` is usually handled in OpenSC (the project this code likely belongs to), `in_path->len` is expected to be validated against `SC_MAX_PATH_SIZE` at a higher level, for example, when the `sc_path_t` object is constructed or received from an external source.\n\nWithout seeing the definition of `sc_path_t` and how `in_path` is populated, it's difficult to be 100% certain. However, assuming `SC_MAX_PATH_SIZE` is a reasonable buffer size and `in_path->len` is properly bounded (which is standard practice for path handling in such libraries), this `memcpy` itself is not the source of the out-of-bounds access. The `src-ptr` (which is `in_path->value`) is derived from the input, and `in_path->len` (the size) is also input-derived. But the destination buffer `path` (i.e., `pathbuf`) has a fixed, compile-time maximum size `SC_MAX_PATH_SIZE`.\n\nFor a real bug, `in_path->len` would need to be able to exceed `SC_MAX_PATH_SIZE`. Given this is a smart card library, such limits are typically enforced.\n\nTherefore, being conservative, if `in_path->len` is correctly constrained to `SC_MAX_PATH_SIZE` elsewhere, this `memcpy` is safe."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 675,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 675 is part of the `tcos_get_serialnr` function. The source pointer `&card->serialnr` is a member of the `sc_card_t` structure, which is a local variable to this function or passed as an argument. The size of the `memcpy` is `sizeof(*serial)`, where `serial` is also a pointer to a `sc_serial_number_t` structure. This operation is copying a structure into another structure of the same type. The `card->serialnr` field is populated earlier in the function, ensuring its validity. There is no indication of external input directly controlling the size or source address in a way that would lead to an out-of-bounds read from `&card->serialnr`. The `src-ptr` being 'input-derived' likely refers to `card` itself being an input to the function, but the access within the structure is bounded by `sizeof(*serial)`."
+   },
+   {
+    "func": "tcos_get_serialnr",
+    "line": 687,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 56",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` in `tcos_get_serialnr` copies `sizeof(*serial)` bytes from `&card->serialnr` to `serial`. Both `serial` and `card->serialnr` are of type `sc_serial_number_t*` and `sc_serial_number_t` respectively. The size of the destination `serial` is controlled by the caller, but the copy size is `sizeof(*serial)` which is the size of `sc_serial_number_t`. The source `card->serialnr` is also of type `sc_serial_number_t`. Therefore, as long as `serial` points to a valid `sc_serial_number_t` object, the `memcpy` will be safe. The only condition for a potential issue is if `serial` is `NULL`, but this is checked at the beginning of the function (`if (!serial) return SC_ERROR_INVALID_ARGUMENTS;`). The taint analysis on `src-ptr` (which is `&card->serialnr`) being 'input-derived' seems to be a misinterpretation. While `card->serialnr.value` is populated by `sc_parse_ef_gdo` which interacts with the card, the `memcpy` in question is copying the *entire* `sc_serial_number_t` structure, not just its `value` field, and the size is fixed. The `card->serialnr` itself is a member of the `sc_card_t` structure, not directly an input buffer. The previous call to `sc_parse_ef_gdo` populates `card->serialnr.value` and sets `card->serialnr.len`, but the `memcpy` here uses `sizeof(*serial)` which is a compile-time constant size for the `sc_serial_number_t` structure itself, not `card->serialnr.len`."
+   }
+  ]
  },
  {
   "id": "32202",
@@ -128,8 +260,140 @@
  {
   "id": "16614",
   "project": "opensc",
-  "build_ok": false,
-  "recall": "error:ServerError",
-  "tb": ")\n  File \"/home/likaixuan/.local/lib/python3.10/site-packages/google/genai/errors.py\", line 148, in raise_error\n    raise ServerError(status_code, response_json, response)\ngoogle.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}\n"
+  "rw": "READ",
+  "build_ok": true,
+  "n_candidates": 6,
+  "recall": "hit",
+  "gt_func": "decode_bit_string",
+  "n_gt_cands": 1,
+  "n_gt_confirmed": 1,
+  "n_other_sampled": 5,
+  "n_other_confirmed": 3,
+  "n_gt_confirmed_aggr": 0,
+  "n_other_confirmed_aggr": 0,
+  "e2e": "hit",
+  "e2e_aggr": "dropped",
+  "llm_details": [
+   {
+    "func": "decode_bit_string",
+    "line": 585,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memset` at line 585 uses `outlen` as the size. While there is a check `if (outlen < octets_left)` at line 580, `octets_left` is defined as `inlen - 1` and represents the length of the input data to be processed, not the size of the output buffer. The `memset` should be bounded by `outlen` or the actual expected output size, which is not clearly `octets_left`. The current check does not ensure that `outlen` is a safe size for the `memset` operation, it only checks `outlen` against the input data length. If `outlen` is attacker-controlled and larger than the allocated `outbuf`, this could lead to an overflow."
+   },
+   {
+    "func": "sc_copy_asn1_entry",
+    "line": 148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 40",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The `memcpy` at line 148 copies `sizeof(struct sc_asn1_entry)` (which is 40 bytes) from `src` to `dest`. The loop condition `while (src->name != NULL)` checks `src->name` but does not ensure that `dest` has enough space to accommodate all entries from `src`. There is no explicit bounds check on `dest` or the number of iterations based on the allocated size of `dest`. If `src` contains more entries than `dest` can hold, a buffer overflow will occur."
+   },
+   {
+    "func": "sc_asn1_sig_value_sequence_to_rs",
+    "line": 2071,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %4",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 2071 fills `buf` with zeros for `buflen` bytes. The `buflen` argument is passed into the function `sc_asn1_sig_value_sequence_to_rs` and is checked at line 2062: `if (!buf || !buflen) LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);`. This check ensures `buflen` is greater than zero before the `memset` is called. Therefore, the `memset` operates within the bounds of `buf` as `buf` is expected to be allocated with at least `buflen` size prior to the function call."
+   },
+   {
+    "func": "sc_asn1_decode_utf8string",
+    "line": 882,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "recall-first",
+    "real_bug": false,
+    "reasoning": "The memcpy at line 882 is preceded by a bounds check `if (inlen+1 > *outlen) return SC_ERROR_BUFFER_TOO_SMALL;` at line 880. This check ensures that the destination buffer `out` (of size `*outlen`) is large enough to accommodate `inlen` bytes copied from `inbuf` plus an additional null terminator. The `memcpy` itself copies `inlen` bytes, and the subsequent line `out[inlen] = 0;` writes the null terminator, both within the bounds guaranteed by the check."
+   },
+   {
+    "func": "asn1_encode_path",
+    "line": 1121,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1121 copies `datalen` bytes from `data` to `p`. The size `datalen` is derived from an input `sc_path_t *path` which is then processed by `asn1_encode` which calls into `asn1_encode_path`. There is no explicit bounds check on `datalen` to ensure it doesn't exceed the allocated buffer size. The buffer `buf` is allocated with `malloc(*outlen)`, where `*outlen = tag_len + 1 + c + datalen`. While `datalen` is used in the `malloc` call, there's no guarantee that the `datalen` value itself isn't maliciously large, leading to an integer overflow during the `*outlen` calculation. If an integer overflow occurs, `*outlen` could be a small value, leading to a small `buf` allocation. Then the `memcpy` with a large `datalen` would result in a heap buffer overflow. There is no explicit check on `datalen` or `*outlen` to prevent this."
+   },
+   {
+    "func": "asn1_encode_p15_object",
+    "line": 1339,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2776",
+    "orientation": "recall-first",
+    "real_bug": true,
+    "reasoning": "The memcpy at line 1339 copies `ptrlen` bytes from `ptr` to `out + outlen`. The destination buffer `out` is reallocated with size `outlen + ptrlen` just before the memcpy. This allocation should perfectly fit the new data. However, the analysis states the `src-ptr` is tainted and the size is `i64 2776`. The code snippet provided does not show `ptrlen` being directly limited by this constant `2776`. The `realloc` call uses `ptrlen` as the size to add. If the tainted `src-ptr` (which is `ptr` here) has a smaller allocated size than `ptrlen`, or if `ptrlen` itself is an arbitrarily large attacker-controlled value, then the `memcpy` could lead to a read out of bounds from `ptr`. There is no explicit bounds check on `ptr` or `ptrlen` before the `memcpy` to ensure `ptrlen` does not exceed the actual allocated size of `ptr` or a safe maximum. The `realloc` only ensures the destination has enough space, not that the source is valid for the given `ptrlen`."
+   },
+   {
+    "func": "decode_bit_string",
+    "line": 585,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %3",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size argument to `memset` is `outlen`, which is checked against `octets_left` (derived from `inlen`) at the beginning of the function: `if (outlen < octets_left) return SC_ERROR_BUFFER_TOO_SMALL;`. Although `octets_left` is reduced later, `outlen` remains the same, ensuring that the `memset` operation does not write beyond the allocated `outbuf` of size `outlen`. `outlen` is an input parameter to the function, but it guards the `memset` operation directly against an out-of-bounds write."
+   },
+   {
+    "func": "sc_copy_asn1_entry",
+    "line": 148,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 40",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` at line 148 is `*dest = *src;`. This is a struct assignment, not a `memcpy` in the traditional sense, but it translates to a `memcpy` of the struct's size (40 bytes for `struct sc_asn1_entry` on a 64-bit system). The `src-ptr` is `src`. The loop condition `while (src->name != NULL)` ensures that `src` is always a valid pointer to an `sc_asn1_entry` struct. The loop iterates as long as `src->name` is not `NULL`. When `src->name` is `NULL`, the loop terminates. The `dest` pointer is incremented (`dest++`) in each iteration, moving to the next `sc_asn1_entry` in the destination array. The last operation `dest->name = NULL;` writes to the element immediately after the last copied element in the destination buffer. This pattern is common for null-terminated arrays of structs. There is no indication that `src` could point to an invalid memory location or that `dest` could overflow its allocated buffer based solely on this function's logic. Without information about how `src` and `dest` are allocated and passed to this function, it's not possible to confidently declare this a real out-of-bounds bug. The function itself appears to correctly handle a null-terminated array of `sc_asn1_entry` structs."
+   },
+   {
+    "func": "sc_asn1_sig_value_sequence_to_rs",
+    "line": 2071,
+    "sink": "memset",
+    "operand": "size+dst-ptr",
+    "size_expr": "i64 %4",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memset` at line 2071 uses `buflen` as the size, and `buf` as the destination. Both `buf` and `buflen` are arguments to the `sc_asn1_sig_value_sequence_to_rs` function. The function checks `if (!buf || !buflen)` at the beginning, ensuring `buf` is not NULL and `buflen` is not zero. Later, `halflen` is derived from `buflen` (`buflen/2`). There's a check `if (halflen < r_len || halflen < s_len)` which ensures that the subsequent `memcpy` operations will not write past the allocated `buf` for `r` and `s` components, as they are copied into `buf + (halflen - r_len)` and `buf + (buflen - s_len)` respectively, and `r_len` and `s_len` are checked against `halflen`. The `memset` itself operates strictly within the bounds of `buf` as defined by `buflen`. The tainted `i64 %4` refers to `buflen`, which is an input parameter, but its usage is consistently guarded by checks against `halflen`, and `halflen` is derived from `buflen` ensuring the memory operations are within the `buf` of size `buflen`."
+   },
+   {
+    "func": "sc_asn1_decode_utf8string",
+    "line": 882,
+    "sink": "memcpy",
+    "operand": "size+src-ptr+dst-ptr",
+    "size_expr": "i64 %1",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The size operand `inlen` is directly derived from the input `inlen` parameter. However, there's a guard `if (inlen+1 > *outlen) return SC_ERROR_BUFFER_TOO_SMALL;` that checks if the destination buffer `out` is large enough to hold `inlen` bytes plus a null terminator. If `inlen+1` exceeds `*outlen`, the function returns an error, preventing an out-of-bounds write. Thus, the `memcpy` operation is protected."
+   },
+   {
+    "func": "asn1_encode_path",
+    "line": 1121,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 64",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1121 is copying `datalen` bytes from `data` into `p`. The buffer `buf` is allocated with `malloc(*outlen)`, where `*outlen` is calculated as `tag_len + 1 + c + datalen`. The pointer `p` is initialized to `buf` and then incremented based on `tag_len` and `c` before the `memcpy`. The total size allocated for `buf` is `tag_len + 1 + c + datalen`. The number of bytes written before `memcpy` is `(1 + (tag_len - 1)) + (1 + c)` if `c` is true, or `(1 + (tag_len - 1)) + 1` if `c` is false. This can be simplified to `tag_len + 1 + c` bytes written before `memcpy` if `c` is true, or `tag_len + 1` if `c` is false. In either case, the amount of space remaining after the increments of `p` is exactly `datalen`. Therefore, `memcpy(p, data, datalen)` will not write beyond the allocated buffer `buf`."
+   },
+   {
+    "func": "asn1_encode_p15_object",
+    "line": 1339,
+    "sink": "memcpy",
+    "operand": "src-ptr",
+    "size_expr": "i64 2776",
+    "orientation": "aggressive",
+    "real_bug": false,
+    "reasoning": "The `memcpy` operation at line 1339 copies `ptrlen` bytes from `ptr` to `out + outlen`. The destination buffer `out` is reallocated right before the `memcpy` to `outlen + ptrlen` bytes. This ensures that `out + outlen` is a valid starting address for `ptrlen` bytes, provided `ptr` itself is a valid source of `ptrlen` bytes. The taint analysis flagged `src-ptr` (which is `ptr`) as input-derived. However, the `ptr` and `ptrlen` variables are handled within a loop (not shown in the snippet but the context of `asn1_encode` functions often involves parsing input), and `ptr` is freed and nulled at the end of each iteration. Without more context on how `ptr` and `ptrlen` are initially populated and what checks are performed on their values before this loop, it's difficult to confirm a genuine out-of-bounds read from `ptr`. However, the current snippet shows correct memory management for the destination buffer. The `size expr i64 2776` refers to `ptrlen`. If `ptrlen` itself can be an arbitrary attacker-controlled value without being bounds-checked against the actual size of `ptr` before the `memcpy`, then an out-of-bounds read from `ptr` could occur. But based *only* on the provided snippet, the destination buffer is correctly sized. Thus, the condition for a real OOB *write* is not met by the visible code."
+   }
+  ]
  }
 ]
