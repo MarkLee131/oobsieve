@@ -1,0 +1,13 @@
+[
+ {
+  "func": "ip_finddst",
+  "sink": "memcpy",
+  "line": 127,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 4",
+  "file": "print-ip.c",
+  "reasoning": "The `memcpy` at line 127 uses `cp + len - 4` as the source, where `len` is derived from `cp[1]`, which is an input-controlled value from the network packet. The `len` value is checked to be `>= 2`, but there's no upper bound check before it's used to index into `cp`. `cp` itself is advanced by `len` in the loop, but `ND_TCHECK2(*cp, len)` only checks if the entire option fits within the remaining `length` of the IP options. However, `cp + len - 4` could still read past the end of the `ip` packet if `len` is sufficiently large, even if the option itself appears to fit based on `length`.",
+  "later_fix": [],
+  "verified": false
+ }
+]

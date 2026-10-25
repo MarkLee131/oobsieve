@@ -26,6 +26,9 @@ import taint_llvm as T          # noqa: E402
 import verify_taint as V        # noqa: E402
 
 
+GUARD_UNAWARE = False
+
+
 def _confirm(cand, src_dir, client, parse):
     src = os.path.join(src_dir, cand["file"])
     try:
@@ -45,8 +48,20 @@ def _confirm(cand, src_dir, client, parse):
             "range, real_bug=false. Flag real_bug=true only if an input-derived size can "
             "exceed the buffer, or an input offset reads/writes past its end, with no "
             "such guard (plain or macro) covering it. Be conservative.")
+    if GUARD_UNAWARE:
+        sysp = sysp.replace(
+            "IMPORTANT: a bounds check need not be a plain `if`; longjmp/goto-based bounds MACROS "
+            "that guard the SAME pointer+length just above the op are sufficient, e.g. "
+            "tcpdump ND_TCHECK/ND_TCHECK2/ND_TTEST(ptr,len) before a memcpy(ptr,...,len), "
+            "or similar CHECK_*/bounds-assert macros. If such a guard covers the accessed "
+            "range, real_bug=false. ", "")
     usrp = f"{cand['sink']} at line {ln}, tainted {cand.get('tainted_operand')}.\n```c\n{ctx}\n```"
-    return parse(client.complete(sysp, usrp))
+    # a failed or unparseable call must not count as a rejection: retry, then keep
+    for _ in range(3):
+        v = parse(client.complete(sysp, usrp))
+        if v is not None:
+            return v
+    return {"real_bug": True, "reasoning": "llm-unavailable: kept by default"}
 
 
 def main(argv=None):
@@ -59,7 +74,11 @@ def main(argv=None):
     ap.add_argument("--model", default="gemini-2.5-flash")
     ap.add_argument("--no-confirm", action="store_true")
     ap.add_argument("--project", default=None, help="label for the report")
+    ap.add_argument("--guard-unaware", action="store_true",
+                    help="drop the longjmp/goto bounds-macro hint from the confirm prompt")
     args = ap.parse_args(argv)
+    global GUARD_UNAWARE
+    GUARD_UNAWARE = args.guard_unaware
 
     cflags = args.cflags.split() + [f"-I{args.src_dir}", f"-I{os.path.dirname(args.src_dir)}"]
     files = sorted(glob.glob(os.path.join(args.src_dir, "**", args.glob), recursive=True))

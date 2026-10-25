@@ -1,0 +1,40 @@
+[
+ {
+  "func": "parse_elements",
+  "sink": "memcpy",
+  "line": 1192,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 %459",
+  "file": "print-802_11.c",
+  "reasoning": "The memcpy at line 1192 copies `tim.length - 3` bytes from `p + (tim.length - 3)` into `tim.bitmap`. The `tim.length` value is derived from input. While there's a check `if (tim.length - 3 > (int)sizeof tim.bitmap) return 0;` which limits the amount copied into `tim.bitmap`, the source address `p + (tim.length - 3)` only relies on `tim.length` being greater than 3. There is no explicit check to ensure that `p + (tim.length - 3)` is within the bounds of `p` (the overall buffer) given the remaining `length` of the packet data. An attacker could craft `tim.length` to cause `p + (tim.length - 3)` to read out of bounds from the `p` buffer, even if the destination `tim.bitmap` is correctly sized.",
+  "later_fix": [
+   "5edf405d CVE-2017-13008/IEEE 802.11: Fix TIM bitmap copy to copy from p + offset.",
+   "99798bd9 CVE-2017-12987/IEEE 802.11: Fix processing of TIM IE."
+  ],
+  "verified": true
+ },
+ {
+  "func": "network_prefix",
+  "sink": "memcpy",
+  "line": 203,
+  "tainted_operand": "size+src-ptr+dst-ptr",
+  "size_expr": "i64 %52",
+  "file": "print-babel.c",
+  "reasoning": "The `memcpy(prefix, dp, 12 + omitted)` at line 203 copies `12 + omitted` bytes into `prefix`. `prefix` is a local buffer of size 16 bytes. `omitted` is an input-derived value. If `omitted` is greater than 4, then `12 + omitted` can be greater than 16, leading to an out-of-bounds write. While there is a check `if(omitted > 4 || ...)` earlier, it only returns -1 and does not prevent the `memcpy` from being called if `omitted` is, for example, 5. The function will proceed to the `memcpy` with `12 + 5 = 17` bytes, overflowing the `prefix` buffer.",
+  "later_fix": [],
+  "verified": false
+ },
+ {
+  "func": "ip6_finddst",
+  "sink": "memcpy",
+  "line": 156,
+  "tainted_operand": "src-ptr",
+  "size_expr": "i64 16",
+  "file": "print-ip6.c",
+  "reasoning": "The UNALIGNED_MEMCPY at line 156 uses `dst_addr` as the source, which is derived from input, and copies `sizeof(struct in6_addr)` bytes. There are no preceding bounds checks (plain or macro) that guard this operation to ensure `dst_addr` points within a valid, sufficiently sized buffer.",
+  "later_fix": [
+   "83b356e1 Don't overwrite the destination IPv6 address for routing headers."
+  ],
+  "verified": true
+ }
+]
